@@ -60,9 +60,11 @@ export type Database = {
           lower_body_id: string | null
           occasion: string | null
           outerwear_id: string | null
+          outfit_name: string | null
           style: Database["public"]["Enums"]["style_preference"] | null
           upper_body_id: string | null
           user_id: string
+          viewed_at: string | null
           weather_info: Json | null
         }
         Insert: {
@@ -74,9 +76,11 @@ export type Database = {
           lower_body_id?: string | null
           occasion?: string | null
           outerwear_id?: string | null
+          outfit_name?: string | null
           style?: Database["public"]["Enums"]["style_preference"] | null
           upper_body_id?: string | null
           user_id: string
+          viewed_at?: string | null
           weather_info?: Json | null
         }
         Update: {
@@ -88,9 +92,11 @@ export type Database = {
           lower_body_id?: string | null
           occasion?: string | null
           outerwear_id?: string | null
+          outfit_name?: string | null
           style?: Database["public"]["Enums"]["style_preference"] | null
           upper_body_id?: string | null
           user_id?: string
+          viewed_at?: string | null
           weather_info?: Json | null
         }
         Relationships: [
@@ -156,6 +162,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      try_on_sessions: {
+        Row: {
+          clothing_item_id: string | null
+          created_at: string
+          id: string
+          result_image_url: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          clothing_item_id?: string | null
+          created_at?: string
+          id?: string
+          result_image_url?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          clothing_item_id?: string | null
+          created_at?: string
+          id?: string
+          result_image_url?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "try_on_sessions_clothing_item_id_fkey"
+            columns: ["clothing_item_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_preferences: {
         Row: {

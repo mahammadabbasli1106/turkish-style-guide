@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,9 +28,9 @@ const Navbar = () => {
           <a href="#showcase" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Showcase
           </a>
-          <button className="bg-gradient-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold shadow-warm hover:opacity-90 transition-opacity">
+          <Link to="/auth" className="bg-gradient-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold shadow-warm hover:opacity-90 transition-opacity">
             Get Early Access
-          </button>
+          </Link>
         </div>
 
         <button
@@ -50,9 +51,9 @@ const Navbar = () => {
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>How It Works</a>
             <a href="#features" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Features</a>
             <a href="#showcase" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Showcase</a>
-            <button className="bg-gradient-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold">
+            <Link to="/auth" onClick={() => setIsOpen(false)} className="bg-gradient-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold text-center">
               Get Early Access
-            </button>
+            </Link>
           </div>
         </motion.div>
       )}

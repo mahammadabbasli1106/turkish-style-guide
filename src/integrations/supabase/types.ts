@@ -14,7 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clothing_items: {
+        Row: {
+          ai_tags: string[] | null
+          category: Database["public"]["Enums"]["clothing_category"]
+          color: string | null
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          season: string[] | null
+          user_id: string
+        }
+        Insert: {
+          ai_tags?: string[] | null
+          category: Database["public"]["Enums"]["clothing_category"]
+          color?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          name: string
+          season?: string[] | null
+          user_id: string
+        }
+        Update: {
+          ai_tags?: string[] | null
+          category?: Database["public"]["Enums"]["clothing_category"]
+          color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          season?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      outfit_suggestions: {
+        Row: {
+          ai_reasoning: string | null
+          created_at: string
+          footwear_id: string | null
+          id: string
+          is_favorite: boolean | null
+          lower_body_id: string | null
+          occasion: string | null
+          outerwear_id: string | null
+          style: Database["public"]["Enums"]["style_preference"] | null
+          upper_body_id: string | null
+          user_id: string
+          weather_info: Json | null
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          created_at?: string
+          footwear_id?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          lower_body_id?: string | null
+          occasion?: string | null
+          outerwear_id?: string | null
+          style?: Database["public"]["Enums"]["style_preference"] | null
+          upper_body_id?: string | null
+          user_id: string
+          weather_info?: Json | null
+        }
+        Update: {
+          ai_reasoning?: string | null
+          created_at?: string
+          footwear_id?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          lower_body_id?: string | null
+          occasion?: string | null
+          outerwear_id?: string | null
+          style?: Database["public"]["Enums"]["style_preference"] | null
+          upper_body_id?: string | null
+          user_id?: string
+          weather_info?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_suggestions_footwear_id_fkey"
+            columns: ["footwear_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfit_suggestions_lower_body_id_fkey"
+            columns: ["lower_body_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfit_suggestions_outerwear_id_fkey"
+            columns: ["outerwear_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfit_suggestions_upper_body_id_fkey"
+            columns: ["upper_body_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          auth_id: string
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          location: string | null
+          updated_at: string
+        }
+        Insert: {
+          auth_id: string
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          location?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auth_id?: string
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          location?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          default_location: string | null
+          id: string
+          preferred_styles:
+            | Database["public"]["Enums"]["style_preference"][]
+            | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_location?: string | null
+          id?: string
+          preferred_styles?:
+            | Database["public"]["Enums"]["style_preference"][]
+            | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_location?: string | null
+          id?: string
+          preferred_styles?:
+            | Database["public"]["Enums"]["style_preference"][]
+            | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +198,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      clothing_category:
+        | "upper_body"
+        | "lower_body"
+        | "outerwear"
+        | "footwear"
+        | "accessory"
+      style_preference:
+        | "streetwear"
+        | "classic"
+        | "business"
+        | "casual"
+        | "sporty"
+        | "elegant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +337,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      clothing_category: [
+        "upper_body",
+        "lower_body",
+        "outerwear",
+        "footwear",
+        "accessory",
+      ],
+      style_preference: [
+        "streetwear",
+        "classic",
+        "business",
+        "casual",
+        "sporty",
+        "elegant",
+      ],
+    },
   },
 } as const

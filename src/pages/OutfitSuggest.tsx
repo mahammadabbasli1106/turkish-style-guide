@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart } from "lucide-react";
+import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,33 +28,61 @@ type OutfitSuggestion = {
     lower_body?: OutfitItem;
     outerwear?: OutfitItem;
     footwear?: OutfitItem;
+    accessory?: OutfitItem;
   };
   weather: {
     location: string;
     temperature: number;
+    feelsLike?: number;
     description: string;
+    humidity?: number;
+    isRaining?: boolean;
   };
   reasoning: string;
   style: string;
   occasion: string;
+  venueAnalysis?: string;
 };
 
-const styles = [
-  { value: "casual", label: "Casual" },
-  { value: "business", label: "Business" },
-  { value: "streetwear", label: "Streetwear" },
-  { value: "classic", label: "Classic" },
-  { value: "sporty", label: "Sporty" },
-  { value: "elegant", label: "Elegant" },
-];
-
 export default function OutfitSuggest() {
+  const { t } = useTranslation();
   const { user, session, loading } = useAuth();
   const queryClient = useQueryClient();
   const [style, setStyle] = useState("casual");
-  const [location, setLocation] = useState("Istanbul");
+  const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
+  const [venue, setVenue] = useState("");
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
+
+  const styles = [
+    { value: "casual", label: t("style.casual") },
+    { value: "business", label: t("style.business") },
+    { value: "streetwear", label: t("style.streetwear") },
+    { value: "classic", label: t("style.classic") },
+    { value: "sporty", label: t("style.sporty") },
+    { value: "elegant", label: t("style.elegant") },
+    { value: "bohemian", label: t("style.bohemian") },
+    { value: "minimalist", label: t("style.minimalist") },
+    { value: "vintage", label: t("style.vintage") },
+    { value: "preppy", label: t("style.preppy") },
+    { value: "artsy", label: t("style.artsy") },
+    { value: "edgy", label: t("style.edgy") },
+  ];
+
+  const occasions = [
+    { value: "work", label: t("occasion.work") },
+    { value: "date", label: t("occasion.date") },
+    { value: "party", label: t("occasion.party") },
+    { value: "wedding", label: t("occasion.wedding") },
+    { value: "interview", label: t("occasion.interview") },
+    { value: "casual", label: t("occasion.casual") },
+    { value: "brunch", label: t("occasion.brunch") },
+    { value: "shopping", label: t("occasion.shopping") },
+    { value: "gym", label: t("occasion.gym") },
+    { value: "travel", label: t("occasion.travel") },
+    { value: "meeting", label: t("occasion.meeting") },
+    { value: "dinner", label: t("occasion.dinner") },
+  ];
 
   const { data: clothingCount = 0 } = useQuery({
     queryKey: ["clothing-count", user?.id],
@@ -71,9 +100,10 @@ export default function OutfitSuggest() {
   const suggestMutation = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error("Not authenticated");
+      if (!occasion) throw new Error(t("suggest.occasionPlaceholder"));
 
       const { data, error } = await supabase.functions.invoke("suggest-outfit", {
-        body: { style, location, occasion },
+        body: { style, location: location || "Istanbul", occasion, venue },
       });
 
       if (error) throw error;
@@ -84,11 +114,29 @@ export default function OutfitSuggest() {
     onSuccess: (data) => {
       setCurrentSuggestion(data);
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
+      queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
       toast.success("Here's your perfect outfit!");
     },
     onError: (error: Error) => {
       console.error("Suggest error:", error);
       toast.error(error.message);
+    },
+  });
+
+  const saveFavoriteMutation = useMutation({
+    mutationFn: async (outfitId: string) => {
+      const { error } = await supabase
+        .from("outfit_suggestions")
+        .update({ is_favorite: true })
+        .eq("id", outfitId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(t("suggest.saved"));
+      queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
+    },
+    onError: () => {
+      toast.error(t("common.error"));
     },
   });
 
@@ -114,32 +162,46 @@ export default function OutfitSuggest() {
         className="space-y-8 max-w-4xl mx-auto"
       >
         <div className="text-center">
-          <h1 className="font-display text-3xl font-bold text-foreground">Get Your Outfit</h1>
-          <p className="text-muted-foreground mt-1">
-            Tell us where you're going and we'll pick the perfect outfit
-          </p>
+          <h1 className="font-display text-3xl font-bold text-foreground">{t("suggest.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("suggest.subtitle")}</p>
         </div>
 
         {/* Input form */}
         <div className="bg-card rounded-2xl p-6 shadow-card border border-border">
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
               <Label htmlFor="location" className="flex items-center gap-2">
                 <MapPin size={16} className="text-primary" />
-                Location
+                {t("suggest.location")}
               </Label>
               <Input
                 id="location"
-                placeholder="Istanbul"
+                placeholder={t("suggest.locationPlaceholder")}
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="venue" className="flex items-center gap-2">
+                <Building size={16} className="text-primary" />
+                {t("suggest.venue")}
+              </Label>
+              <Input
+                id="venue"
+                placeholder={t("suggest.venuePlaceholder")}
+                value={venue}
+                onChange={(e) => setVenue(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Sparkles size={16} className="text-primary" />
-                Style
+                {t("suggest.style")}
               </Label>
               <Select value={style} onValueChange={setStyle}>
                 <SelectTrigger>
@@ -156,38 +218,46 @@ export default function OutfitSuggest() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="occasion">Occasion (optional)</Label>
-              <Input
-                id="occasion"
-                placeholder="e.g., dinner date, office"
-                value={occasion}
-                onChange={(e) => setOccasion(e.target.value)}
-              />
+              <Label className="flex items-center gap-2 text-primary">
+                {t("suggest.occasion")} *
+              </Label>
+              <Select value={occasion} onValueChange={setOccasion}>
+                <SelectTrigger className={!occasion ? "border-destructive" : ""}>
+                  <SelectValue placeholder={t("suggest.occasionPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {occasions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <Button
             onClick={() => suggestMutation.mutate()}
-            disabled={suggestMutation.isPending || !hasEnoughClothes}
+            disabled={suggestMutation.isPending || !hasEnoughClothes || !occasion}
             className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
             size="lg"
           >
             {suggestMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                AI is styling your outfit...
+                {t("suggest.generating")}
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-5 w-5" />
-                Get Outfit Suggestion
+                {t("suggest.getOutfit")}
               </>
             )}
           </Button>
 
           {!hasEnoughClothes && (
             <p className="text-sm text-muted-foreground text-center mt-3">
-              Add at least 3 clothing items to your wardrobe first
+              {t("suggest.needMoreItems")}
             </p>
           )}
         </div>
@@ -204,31 +274,47 @@ export default function OutfitSuggest() {
             >
               {/* Weather header */}
               <div className="bg-gradient-primary p-6 text-primary-foreground">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-3">
                     <CloudSun size={32} />
                     <div>
                       <p className="font-semibold text-lg">{currentSuggestion.weather.location}</p>
                       <p className="text-primary-foreground/80">
-                        {currentSuggestion.weather.temperature}°C • {currentSuggestion.weather.description}
+                        {currentSuggestion.weather.temperature}°C 
+                        {currentSuggestion.weather.feelsLike && ` (${t("weather.feelsLike")} ${currentSuggestion.weather.feelsLike}°C)`}
+                        • {currentSuggestion.weather.description}
+                        {currentSuggestion.weather.isRaining && " 🌧️"}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="flex gap-2">
                     <span className="bg-primary-foreground/20 px-3 py-1 rounded-full text-sm capitalize">
                       {currentSuggestion.style}
+                    </span>
+                    <span className="bg-primary-foreground/20 px-3 py-1 rounded-full text-sm capitalize">
+                      {currentSuggestion.occasion}
                     </span>
                   </div>
                 </div>
               </div>
 
+              {/* Venue analysis if available */}
+              {currentSuggestion.venueAnalysis && (
+                <div className="px-6 py-3 bg-accent/20 border-b border-border">
+                  <p className="text-sm text-foreground">
+                    <Building size={14} className="inline mr-2" />
+                    <span className="font-medium">Venue insight:</span> {currentSuggestion.venueAnalysis}
+                  </p>
+                </div>
+              )}
+
               {/* Outfit items */}
               <div className="p-6">
                 <h3 className="font-display text-xl font-semibold text-foreground mb-4">
-                  Your Outfit
+                  {t("suggest.yourOutfit")}
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  {(["upper_body", "lower_body", "outerwear", "footwear"] as const).map((category) => {
+                  {(["upper_body", "lower_body", "outerwear", "footwear", "accessory"] as const).map((category) => {
                     const item = currentSuggestion.items[category];
                     if (!item) return null;
                     return (
@@ -263,7 +349,7 @@ export default function OutfitSuggest() {
                 {currentSuggestion.reasoning && (
                   <div className="bg-secondary/50 rounded-xl p-4">
                     <p className="text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">Why this works: </span>
+                      <span className="font-medium text-foreground">{t("suggest.whyThisWorks")} </span>
                       {currentSuggestion.reasoning}
                     </p>
                   </div>
@@ -277,11 +363,15 @@ export default function OutfitSuggest() {
                     disabled={suggestMutation.isPending}
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Try Another
+                    {t("suggest.tryAnother")}
                   </Button>
-                  <Button variant="ghost">
+                  <Button 
+                    variant="ghost"
+                    onClick={() => saveFavoriteMutation.mutate(currentSuggestion.id)}
+                    disabled={saveFavoriteMutation.isPending}
+                  >
                     <Heart className="mr-2 h-4 w-4" />
-                    Save Favorite
+                    {t("suggest.saveFavorite")}
                   </Button>
                 </div>
               </div>

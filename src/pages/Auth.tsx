@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import LanguageSwitch from "@/components/LanguageSwitch";
 
 export default function AuthPage() {
+  const { t } = useTranslation();
   const { user, loading, signIn, signUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -53,6 +56,10 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitch />
+      </div>
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -60,18 +67,18 @@ export default function AuthPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <Link to="/" className="font-display text-3xl font-bold text-foreground">
-            Stilify<span className="text-gradient">.</span>
+          <Link to="/" className="font-display text-3xl font-bold text-gradient">
+            StyleAI
           </Link>
           <p className="text-muted-foreground mt-2">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isSignUp ? t("auth.signUp") : t("auth.signIn")}
           </p>
         </div>
 
         <div className="bg-card rounded-2xl p-8 shadow-card border border-border">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -87,7 +94,7 @@ export default function AuthPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -115,7 +122,7 @@ export default function AuthPage() {
               disabled={isSubmitting}
               className="w-full bg-gradient-primary text-primary-foreground shadow-warm hover:opacity-90"
             >
-              {isSubmitting ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+              {isSubmitting ? t("common.loading") : isSignUp ? t("auth.signUp") : t("auth.signIn")}
             </Button>
           </form>
 
@@ -124,7 +131,7 @@ export default function AuthPage() {
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+              {isSignUp ? t("auth.hasAccount") : t("auth.noAccount")}
             </button>
           </div>
         </div>

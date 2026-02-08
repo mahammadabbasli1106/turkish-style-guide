@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.suggest-outfit]
 verify_jwt = false
+
+[functions.virtual-try-on]
+verify_jwt = false

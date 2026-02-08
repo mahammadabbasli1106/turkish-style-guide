@@ -4,11 +4,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import "@/lib/i18n";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Wardrobe from "./pages/Wardrobe";
 import OutfitSuggest from "./pages/OutfitSuggest";
+import OutfitHistory from "./pages/OutfitHistory";
+import VirtualTryOn from "./pages/VirtualTryOn";
+import InstallApp from "./pages/InstallApp";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +30,9 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/wardrobe" element={<Wardrobe />} />
             <Route path="/dashboard/suggest" element={<OutfitSuggest />} />
+            <Route path="/dashboard/history" element={<OutfitHistory />} />
+            <Route path="/dashboard/try-on" element={<VirtualTryOn />} />
+            <Route path="/install" element={<InstallApp />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

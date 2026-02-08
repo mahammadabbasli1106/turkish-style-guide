@@ -1,97 +1,154 @@
+import { ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, Shirt, Sparkles, LogOut, Menu, X } from "lucide-react";
+import LanguageSwitch from "@/components/LanguageSwitch";
+import { 
+  Home, 
+  Shirt, 
+  Sparkles, 
+  History, 
+  Camera,
+  LogOut,
+  Menu,
+  X
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
-const navItems = [
-  { path: "/dashboard", label: "Dashboard", icon: Home },
-  { path: "/dashboard/wardrobe", label: "Wardrobe", icon: Shirt },
-  { path: "/dashboard/suggest", label: "Get Outfit", icon: Sparkles },
-];
+type Props = {
+  children: ReactNode;
+};
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuth();
+export default function DashboardLayout({ children }: Props) {
+  const { t } = useTranslation();
+  const { signOut, user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { path: "/dashboard", icon: Home, label: t("nav.dashboard") },
+    { path: "/dashboard/wardrobe", icon: Shirt, label: t("nav.wardrobe") },
+    { path: "/dashboard/suggest", icon: Sparkles, label: t("nav.suggest") },
+    { path: "/dashboard/try-on", icon: Camera, label: t("nav.tryOn") },
+    { path: "/dashboard/history", icon: History, label: t("nav.history") },
+  ];
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      navigate("/");
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top navbar */}
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="font-display text-xl font-bold text-foreground">
-            Stilify<span className="text-gradient">.</span>
+      {/* Mobile header */}
+      <header className="lg:hidden sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <Link to="/dashboard" className="font-display text-xl font-bold text-gradient">
+            StyleAI
           </Link>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                  location.pathname === item.path
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <item.icon size={18} />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="hidden md:flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut size={18} />
+          <div className="flex items-center gap-2">
+            <LanguageSwitch />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </Button>
           </div>
-
-          <button
-            className="md:hidden text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-card">
-            <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
+          <motion.nav
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute left-0 right-0 top-full bg-card border-b border-border py-4 px-4 shadow-lg"
+          >
+            <div className="space-y-2">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     location.pathname === item.path
                       ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary"
+                      : "text-foreground hover:bg-secondary"
                   }`}
                 >
-                  <item.icon size={18} />
+                  <item.icon size={20} />
                   {item.label}
                 </Link>
               ))}
               <button
-                onClick={signOut}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary"
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
               >
-                <LogOut size={18} />
-                Sign Out
+                <LogOut size={20} />
+                {t("nav.signOut")}
               </button>
-            </nav>
-          </div>
+            </div>
+          </motion.nav>
         )}
       </header>
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
+      <div className="flex">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex flex-col w-64 min-h-screen bg-card border-r border-border p-6">
+          <Link to="/dashboard" className="font-display text-2xl font-bold text-gradient mb-8">
+            StyleAI
+          </Link>
+
+          <nav className="flex-1 space-y-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  location.pathname === item.path
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-secondary"
+                }`}
+              >
+                <item.icon size={20} />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="pt-6 border-t border-border space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground truncate max-w-[140px]">
+                {user?.email}
+              </span>
+              <LanguageSwitch />
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleSignOut}
+            >
+              <LogOut size={20} className="mr-3" />
+              {t("nav.signOut")}
+            </Button>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

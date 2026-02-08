@@ -11,6 +11,7 @@ const resources = {
       "nav.tryOn": "Try On",
       "nav.history": "History",
       "nav.dashboard": "Dashboard",
+      "nav.settings": "Settings",
       "nav.signIn": "Sign In",
       "nav.signOut": "Sign Out",
       
@@ -142,6 +143,26 @@ const resources = {
       // PWA
       "pwa.install": "Install App",
       "pwa.installPrompt": "Install StyleAI for the best experience",
+
+      // Settings
+      "settings.title": "Profile Settings",
+      "settings.subtitle": "Manage your profile and preferences",
+      "settings.profile": "Profile",
+      "settings.displayName": "Display Name",
+      "settings.displayNamePlaceholder": "Enter your name",
+      "settings.location": "Default Location",
+      "settings.defaultLocation": "City",
+      "settings.locationPlaceholder": "e.g., Istanbul, New York",
+      "settings.locationHint": "This will be used as default for weather-based outfit suggestions",
+      "settings.stylePreferences": "Preferred Styles",
+      "settings.saved": "Settings saved successfully!",
+      
+      // Suggest - Try On
+      "suggest.tryOnThisOutfit": "Try On This Outfit",
+      
+      // Auth
+      "auth.signInWithGoogle": "Continue with Google",
+      "auth.orContinueWith": "or continue with email",
     }
   },
   tr: {
@@ -153,6 +174,7 @@ const resources = {
       "nav.tryOn": "Sanal Deneme",
       "nav.history": "Geçmiş",
       "nav.dashboard": "Kontrol Paneli",
+      "nav.settings": "Ayarlar",
       "nav.signIn": "Giriş Yap",
       "nav.signOut": "Çıkış Yap",
       
@@ -284,6 +306,26 @@ const resources = {
       // PWA
       "pwa.install": "Uygulamayı Yükle",
       "pwa.installPrompt": "En iyi deneyim için StyleAI'ı yükleyin",
+
+      // Settings
+      "settings.title": "Profil Ayarları",
+      "settings.subtitle": "Profilinizi ve tercihlerinizi yönetin",
+      "settings.profile": "Profil",
+      "settings.displayName": "Görünen Ad",
+      "settings.displayNamePlaceholder": "Adınızı girin",
+      "settings.location": "Varsayılan Konum",
+      "settings.defaultLocation": "Şehir",
+      "settings.locationPlaceholder": "örn. İstanbul, New York",
+      "settings.locationHint": "Bu, hava durumuna göre kombin önerileri için varsayılan olarak kullanılacaktır",
+      "settings.stylePreferences": "Tercih Edilen Stiller",
+      "settings.saved": "Ayarlar başarıyla kaydedildi!",
+      
+      // Suggest - Try On
+      "suggest.tryOnThisOutfit": "Bu Kombini Dene",
+      
+      // Auth
+      "auth.signInWithGoogle": "Google ile Devam Et",
+      "auth.orContinueWith": "veya e-posta ile devam et",
     }
   }
 };

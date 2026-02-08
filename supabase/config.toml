@@ -1,1 +1,7 @@
 project_id = "cworgqktortraxwguedr"
+
+[functions.categorize-clothing]
+verify_jwt = false
+
+[functions.suggest-outfit]
+verify_jwt = false

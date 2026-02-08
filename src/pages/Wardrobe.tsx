@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -21,20 +22,20 @@ type ClothingItem = {
   created_at: string;
 };
 
-const categoryLabels: Record<string, string> = {
-  upper_body: "👕 Tops",
-  lower_body: "👖 Bottoms",
-  outerwear: "🧥 Outerwear",
-  footwear: "👟 Footwear",
-  accessory: "⌚ Accessories",
-};
-
 export default function Wardrobe() {
+  const { t } = useTranslation();
   const { user, session, loading } = useAuth();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  const categoryLabels: Record<string, string> = {
+    upper_body: t("wardrobe.tops"),
+    lower_body: t("wardrobe.bottoms"),
+    outerwear: t("wardrobe.outerwear"),
+    footwear: t("wardrobe.footwear"),
+    accessory: t("wardrobe.accessories"),
+  };
   const { data: clothingItems = [], isLoading } = useQuery({
     queryKey: ["clothing-items", user?.id],
     queryFn: async () => {

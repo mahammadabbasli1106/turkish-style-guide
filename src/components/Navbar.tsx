@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Globe } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import LanguageSwitch from "@/components/LanguageSwitch";
 
 const Navbar = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -14,8 +17,8 @@ const Navbar = () => {
       className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border"
     >
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-        <a href="#" className="font-display text-2xl font-bold tracking-tight text-foreground">
-          Stilify<span className="text-gradient">.</span>
+        <a href="#" className="font-display text-2xl font-bold tracking-tight text-gradient">
+          StyleAI
         </a>
 
         <div className="hidden md:flex items-center gap-8">
@@ -28,17 +31,21 @@ const Navbar = () => {
           <a href="#showcase" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Showcase
           </a>
+          <LanguageSwitch />
           <Link to="/auth" className="bg-gradient-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold shadow-warm hover:opacity-90 transition-opacity">
-            Get Early Access
+            {t("hero.cta")}
           </Link>
         </div>
 
-        <button
-          className="md:hidden text-foreground"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <LanguageSwitch />
+          <button
+            className="text-foreground"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {isOpen && (
@@ -52,7 +59,7 @@ const Navbar = () => {
             <a href="#features" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Features</a>
             <a href="#showcase" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Showcase</a>
             <Link to="/auth" onClick={() => setIsOpen(false)} className="bg-gradient-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold text-center">
-              Get Early Access
+              {t("hero.cta")}
             </Link>
           </div>
         </motion.div>

@@ -1,13 +1,15 @@
 import { Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Shirt, Sparkles, CloudSun, TrendingUp } from "lucide-react";
+import { Shirt, Sparkles, CloudSun, TrendingUp, Camera, History } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
 
   const { data: clothingCount = 0 } = useQuery({
@@ -49,9 +51,9 @@ export default function Dashboard() {
   }
 
   const stats = [
-    { label: "Clothing Items", value: clothingCount, icon: Shirt, color: "bg-primary" },
-    { label: "Outfits Created", value: outfitCount, icon: Sparkles, color: "bg-accent" },
-    { label: "Weather Checks", value: "∞", icon: CloudSun, color: "bg-secondary" },
+    { label: t("dashboard.clothingItems"), value: clothingCount, icon: Shirt, color: "bg-primary" },
+    { label: t("dashboard.outfitsCreated"), value: outfitCount, icon: Sparkles, color: "bg-accent" },
+    { label: t("dashboard.weatherChecks"), value: "∞", icon: CloudSun, color: "bg-secondary" },
   ];
 
   return (
@@ -63,10 +65,10 @@ export default function Dashboard() {
       >
         <div>
           <h1 className="font-display text-3xl font-bold text-foreground">
-            Welcome back!
+            {t("dashboard.welcome")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Here's your style overview
+            {t("dashboard.overview")}
           </p>
         </div>
 
@@ -90,16 +92,16 @@ export default function Dashboard() {
         </div>
 
         {/* Quick actions */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link to="/dashboard/wardrobe">
             <motion.div
               whileHover={{ scale: 1.02 }}
-              className="bg-gradient-primary rounded-xl p-8 text-primary-foreground cursor-pointer shadow-warm"
+              className="bg-gradient-primary rounded-xl p-6 text-primary-foreground cursor-pointer shadow-warm h-full"
             >
-              <Shirt size={32} className="mb-4" />
-              <h3 className="font-display text-xl font-semibold mb-2">Manage Wardrobe</h3>
-              <p className="text-primary-foreground/80">
-                Upload and organize your clothing items
+              <Shirt size={28} className="mb-3" />
+              <h3 className="font-display text-lg font-semibold mb-1">{t("dashboard.manageWardrobe")}</h3>
+              <p className="text-primary-foreground/80 text-sm">
+                {t("dashboard.wardrobeDesc")}
               </p>
             </motion.div>
           </Link>
@@ -107,14 +109,44 @@ export default function Dashboard() {
           <Link to="/dashboard/suggest">
             <motion.div
               whileHover={{ scale: 1.02 }}
-              className="bg-card rounded-xl p-8 border border-border cursor-pointer shadow-card hover:shadow-card-hover transition-shadow"
+              className="bg-card rounded-xl p-6 border border-border cursor-pointer shadow-card hover:shadow-card-hover transition-shadow h-full"
             >
-              <TrendingUp size={32} className="text-primary mb-4" />
-              <h3 className="font-display text-xl font-semibold text-foreground mb-2">
-                Get Outfit Suggestion
+              <TrendingUp size={28} className="text-primary mb-3" />
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">
+                {t("dashboard.getOutfit")}
               </h3>
-              <p className="text-muted-foreground">
-                Let AI pick the perfect outfit for today
+              <p className="text-muted-foreground text-sm">
+                {t("dashboard.outfitDesc")}
+              </p>
+            </motion.div>
+          </Link>
+
+          <Link to="/dashboard/try-on">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="bg-card rounded-xl p-6 border border-border cursor-pointer shadow-card hover:shadow-card-hover transition-shadow h-full"
+            >
+              <Camera size={28} className="text-accent mb-3" />
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">
+                {t("tryOn.title")}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {t("tryOn.subtitle")}
+              </p>
+            </motion.div>
+          </Link>
+
+          <Link to="/dashboard/history">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="bg-card rounded-xl p-6 border border-border cursor-pointer shadow-card hover:shadow-card-hover transition-shadow h-full"
+            >
+              <History size={28} className="text-muted-foreground mb-3" />
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">
+                {t("history.title")}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {t("history.subtitle")}
               </p>
             </motion.div>
           </Link>

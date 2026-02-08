@@ -13,7 +13,8 @@ import {
   Camera,
   LogOut,
   Menu,
-  X
+  X,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }: Props) {
     { path: "/dashboard/suggest", icon: Sparkles, label: t("nav.suggest") },
     { path: "/dashboard/try-on", icon: Camera, label: t("nav.tryOn") },
     { path: "/dashboard/history", icon: History, label: t("nav.history") },
+    { path: "/dashboard/settings", icon: Settings, label: t("nav.settings") },
   ];
 
   const handleSignOut = async () => {

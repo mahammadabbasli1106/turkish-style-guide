@@ -15,7 +15,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const OPENWEATHERMAP_API_KEY = Deno.env.get("OPENWEATHERMAP_API_KEY");
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL is not configured");
@@ -56,8 +55,8 @@ serve(async (req) => {
       accessory: clothingItems.filter(c => c.category === "accessory"),
     };
 
-    // Get real weather data
-    const weather = await getWeatherInfo(location, OPENWEATHERMAP_API_KEY);
+    // Get real weather data from Open-Meteo (free, no API key)
+    const weather = await getWeatherInfo(location);
 
     // Analyze venue type using AI if venue is provided
     let venueAnalysis = "";
@@ -199,20 +198,15 @@ ${wardrobeDescription}`
   }
 });
 
-// Real weather API integration using OpenWeatherMap
-async function getWeatherInfo(location: string | undefined, apiKey: string | undefined) {
+// Real weather API integration using Open-Meteo (free, no API key required)
+async function getWeatherInfo(location: string | undefined) {
   const defaultLocation = "Istanbul";
   const searchLocation = location || defaultLocation;
   
-  if (!apiKey) {
-    console.warn("OpenWeatherMap API key not configured, using fallback");
-    return getFallbackWeather(searchLocation);
-  }
-
   try {
-    // Get coordinates first using geocoding
+    // Get coordinates first using Open-Meteo geocoding
     const geoResponse = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchLocation)}&limit=1&appid=${apiKey}`
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchLocation)}&count=1&language=en&format=json`
     );
     
     if (!geoResponse.ok) {
@@ -222,16 +216,16 @@ async function getWeatherInfo(location: string | undefined, apiKey: string | und
 
     const geoData = await geoResponse.json();
     
-    if (!geoData || geoData.length === 0) {
+    if (!geoData.results || geoData.results.length === 0) {
       console.warn("Location not found:", searchLocation);
       return getFallbackWeather(searchLocation);
     }
 
-    const { lat, lon, name } = geoData[0];
+    const { latitude, longitude, name } = geoData.results[0];
 
-    // Get current weather
+    // Get current weather from Open-Meteo
     const weatherResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,weather_code,wind_speed_10m&timezone=auto`
     );
 
     if (!weatherResponse.ok) {
@@ -240,22 +234,57 @@ async function getWeatherInfo(location: string | undefined, apiKey: string | und
     }
 
     const weatherData = await weatherResponse.json();
+    const current = weatherData.current;
+
+    // Map weather codes to descriptions
+    const weatherDescription = getWeatherDescription(current.weather_code);
+    const isRaining = current.rain > 0 || current.precipitation > 0;
 
     return {
       location: name || searchLocation,
-      temperature: Math.round(weatherData.main.temp),
-      feelsLike: Math.round(weatherData.main.feels_like),
-      description: weatherData.weather[0].description,
-      humidity: weatherData.main.humidity,
-      windSpeed: weatherData.wind.speed,
-      icon: weatherData.weather[0].icon,
-      isRaining: weatherData.weather[0].main === "Rain" || weatherData.weather[0].main === "Drizzle",
-      needsOuterwear: weatherData.main.temp < 18 || weatherData.weather[0].main === "Rain",
+      temperature: Math.round(current.temperature_2m),
+      feelsLike: Math.round(current.apparent_temperature),
+      description: weatherDescription,
+      humidity: current.relative_humidity_2m,
+      windSpeed: current.wind_speed_10m,
+      isRaining: isRaining,
+      needsOuterwear: current.temperature_2m < 18 || isRaining,
     };
   } catch (error) {
     console.error("Weather API error:", error);
     return getFallbackWeather(searchLocation);
   }
+}
+
+// Map Open-Meteo weather codes to descriptions
+function getWeatherDescription(code: number): string {
+  const descriptions: Record<number, string> = {
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Foggy",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    71: "Slight snow",
+    73: "Moderate snow",
+    75: "Heavy snow",
+    77: "Snow grains",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    85: "Slight snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
+  };
+  return descriptions[code] || "Unknown";
 }
 
 // Fallback weather for when API fails
@@ -267,7 +296,6 @@ function getFallbackWeather(location: string) {
     description: "Weather data unavailable",
     humidity: 50,
     windSpeed: 5,
-    icon: "01d",
     isRaining: false,
     needsOuterwear: false,
   };

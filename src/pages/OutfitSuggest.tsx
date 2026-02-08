@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building } from "lucide-react";
+import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,6 +48,7 @@ export default function OutfitSuggest() {
   const { t } = useTranslation();
   const { user, session, loading } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [style, setStyle] = useState("casual");
   const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
@@ -356,7 +357,7 @@ export default function OutfitSuggest() {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-3 mt-6">
+                <div className="flex flex-wrap gap-3 mt-6">
                   <Button
                     variant="outline"
                     onClick={() => suggestMutation.mutate()}
@@ -372,6 +373,13 @@ export default function OutfitSuggest() {
                   >
                     <Heart className="mr-2 h-4 w-4" />
                     {t("suggest.saveFavorite")}
+                  </Button>
+                  <Button
+                    className="bg-gradient-primary text-primary-foreground"
+                    onClick={() => navigate("/dashboard/try-on")}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    {t("suggest.tryOnThisOutfit")}
                   </Button>
                 </div>
               </div>

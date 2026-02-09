@@ -38,11 +38,11 @@ function calculateStreak(dates: string[]): number {
 }
 
 function getLevel(streak: number) {
-  return Math.floor(streak / 7) + 1;
+  return Math.floor(streak / 10) + 1;
 }
 
 function getProgressInLevel(streak: number) {
-  return (streak % 7) / 7;
+  return (streak % 10) / 10;
 }
 
 export default function StreakWidget() {

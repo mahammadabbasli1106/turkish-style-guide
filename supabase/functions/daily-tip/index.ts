@@ -35,14 +35,12 @@ serve(async (req) => {
 
     const { language = "en" } = await req.json().catch(() => ({}));
 
-    // Fetch user's wardrobe summary
     const { data: items } = await supabase
       .from("clothing_items")
       .select("name, category, color, ai_tags, season")
       .eq("user_id", user.id)
       .limit(50);
 
-    // Fetch user preferences
     const { data: prefs } = await supabase
       .from("user_preferences")
       .select("preferred_styles")
@@ -59,7 +57,7 @@ serve(async (req) => {
 
     const dayOfWeek = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
-    const systemPrompt = `You are a personal fashion stylist AI for the app tarzly.ai. 
+    const prompt = `You are a personal fashion stylist AI for the app tarzly.ai. 
 Generate ONE short, personalized daily style tip (max 2 sentences, ~30 words) based on the user's actual wardrobe items and style preferences.
 
 Rules:
@@ -68,37 +66,33 @@ Rules:
 - Consider the day of the week for context (e.g., Monday = work-ready, Friday = relaxed)
 - If the wardrobe is empty, give a general but interesting fashion tip
 - Respond in ${language === "tr" ? "Turkish" : "English"}
-- Do NOT use quotes or bullet points, just the tip text directly`;
+- Do NOT use quotes or bullet points, just the tip text directly
 
-    const userPrompt = `Day: ${dayOfWeek}
+Day: ${dayOfWeek}
 Preferred styles: ${styles}
 Wardrobe items:
 ${wardrobeSummary}
 
 Generate a personalized style tip.`;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: "AI not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
@@ -108,13 +102,7 @@ Generate a personalized style tip.`;
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      console.error("AI error:", status, await aiResponse.text());
+      console.error("Gemini error:", status, await aiResponse.text());
       return new Response(JSON.stringify({ error: "AI generation failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -122,7 +110,7 @@ Generate a personalized style tip.`;
     }
 
     const result = await aiResponse.json();
-    const tip = result.choices?.[0]?.message?.content?.trim() || "";
+    const tip = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
     return new Response(JSON.stringify({ tip }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

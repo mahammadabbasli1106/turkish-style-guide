@@ -3,7 +3,7 @@ import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-const TOAST_DURATION = 1000;
+const TOAST_DURATION = 2000;
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();

@@ -272,6 +272,7 @@ const resources = {
       "fab.getOutfit": "Get Outfit",
       "fab.chat": "Style Chat",
       "dashboard.dailyTip": "Daily Style Tip",
+      "dashboard.aiTip": "AI Style Tip ✨",
     }
   },
   tr: {
@@ -546,6 +547,7 @@ const resources = {
       "fab.getOutfit": "Kombin Al",
       "fab.chat": "Stil Sohbeti",
       "dashboard.dailyTip": "Günlük Stil İpucu",
+      "dashboard.aiTip": "AI Stil İpucu ✨",
     }
   }
 };

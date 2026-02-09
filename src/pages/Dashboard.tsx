@@ -27,9 +27,7 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  if (!loading && !onboardingLoading && user && onboardingDone === false) {
-    return <Navigate to="/onboarding" replace />;
-  }
+  // onboarding check moved below all hooks
 
   const { data: clothingCount = 0 } = useQuery({
     queryKey: ["clothing-count", user?.id],
@@ -131,6 +129,10 @@ export default function Dashboard() {
     enabled: !!user,
     staleTime: 1000 * 60 * 10, // Cache for 10 minutes
   });
+
+  if (!loading && !onboardingLoading && user && onboardingDone === false) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   if (loading) {
     return (

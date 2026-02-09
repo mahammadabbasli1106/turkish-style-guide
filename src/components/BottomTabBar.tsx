@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Home, Shirt, Sparkles, MessageCircle, Settings } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const tabs = [
   { path: "/dashboard", icon: Home, labelKey: "nav.dashboard" },
@@ -23,14 +24,41 @@ export default function BottomTabBar() {
             <Link
               key={tab.path}
               to={tab.path}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[56px] ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground active:text-foreground"
-              }`}
+              className="flex flex-col items-center gap-0.5 min-w-[56px] relative"
             >
-              <tab.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className={`text-[10px] leading-tight ${isActive ? "font-semibold" : "font-medium"}`}>
+              <motion.div
+                className="relative flex items-center justify-center w-10 h-8 rounded-2xl"
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      layoutId="tab-pill"
+                      className="absolute inset-0 bg-primary/10 rounded-2xl"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    />
+                  )}
+                </AnimatePresence>
+                <tab.icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                  className={`relative z-10 transition-colors duration-200 ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                  fill={isActive ? "currentColor" : "none"}
+                />
+              </motion.div>
+              <span
+                className={`text-[10px] leading-tight transition-colors duration-200 ${
+                  isActive
+                    ? "font-semibold text-primary"
+                    : "font-medium text-muted-foreground"
+                }`}
+              >
                 {t(tab.labelKey)}
               </span>
             </Link>

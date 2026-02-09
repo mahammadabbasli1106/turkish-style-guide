@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Sparkles, RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const TIPS_EN = [
   "A well-fitted white tee is the most versatile piece you can own.",
@@ -31,19 +35,40 @@ const TIPS_TR = [
 
 export default function DailyTipCard() {
   const { i18n, t } = useTranslation();
+  const { user } = useAuth();
   const tips = i18n.language === "tr" ? TIPS_TR : TIPS_EN;
 
-  // Pick a tip based on the day of the year so it rotates daily
-  const tipIndex = useMemo(() => {
+  // Static fallback tip
+  const fallbackTip = useMemo(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
-    const dayOfYear = Math.floor(
-      (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return dayOfYear % tips.length;
-  }, [tips.length]);
+    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return tips[dayOfYear % tips.length];
+  }, [tips]);
 
-  const tip = tips[tipIndex];
+  // AI-generated tip (cached for 1 hour)
+  const { data: aiTip, isLoading: aiLoading, refetch, isFetching } = useQuery({
+    queryKey: ["daily-ai-tip", user?.id, i18n.language],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("daily-tip", {
+        body: { language: i18n.language },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error.includes("Rate limited") || data.error.includes("credits")) {
+          toast.error(data.error);
+        }
+        throw new Error(data.error);
+      }
+      return data?.tip as string;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 60, // 1 hour
+    retry: false,
+  });
+
+  const tip = aiTip || fallbackTip;
+  const isAI = !!aiTip;
 
   // Typewriter state
   const [displayedText, setDisplayedText] = useState("");
@@ -73,12 +98,30 @@ export default function DailyTipCard() {
     >
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center shrink-0 mt-0.5">
-          <Lightbulb size={18} className="text-accent" />
+          {isAI ? (
+            <Sparkles size={18} className="text-accent" />
+          ) : (
+            <Lightbulb size={18} className="text-accent" />
+          )}
         </div>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-accent mb-1">
-            {t("dashboard.dailyTip")}
-          </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs font-semibold text-accent">
+              {isAI ? t("dashboard.aiTip") : t("dashboard.dailyTip")}
+            </p>
+            {done && !isFetching && (
+              <button
+                onClick={() => refetch()}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Refresh tip"
+              >
+                <RefreshCw size={12} />
+              </button>
+            )}
+            {isFetching && (
+              <RefreshCw size={12} className="text-muted-foreground animate-spin" />
+            )}
+          </div>
           <p className="text-sm text-foreground leading-relaxed">
             {displayedText}
             {!done && (

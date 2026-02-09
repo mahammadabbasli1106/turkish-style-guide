@@ -1,84 +1,82 @@
 
 
-# Mobile Testing and App Store Deployment Guide
+# Free Plan Usage Limits and Premium Upgrade Modal
 
-## 1. Testing on Your Physical Phone Right Now
+## Overview
+Add a subscription/usage tracking system that enforces free-tier limits across four features, with a polished Premium upgrade modal.
 
-Your app is already published and accessible on any device. Here is how to test it:
+## What Will Be Built
 
-### Steps:
-1. Open Safari (iPhone) or Chrome (Android) on your phone
-2. Navigate to: **https://turkish-style-guide.lovable.app**
-3. You will experience the full mobile app including touch gestures, bottom tab bar, safe areas, and pull-to-refresh
+### 1. Database: `usage_events` Table
+A new table to persist every usage event with timestamps, enabling the 24-hour rolling window check.
 
-### Installing as a Home Screen App (PWA):
-- **iPhone**: Open the URL in Safari, tap the Share button, then tap "Add to Home Screen"
-- **Android**: Open the URL in Chrome, tap the browser menu (three dots), then tap "Install app" or "Add to Home screen"
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| user_id | uuid | References auth user |
+| feature | text | One of: `outfit_suggest`, `virtual_tryon`, `style_chat` |
+| created_at | timestamptz | When the action occurred |
 
-Once installed, the app launches full-screen without browser chrome, just like a native app. This is the fastest way to test the real mobile experience right now.
+RLS policies: users can only insert/read their own events. Wardrobe count is already tracked via `clothing_items` table (no new table needed).
 
----
+### 2. `useUsageLimits` Hook
+A centralized React hook that:
+- Queries `clothing_items` count for the wardrobe limit (20 max)
+- Queries `usage_events` for the last 24 hours, grouped by feature
+- Returns usage counts and boolean flags (`canSuggestOutfit`, `canTryOn`, `canChat`, `canUploadClothing`)
+- Provides a `recordUsage(feature)` function that inserts a row and refreshes counts
+- Returns `chatMessagesLeft` (5 minus count)
 
-## 2. App Store and Play Store Deployment
+### 3. Premium Upgrade Modal Component
+A reusable `<PremiumUpgradeModal>` dialog with:
+- Feature highlights: Unlimited Wardrobe, Unlimited AI Suggestions, Unlimited Try-Ons, 24/7 Personal Stylist Access
+- Two pricing buttons: Monthly ($9.99) and Yearly ($95.99 -- Save 20%)
+- Buttons are non-functional for now (no payment integration yet) -- they show a "Coming Soon" toast
+- Accepts a `trigger` prop describing which limit was hit (shown as heading text)
 
-You have **two paths** to choose from:
+### 4. Page-Level Integrations
 
-### Option A: Installable Web App (PWA) -- Already Built
+**Wardrobe Page:**
+- Add a progress bar at top: "14/20 slots used" with the `<Progress>` component
+- When count reaches 20, disable the upload button and show a tooltip
+- Clicking disabled button opens Premium modal
 
-Your app is already a fully configured PWA with offline support, home screen installation, and native-like UX. This is what you have today.
+**Outfit Suggest Page:**
+- Before calling `suggestMutation.mutate()`, check `canSuggestOutfit`
+- If blocked, open Premium modal with "Daily Limit Reached" message
+- Show remaining count near the generate button: "1/2 suggestions left today"
+- After successful generation, call `recordUsage('outfit_suggest')`
 
-**Pros:**
-- Already done -- no additional build steps
-- Works on both iOS and Android
-- No app store review process or fees
-- Instant updates (no waiting for store approval)
-- Share via URL
+**Virtual Try-On Page:**
+- Same pattern: check `canTryOn` before mutation
+- Show "1/2 try-ons left today" indicator
+- Open Premium modal when limit hit
+- Record usage after success
 
-**Limitations:**
-- Not listed in App Store / Play Store
-- Some native features (push notifications on iOS, advanced sensors) are limited
+**Style Chat Page:**
+- Show "3/5 messages left" counter in the chat input area
+- Before sending, check `canChat`
+- If blocked, open Premium modal
+- Record usage after each sent message
 
-### Option B: Native App via Capacitor -- For App Store Listing
+## Technical Details
 
-If you want your app in the Apple App Store and Google Play Store, Capacitor is the recommended approach. It wraps your existing React code into a native shell -- **no rewrite to React Native or Expo needed**.
+### New Files
+- `src/hooks/useUsageLimits.ts` -- the centralized hook
+- `src/components/PremiumUpgradeModal.tsx` -- the modal component
 
-**What Capacitor does:**
-- Takes your existing codebase as-is
-- Wraps it in a native iOS (Swift) and Android (Kotlin) container
-- Generates IPA (iOS) and APK/AAB (Android) files for store submission
+### Modified Files
+- `src/pages/Wardrobe.tsx` -- add progress bar, disable upload at 20, premium modal trigger
+- `src/pages/OutfitSuggest.tsx` -- add limit check before generation, usage recording, remaining counter
+- `src/pages/VirtualTryOn.tsx` -- add limit check before generation, usage recording, remaining counter
+- `src/pages/StyleChat.tsx` -- add message counter, limit check before send, usage recording
+- `src/components/chat/ChatInput.tsx` -- accept and display `messagesLeft` prop
 
-**Requirements:**
-- A Mac with Xcode installed (for iOS builds)
-- Android Studio installed (for Android builds)
-- Apple Developer account ($99/year) for App Store
-- Google Play Developer account ($25 one-time) for Play Store
+### Database Migration
+One migration to create the `usage_events` table with RLS policies.
 
-**Setup steps (done on your local machine):**
+### 24-Hour Rolling Window Logic
+The hook queries: `SELECT count(*) FROM usage_events WHERE user_id = ? AND feature = ? AND created_at > now() - interval '24 hours'`
 
-1. Export the project to GitHub via Settings, then clone it locally
-2. Install dependencies: `npm install`
-3. Install Capacitor packages:
-   - @capacitor/core
-   - @capacitor/cli (dev dependency)
-   - @capacitor/ios
-   - @capacitor/android
-4. Initialize Capacitor: `npx cap init`
-5. Add platforms: `npx cap add ios` and/or `npx cap add android`
-6. Build the project: `npm run build`
-7. Sync to native: `npx cap sync`
-8. Open in IDE: `npx cap open ios` (Xcode) or `npx cap open android` (Android Studio)
-9. Build and submit from the native IDE
-
-**After any code changes in Lovable:**
-- Pull the latest code
-- Run `npm run build` then `npx cap sync`
-
----
-
-## Recommendation
-
-- **For testing right now**: Open https://turkish-style-guide.lovable.app on your phone and install it to your home screen. You can do this in the next 30 seconds.
-- **For App Store/Play Store**: Use Capacitor when you are ready. Your codebase does not need any rewriting.
-
-For a detailed walkthrough of the Capacitor setup, refer to: https://docs.lovable.dev/tips-tricks/native-mobile-apps
+This is done via Supabase JS with a `.gte('created_at', twentyFourHoursAgo.toISOString())` filter, ensuring the rolling window works correctly regardless of midnight boundaries.
 

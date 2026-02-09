@@ -87,6 +87,17 @@ serve(async (req) => {
       },
     });
 
+    // Helper to convert ArrayBuffer to base64 without stack overflow
+    const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+      }
+      return btoa(binary);
+    };
+
     // Add clothing item image if it's a base64 or accessible URL
     if (clothingItem.image_url) {
       if (clothingItem.image_url.startsWith("data:")) {
@@ -97,12 +108,11 @@ serve(async (req) => {
           },
         });
       } else {
-        // For URLs, fetch and convert to base64
         try {
           const imgRes = await fetch(clothingItem.image_url);
           if (imgRes.ok) {
             const imgBuffer = await imgRes.arrayBuffer();
-            const imgBase64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+            const imgBase64 = arrayBufferToBase64(imgBuffer);
             imageParts.push({
               inlineData: {
                 mimeType: imgRes.headers.get("content-type") || "image/jpeg",
@@ -116,17 +126,18 @@ serve(async (req) => {
       }
     }
 
-    // Note: Gemini 1.5 Flash does not generate images. 
-    // We use it to create a detailed text description instead.
-    // For actual image generation, you'd need Imagen API or similar.
+    // Gemini 2.0 Flash can analyze images but cannot generate them.
+    // We return a detailed styling analysis text instead.
+    const requestBody = {
+      contents: [{ parts: imageParts }],
+    };
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: imageParts }],
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
@@ -142,6 +153,8 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
       throw new Error(`Gemini API error: ${response.status}`);
     }
 

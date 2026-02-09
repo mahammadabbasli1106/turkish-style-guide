@@ -14,6 +14,7 @@ const resources = {
       "nav.settings": "Settings",
       "nav.signIn": "Sign In",
       "nav.signOut": "Sign Out",
+      "nav.chat": "Chat",
       
       // Landing page
       "hero.title": "Your AI-Powered Style Assistant",
@@ -205,6 +206,11 @@ const resources = {
       "onboarding.locationSubtitle": "We use your location for weather-based outfit recommendations. \"It's raining in Istanbul? We've got you covered.\"",
       "onboarding.locationAllow": "Enable Location",
       "onboarding.complete": "You're all set! Welcome to tarzly.ai 🎉",
+      
+      // Chat
+      "chat.title": "Style Assistant",
+      "chat.subtitle": "Ask me anything about fashion, outfits, or your wardrobe",
+      "chat.placeholder": "Ask about style, outfits, trends...",
     }
   },
   tr: {
@@ -219,6 +225,7 @@ const resources = {
       "nav.settings": "Ayarlar",
       "nav.signIn": "Giriş Yap",
       "nav.signOut": "Çıkış Yap",
+      "nav.chat": "Sohbet",
       
       // Landing page
       "hero.title": "AI Destekli Stil Asistanınız",
@@ -412,6 +419,11 @@ const resources = {
       "onboarding.locationSubtitle": "Hava durumuna göre kombin önerileri için konumunuzu kullanıyoruz. \"İstanbul'da yağmur mu yağıyor? Sizi düşündük.\"",
       "onboarding.locationAllow": "Konumu Etkinleştir",
       "onboarding.complete": "Hazırsınız! tarzly.ai'ye hoş geldiniz 🎉",
+      
+      // Chat
+      "chat.title": "Stil Asistanı",
+      "chat.subtitle": "Moda, kombinler veya gardırobunuz hakkında her şeyi sorun",
+      "chat.placeholder": "Stil, kombin, trendler hakkında sorun...",
     }
   }
 };

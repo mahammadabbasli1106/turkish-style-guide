@@ -1,22 +1,20 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import LanguageSwitch from "@/components/LanguageSwitch";
+import BottomTabBar from "@/components/BottomTabBar";
 import { 
   Home, 
   Shirt, 
   Sparkles, 
   History, 
   Camera,
+  MessageCircle,
   LogOut,
-  Menu,
-  X,
   Settings
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 
 type Props = {
@@ -28,12 +26,12 @@ export default function DashboardLayout({ children }: Props) {
   const { signOut, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { path: "/dashboard", icon: Home, label: t("nav.dashboard") },
     { path: "/dashboard/wardrobe", icon: Shirt, label: t("nav.wardrobe") },
     { path: "/dashboard/suggest", icon: Sparkles, label: t("nav.suggest") },
+    { path: "/dashboard/chat", icon: MessageCircle, label: t("nav.chat") },
     { path: "/dashboard/try-on", icon: Camera, label: t("nav.tryOn") },
     { path: "/dashboard/history", icon: History, label: t("nav.history") },
     { path: "/dashboard/settings", icon: Settings, label: t("nav.settings") },
@@ -44,7 +42,7 @@ export default function DashboardLayout({ children }: Props) {
       await signOut();
       toast.success("Signed out successfully");
       navigate("/");
-    } catch (error) {
+    } catch {
       toast.error("Failed to sign out");
     }
   };
@@ -52,56 +50,13 @@ export default function DashboardLayout({ children }: Props) {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
+      <header className="lg:hidden sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <Link to="/dashboard" className="font-display text-xl font-bold text-gradient">
             tarzly.ai
           </Link>
-          <div className="flex items-center gap-2">
-            <LanguageSwitch />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </Button>
-          </div>
+          <LanguageSwitch />
         </div>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <motion.nav
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute left-0 right-0 top-full bg-card border-b border-border py-4 px-4 shadow-lg"
-          >
-            <div className="space-y-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === item.path
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-secondary"
-                  }`}
-                >
-                  <item.icon size={20} />
-                  {item.label}
-                </Link>
-              ))}
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <LogOut size={20} />
-                {t("nav.signOut")}
-              </button>
-            </div>
-          </motion.nav>
-        )}
       </header>
 
       <div className="flex">
@@ -147,10 +102,13 @@ export default function DashboardLayout({ children }: Props) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Bottom tab bar for mobile */}
+      <BottomTabBar />
     </div>
   );
 }

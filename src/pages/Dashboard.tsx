@@ -178,12 +178,35 @@ export default function Dashboard() {
         >
           {/* Greeting */}
           <div className="pt-2">
-            <p className="text-muted-foreground text-sm">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-muted-foreground text-sm"
+            >
               {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-            </p>
-            <h1 className="font-display text-2xl font-bold text-foreground mt-1">
-              {getTimeGreeting(t)}, {firstName} 👋
-            </h1>
+            </motion.p>
+            <motion.h1
+              className="font-display text-2xl font-bold text-foreground mt-1 flex flex-wrap gap-x-[0.3em]"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
+              }}
+            >
+              {`${getTimeGreeting(t)}, ${firstName} 👋`.split(" ").map((word, i) => (
+                <motion.span
+                  key={i}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { type: "spring", damping: 12, stiffness: 100 } },
+                  }}
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </motion.h1>
           </div>
 
           {/* Weather */}

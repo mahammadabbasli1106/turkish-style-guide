@@ -49,9 +49,9 @@ export default function ChatMessageList({ messages, isStreaming, wardrobeItems =
                 <Bot size={16} className="text-primary-foreground" />
               </div>
             )}
-            <div className="max-w-[85%] min-w-0 space-y-2">
+            <div className="max-w-[80vw] lg:max-w-[85%] min-w-0 space-y-2">
               <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed break-words overflow-hidden ${
+                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed break-words whitespace-pre-wrap overflow-hidden ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-md"
                     : "bg-card border border-border text-foreground rounded-bl-md"

@@ -248,6 +248,7 @@ const resources = {
       "fab.addClothing": "Add Clothing",
       "fab.getOutfit": "Get Outfit",
       "fab.chat": "Style Chat",
+      "dashboard.dailyTip": "Daily Style Tip",
     }
   },
   tr: {
@@ -498,6 +499,7 @@ const resources = {
       "fab.addClothing": "Kıyafet Ekle",
       "fab.getOutfit": "Kombin Al",
       "fab.chat": "Stil Sohbeti",
+      "dashboard.dailyTip": "Günlük Stil İpucu",
     }
   }
 };

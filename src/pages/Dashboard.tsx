@@ -142,21 +142,19 @@ export default function Dashboard() {
         animate={{ opacity: 1 }}
         className="space-y-6 max-w-lg mx-auto pb-6"
       >
-        {/* Greeting */}
-        <div className="pt-2">
+        {/* Greeting + Weather Bar */}
+        <div className="pt-2 space-y-1.5">
           <p className="text-muted-foreground text-sm">
             {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
           </p>
-          <h1 className="font-display text-2xl font-bold text-foreground mt-1">
+          <h1 className="font-display text-2xl font-bold text-foreground">
             {t("dashboard.welcome").replace("!", ",")} {firstName} 👋
           </h1>
+          <WeatherWidget data={weatherData} isLoading={weatherLoading} />
         </div>
 
-        {/* Outfit of the Day */}
+        {/* The Daily Edit */}
         <OutfitOfTheDay />
-
-        {/* Weather */}
-        <WeatherWidget data={weatherData} isLoading={weatherLoading} />
 
         {/* Quick Actions */}
         <QuickActions />

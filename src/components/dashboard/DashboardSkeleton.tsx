@@ -7,10 +7,12 @@ export default function DashboardSkeleton() {
       <div className="pt-2 space-y-2">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-7 w-56" />
+        {/* Weather bar */}
+        <Skeleton className="h-4 w-72 mt-1" />
       </div>
 
-      {/* Weather Widget */}
-      <Skeleton className="h-36 w-full rounded-2xl" />
+      {/* Daily Edit hero */}
+      <Skeleton className="h-44 w-full rounded-2xl" />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-4 gap-3">

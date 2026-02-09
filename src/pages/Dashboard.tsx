@@ -18,7 +18,18 @@ type WeatherData = {
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, loading, checkOnboardingCompleted } = useAuth();
+
+  // Check if onboarding is completed
+  const { data: onboardingDone, isLoading: onboardingLoading } = useQuery({
+    queryKey: ["onboarding-check", user?.id],
+    queryFn: checkOnboardingCompleted,
+    enabled: !!user,
+  });
+
+  if (!loading && !onboardingLoading && user && onboardingDone === false) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   const { data: clothingCount = 0 } = useQuery({
     queryKey: ["clothing-count", user?.id],

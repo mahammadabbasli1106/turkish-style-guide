@@ -71,6 +71,17 @@ serve(async (req) => {
       clothingDescription = `a complete outfit consisting of: ${clothingDescription}, ${additionalDescriptions}`;
     }
 
+    // Helper to convert ArrayBuffer to base64 without stack overflow
+    const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+      }
+      return btoa(binary);
+    };
+
     // Build image parts for Gemini
     const imageParts: any[] = [
       {
@@ -82,7 +93,6 @@ serve(async (req) => {
     let userImageData: string;
     let userImageMime = "image/jpeg";
     if (userImageBase64.startsWith("http://") || userImageBase64.startsWith("https://")) {
-      // It's a URL — fetch and convert to base64
       const userImgRes = await fetch(userImageBase64);
       if (!userImgRes.ok) throw new Error("Failed to fetch user image from URL");
       userImageMime = userImgRes.headers.get("content-type") || "image/jpeg";
@@ -99,17 +109,6 @@ serve(async (req) => {
         data: userImageData,
       },
     });
-
-    // Helper to convert ArrayBuffer to base64 without stack overflow
-    const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
-      }
-      return btoa(binary);
-    };
 
     // Add clothing item image if it's a base64 or accessible URL
     if (clothingItem.image_url) {

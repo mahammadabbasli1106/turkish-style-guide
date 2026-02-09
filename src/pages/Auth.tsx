@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { Loader2, X } from "lucide-react";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { lovable } from "@/integrations/lovable";

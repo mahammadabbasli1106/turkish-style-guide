@@ -8,7 +8,7 @@ import PackingGrid from "@/components/travel/PackingGrid";
 import { motion } from "framer-motion";
 import { Plane, CloudSun, Loader2, ThermometerSun, Droplets, Shirt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
 

@@ -18,7 +18,7 @@ import {
   LogOut,
   Settings
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type Props = {
   children: ReactNode;

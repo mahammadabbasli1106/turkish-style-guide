@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { ArrowLeft, ArrowRight, Check, MapPin, Camera, Ruler, Target, User, Phone } from "lucide-react";
 
 const STEPS = ["phone", "gender", "body", "style", "goal", "closet", "location"] as const;

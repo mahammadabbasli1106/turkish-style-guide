@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Bot, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Props = {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
 

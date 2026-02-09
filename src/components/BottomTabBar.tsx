@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Home, Shirt, Sparkles, MessageCircle, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AVATARS: Record<string, string> = {

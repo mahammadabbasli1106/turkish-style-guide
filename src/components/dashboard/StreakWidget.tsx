@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 

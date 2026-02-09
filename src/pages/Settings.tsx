@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/sonner";
 import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Trash2, Crown, Shirt, Sparkles, Calendar } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/integrations/supabase/types";
 import {
   AlertDialog,

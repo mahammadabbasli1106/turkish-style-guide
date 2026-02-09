@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL is not configured");
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
 
@@ -31,11 +31,9 @@ serve(async (req) => {
 
     const { style, location, occasion, venue } = await req.json();
 
-    // Validate required fields
     if (!occasion) throw new Error("Occasion is required");
     if (!style) throw new Error("Style is required");
 
-    // Fetch user's wardrobe
     const { data: clothingItems, error: clothingError } = await supabase
       .from("clothing_items")
       .select("*")
@@ -46,7 +44,6 @@ serve(async (req) => {
       throw new Error("No clothing items in wardrobe. Please add some clothes first.");
     }
 
-    // Organize by category
     const wardrobe = {
       upper_body: clothingItems.filter(c => c.category === "upper_body"),
       lower_body: clothingItems.filter(c => c.category === "lower_body"),
@@ -55,10 +52,8 @@ serve(async (req) => {
       accessory: clothingItems.filter(c => c.category === "accessory"),
     };
 
-    // Get real weather data from Open-Meteo (free, no API key)
     const weather = await getWeatherInfo(location);
 
-    // Build wardrobe description
     const wardrobeDescription = Object.entries(wardrobe)
       .map(([category, items]) => {
         if (items.length === 0) return `${category}: none available`;
@@ -70,12 +65,7 @@ serve(async (req) => {
       ? `\n8. Analyze the venue "${venue}" - consider its type, expected dress code, and atmosphere when choosing the outfit.`
       : "";
 
-    const aiBody = JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert fashion stylist AI. Given a user's wardrobe, real weather conditions, style preferences, venue information, and occasion, suggest the absolute best outfit combination.
+    const prompt = `You are an expert fashion stylist AI. Given a user's wardrobe, real weather conditions, style preferences, venue information, and occasion, suggest the absolute best outfit combination.
 
 Rules:
 1. ALWAYS pick items that work well together (color coordination, style matching, formality level)
@@ -86,7 +76,7 @@ Rules:
 6. For cold weather (below 15°C), always include outerwear if available
 7. For rainy weather, prioritize water-resistant or appropriate items${venueInstruction}
 
-Respond with a valid JSON object (no markdown, no code blocks):
+You MUST respond with ONLY a valid JSON object, no markdown, no code blocks, no explanation:
 {
   "upper_body_id": "uuid or null",
   "lower_body_id": "uuid or null", 
@@ -97,11 +87,9 @@ Respond with a valid JSON object (no markdown, no code blocks):
   "venueAnalysis": "Brief description of the venue type, dress code, and atmosphere (or empty string if no venue)"
 }
 
-If a category is empty in the wardrobe, use null for that field.`
-        },
-        {
-          role: "user",
-          content: `Create the perfect outfit for:
+If a category is empty in the wardrobe, use null for that field.
+
+Create the perfect outfit for:
 - Style: ${style}
 - Occasion: ${occasion}
 - Location: ${location || "Not specified"}
@@ -109,32 +97,30 @@ If a category is empty in the wardrobe, use null for that field.`
 - Weather: ${weather.description}, ${weather.temperature}°C, Humidity: ${weather.humidity}%, ${weather.feelsLike ? `Feels like: ${weather.feelsLike}°C` : ""}${weather.isRaining ? ", Currently raining" : ""}
 
 Available wardrobe:
-${wardrobeDescription}`
-        }
-      ],
-    });
+${wardrobeDescription}`;
 
-    // Retry with exponential backoff for transient errors (429, 500, 502, 503)
     const MAX_RETRIES = 3;
     let response: Response | null = null;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: aiBody,
-      });
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        }
+      );
 
       if (response.ok || (response.status !== 429 && response.status < 500)) break;
 
-      // Consume body before retrying to avoid resource leak
       await response.text();
 
       if (attempt < MAX_RETRIES) {
-        const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // 1s, 2s, 4s
-        console.log(`AI request failed (${response.status}), retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        console.log(`Gemini request failed (${response.status}), retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
         await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -147,11 +133,11 @@ ${wardrobeDescription}`
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI gateway error: ${status}`);
+      throw new Error(`Gemini API error: ${status}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) throw new Error("No response from AI");
 
@@ -164,7 +150,6 @@ ${wardrobeDescription}`
       throw new Error("Failed to parse outfit suggestion");
     }
 
-    // Save the suggestion to database
     const { data: savedSuggestion, error: saveError } = await supabase
       .from("outfit_suggestions")
       .insert({
@@ -187,7 +172,6 @@ ${wardrobeDescription}`
       console.error("Failed to save suggestion:", saveError);
     }
 
-    // Fetch the full clothing items for the response
     const selectedItems = {
       upper_body: clothingItems.find(c => c.id === suggestion.upper_body_id),
       lower_body: clothingItems.find(c => c.id === suggestion.lower_body_id),
@@ -215,13 +199,11 @@ ${wardrobeDescription}`
   }
 });
 
-// Real weather API integration using Open-Meteo (free, no API key required)
 async function getWeatherInfo(location: string | undefined) {
   const defaultLocation = "Istanbul";
   const searchLocation = location || defaultLocation;
   
   try {
-    // Get coordinates first using Open-Meteo geocoding
     const geoResponse = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchLocation)}&count=1&language=en&format=json`
     );
@@ -240,7 +222,6 @@ async function getWeatherInfo(location: string | undefined) {
 
     const { latitude, longitude, name } = geoData.results[0];
 
-    // Get current weather from Open-Meteo
     const weatherResponse = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,weather_code,wind_speed_10m&timezone=auto`
     );
@@ -253,7 +234,6 @@ async function getWeatherInfo(location: string | undefined) {
     const weatherData = await weatherResponse.json();
     const current = weatherData.current;
 
-    // Map weather codes to descriptions
     const weatherDescription = getWeatherDescription(current.weather_code);
     const isRaining = current.rain > 0 || current.precipitation > 0;
 
@@ -273,48 +253,23 @@ async function getWeatherInfo(location: string | undefined) {
   }
 }
 
-// Map Open-Meteo weather codes to descriptions
 function getWeatherDescription(code: number): string {
   const descriptions: Record<number, string> = {
-    0: "Clear sky",
-    1: "Mainly clear",
-    2: "Partly cloudy",
-    3: "Overcast",
-    45: "Foggy",
-    48: "Depositing rime fog",
-    51: "Light drizzle",
-    53: "Moderate drizzle",
-    55: "Dense drizzle",
-    61: "Slight rain",
-    63: "Moderate rain",
-    65: "Heavy rain",
-    71: "Slight snow",
-    73: "Moderate snow",
-    75: "Heavy snow",
-    77: "Snow grains",
-    80: "Slight rain showers",
-    81: "Moderate rain showers",
-    82: "Violent rain showers",
-    85: "Slight snow showers",
-    86: "Heavy snow showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm with slight hail",
-    99: "Thunderstorm with heavy hail",
+    0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+    45: "Foggy", 48: "Depositing rime fog",
+    51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
+    61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
+    71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow", 77: "Snow grains",
+    80: "Slight rain showers", 81: "Moderate rain showers", 82: "Violent rain showers",
+    85: "Slight snow showers", 86: "Heavy snow showers",
+    95: "Thunderstorm", 96: "Thunderstorm with slight hail", 99: "Thunderstorm with heavy hail",
   };
   return descriptions[code] || "Unknown";
 }
 
-// Fallback weather for when API fails
 function getFallbackWeather(location: string) {
   return {
-    location: location,
-    temperature: 20,
-    feelsLike: 20,
-    description: "Weather data unavailable",
-    humidity: 50,
-    windSpeed: 5,
-    isRaining: false,
-    needsOuterwear: false,
+    location, temperature: 20, feelsLike: 20, description: "Weather data unavailable",
+    humidity: 50, windSpeed: 5, isRaining: false, needsOuterwear: false,
   };
 }
-

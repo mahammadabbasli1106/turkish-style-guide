@@ -117,3 +117,27 @@
     box-shadow: var(--card-hover-shadow);
   }
 }
+
+/* Sonner toast progress bar */
+@keyframes sonner-progress-shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+[data-sonner-toast] {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+[data-sonner-toast]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: hsl(var(--foreground));
+  animation: sonner-progress-shrink 2s linear forwards;
+  pointer-events: none;
+  z-index: 50;
+}

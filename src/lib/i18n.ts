@@ -276,6 +276,9 @@ const resources = {
       "fab.chat": "Style Chat",
       "dashboard.dailyTip": "Daily Style Tip",
       "dashboard.aiTip": "AI Style Tip ✨",
+      "dashboard.streakLabel": "Style Streak",
+      "suggest.wearingThis": "I'm wearing this ✓",
+      "suggest.checkedIn": "Outfit confirmed! 🔥",
     }
   },
   tr: {
@@ -554,6 +557,9 @@ const resources = {
       "fab.chat": "Stil Sohbeti",
       "dashboard.dailyTip": "Günlük Stil İpucu",
       "dashboard.aiTip": "AI Stil İpucu ✨",
+      "dashboard.streakLabel": "Stil Serisi",
+      "suggest.wearingThis": "Bunu giyiyorum ✓",
+      "suggest.checkedIn": "Kombin onaylandı! 🔥",
     }
   }
 };

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
+import StreakWidget from "@/components/dashboard/StreakWidget";
 import QuickActions from "@/components/dashboard/QuickActions";
 import StatsRow from "@/components/dashboard/StatsRow";
 import ActionCards from "@/components/dashboard/ActionCards";
@@ -209,8 +210,11 @@ export default function Dashboard() {
             </motion.h1>
           </div>
 
-          {/* Weather */}
-          <WeatherWidget data={weatherData} isLoading={weatherLoading} />
+          {/* Weather + Streak row */}
+          <div className="grid grid-cols-2 gap-3 h-40">
+            <StreakWidget />
+            <WeatherWidget data={weatherData} isLoading={weatherLoading} />
+          </div>
 
         {/* Quick Actions */}
         <QuickActions />

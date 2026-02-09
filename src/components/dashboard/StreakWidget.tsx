@@ -82,7 +82,7 @@ export default function StreakWidget() {
       transition={{ delay: 0.15 }}
       className="h-full rounded-2xl p-4 flex flex-col items-center justify-between"
       style={{
-        background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a1a 50%, #1a2a1a 100%)",
+        background: "linear-gradient(135deg, #6C3FA0 0%, #8B5FBF 50%, #A078D1 100%)",
       }}
     >
       {/* Circular progress */}

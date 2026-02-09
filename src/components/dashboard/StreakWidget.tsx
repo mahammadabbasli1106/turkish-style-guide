@@ -53,14 +53,12 @@ export default function StreakWidget() {
     queryKey: ["style-streak", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from("style_checkins")
-        .select("checked_in_at")
-        .eq("user_id", user.id)
-        .order("checked_in_at", { ascending: false })
-        .limit(60);
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
       if (error) throw error;
-      return calculateStreak((data || []).map((r) => r.checked_in_at));
+      return count || 0;
     },
     enabled: !!user,
   });

@@ -143,7 +143,9 @@ export default function OutfitSuggest() {
   const suggestMutation = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error("Not authenticated");
-      if (!occasion) throw new Error(t("suggest.occasionPlaceholder"));
+      if (!occasion) throw new Error(t("suggest.occasionRequired") || "Occasion is required");
+      if (!venue.trim()) throw new Error(t("suggest.venueRequired") || "Venue is required");
+      if (!style) throw new Error(t("suggest.styleRequired") || "Style is required");
 
       const { data, error } = await supabase.functions.invoke("suggest-outfit", {
         body: { style, location: location || "Istanbul", occasion, venue },
@@ -160,7 +162,7 @@ export default function OutfitSuggest() {
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
 
-      // Auto-increment streak on generation
+      // Always create a new check-in (no unique constraint anymore)
       if (user) {
         try {
           const { error } = await supabase
@@ -169,7 +171,7 @@ export default function OutfitSuggest() {
               user_id: user.id,
               outfit_suggestion_id: data.id,
             });
-          if (error && error.code !== "23505") throw error;
+          if (error) throw error;
           queryClient.invalidateQueries({ queryKey: ["style-streak"] });
 
           // Check total generation count for confetti milestone
@@ -313,15 +315,16 @@ export default function OutfitSuggest() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="venue" className="flex items-center gap-2">
-                <Building size={16} className="text-primary" />
-                {t("suggest.venue")}
+              <Label htmlFor="venue" className="flex items-center gap-2 text-primary">
+                <Building size={16} />
+                {t("suggest.venue")} *
               </Label>
               <Input
                 id="venue"
                 placeholder={t("suggest.venuePlaceholder")}
                 value={venue}
                 onChange={(e) => setVenue(e.target.value)}
+                className={!venue.trim() ? "border-destructive" : ""}
               />
               <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
             </div>
@@ -329,9 +332,9 @@ export default function OutfitSuggest() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Sparkles size={16} className="text-primary" />
-                {t("suggest.style")}
+              <Label className="flex items-center gap-2 text-primary">
+                <Sparkles size={16} />
+                {t("suggest.style")} *
               </Label>
               <Select value={style} onValueChange={setStyle}>
                 <SelectTrigger>
@@ -368,7 +371,7 @@ export default function OutfitSuggest() {
 
           <Button
             onClick={() => suggestMutation.mutate()}
-            disabled={suggestMutation.isPending || !hasEnoughClothes || !occasion}
+            disabled={suggestMutation.isPending || !hasEnoughClothes || !occasion || !venue.trim() || !style}
             className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
             size="lg"
           >

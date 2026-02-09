@@ -5,7 +5,7 @@ import { Lightbulb, Sparkles, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const TIPS_EN = [
   "A well-fitted white tee is the most versatile piece you can own.",

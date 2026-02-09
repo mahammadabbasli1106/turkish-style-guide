@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { Heart, Trash2, Loader2, History, Star } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

@@ -35,6 +35,10 @@ const AVATARS = [
   { id: "chic", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=chic" },
   { id: "trendy", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=trendy" },
   { id: "classic", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=classic" },
+  { id: "adventurer", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=adventurer" },
+  { id: "bold", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=bold" },
+  { id: "dreamer", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=dreamer" },
+  { id: "rebel", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=rebel" },
 ];
 
 export default function Settings() {

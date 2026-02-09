@@ -241,6 +241,13 @@ const resources = {
       "travel.noAlternatives": "No more alternatives in your wardrobe for this category",
       "travel.needItems": "Add items to your wardrobe first",
       "travel.needItemsDesc": "You need at least 3 clothing items in your wardrobe before Travel Mode can generate packing suggestions.",
+
+      // Dashboard dynamic
+      "dashboard.ootdTitle": "Outfit of the Day",
+      "dashboard.ootdCta": "Get your first AI-powered outfit suggestion!",
+      "fab.addClothing": "Add Clothing",
+      "fab.getOutfit": "Get Outfit",
+      "fab.chat": "Style Chat",
     }
   },
   tr: {
@@ -484,6 +491,13 @@ const resources = {
       "travel.noAlternatives": "Bu kategoride gardırobunuzda başka alternatif yok",
       "travel.needItems": "Önce gardırobunuza kıyafet ekleyin",
       "travel.needItemsDesc": "Seyahat Modu'nun bavul önerileri oluşturabilmesi için gardırobunuzda en az 3 kıyafet olmalıdır.",
+
+      // Dashboard dynamic
+      "dashboard.ootdTitle": "Günün Kombini",
+      "dashboard.ootdCta": "İlk AI kombin önerinizi alın!",
+      "fab.addClothing": "Kıyafet Ekle",
+      "fab.getOutfit": "Kombin Al",
+      "fab.chat": "Stil Sohbeti",
     }
   }
 };

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Shirt, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import AnimatedCounter from "./AnimatedCounter";
 
 type Props = {
   clothingCount: number;
@@ -34,7 +35,9 @@ export default function StatsRow({ clothingCount, outfitCount }: Props) {
           >
             <stat.icon size={18} />
           </div>
-          <p className="font-display text-2xl font-bold text-foreground">{stat.value}</p>
+          <p className="font-display text-2xl font-bold text-foreground">
+            <AnimatedCounter value={stat.value} />
+          </p>
           <p className="text-xs text-muted-foreground">{stat.label}</p>
         </motion.div>
       ))}

@@ -51,10 +51,10 @@ export default function QuickActions() {
       className="grid grid-cols-4 gap-3"
     >
       {actions.map((action) => (
-        <motion.div key={action.to} variants={item}>
+        <motion.div key={action.to} variants={item} whileTap={{ scale: 0.93 }} whileHover={{ scale: 1.08 }}>
           <Link to={action.to} className="flex flex-col items-center gap-2">
             <div
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform active:scale-95 ${
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
                 action.gradient
                   ? "bg-gradient-primary text-primary-foreground shadow-warm"
                   : "bg-card border border-border text-foreground shadow-card"

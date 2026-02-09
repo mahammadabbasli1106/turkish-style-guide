@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import TripForm from "@/components/travel/TripForm";
 import PackingGrid from "@/components/travel/PackingGrid";
 import { motion } from "framer-motion";
-import { Plane, CloudSun, Loader2, ThermometerSun, Droplets } from "lucide-react";
+import { Plane, CloudSun, Loader2, ThermometerSun, Droplets, Shirt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
+import { useQuery } from "@tanstack/react-query";
 
 interface ClothingItem {
   id: string;
@@ -54,6 +55,19 @@ export default function TravelMode() {
   const [isLoading, setIsLoading] = useState(false);
   const [weatherResult, setWeatherResult] = useState<WeatherResult | null>(null);
   const [packingResult, setPackingResult] = useState<PackingResult | null>(null);
+
+  const { data: clothingCount = 0 } = useQuery({
+    queryKey: ["clothing-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("clothing_items")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      return count || 0;
+    },
+    enabled: !!user,
+  });
 
   const handlePlanTrip = async (data: {
     destination: string;
@@ -167,8 +181,33 @@ export default function TravelMode() {
           </p>
         </div>
 
-        {/* Trip Form */}
-        <TripForm onSubmit={handlePlanTrip} isLoading={isLoading} />
+        {/* Trip Form or Empty Wardrobe Message */}
+        {clothingCount < 3 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card rounded-2xl p-6 shadow-card border border-border text-center space-y-4"
+          >
+            <div className="w-12 h-12 mx-auto rounded-xl bg-accent/20 flex items-center justify-center">
+              <Shirt size={24} className="text-accent" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">{t("travel.needItems")}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t("travel.needItemsDesc")}
+              </p>
+            </div>
+            <Link
+              to="/dashboard/wardrobe"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-primary text-primary-foreground font-medium text-sm shadow-warm transition-transform active:scale-95"
+            >
+              <Shirt size={16} />
+              {t("nav.wardrobe")}
+            </Link>
+          </motion.div>
+        ) : (
+          <TripForm onSubmit={handlePlanTrip} isLoading={isLoading} />
+        )}
 
         {/* Loading State */}
         {isLoading && (

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shirt, Sparkles, Camera, History } from "lucide-react";
+import { Shirt, Sparkles, Plane, MessageCircle } from "lucide-react";
 
 const container = {
   hidden: {},
@@ -30,15 +30,15 @@ export default function QuickActions() {
       gradient: false,
     },
     {
-      to: "/dashboard/try-on",
-      icon: Camera,
-      label: t("nav.tryOn"),
+      to: "/dashboard/travel",
+      icon: Plane,
+      label: t("nav.travel"),
       gradient: false,
     },
     {
-      to: "/dashboard/history",
-      icon: History,
-      label: t("nav.history"),
+      to: "/dashboard/chat",
+      icon: MessageCircle,
+      label: t("nav.chat"),
       gradient: false,
     },
   ];

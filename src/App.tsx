@@ -14,6 +14,7 @@ import OutfitHistory from "./pages/OutfitHistory";
 import VirtualTryOn from "./pages/VirtualTryOn";
 import Settings from "./pages/Settings";
 import StyleChat from "./pages/StyleChat";
+import TravelMode from "./pages/TravelMode";
 import InstallApp from "./pages/InstallApp";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/dashboard/history" element={<OutfitHistory />} />
             <Route path="/dashboard/try-on" element={<VirtualTryOn />} />
             <Route path="/dashboard/chat" element={<StyleChat />} />
+            <Route path="/dashboard/travel" element={<TravelMode />} />
             <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/install" element={<InstallApp />} />
             <Route path="*" element={<NotFound />} />

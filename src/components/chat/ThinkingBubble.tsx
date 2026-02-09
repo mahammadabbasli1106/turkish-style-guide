@@ -22,6 +22,7 @@ export default function ThinkingBubble() {
             transition={{
               duration: 0.6,
               repeat: Infinity,
+              repeatType: "loop" as const,
               delay: i * 0.15,
               ease: "easeInOut",
             }}

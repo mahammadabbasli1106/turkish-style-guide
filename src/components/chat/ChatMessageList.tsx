@@ -2,17 +2,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bot, User } from "lucide-react";
 import TypewriterMessage from "./TypewriterMessage";
 import ThinkingBubble from "./ThinkingBubble";
+import MiniItemCard from "./MiniItemCard";
+import { findMentionedItems } from "@/lib/fuzzyMatch";
 
 export type Msg = { role: "user" | "assistant"; content: string };
+
+type WardrobeItem = {
+  id: string;
+  name: string;
+  image_url: string;
+};
 
 type Props = {
   messages: Msg[];
   isStreaming: boolean;
-  latestAssistantIndex?: number;
+  wardrobeItems?: WardrobeItem[];
 };
 
-export default function ChatMessageList({ messages, isStreaming }: Props) {
-  // Find the index of the last assistant message to mark it as "new"
+export default function ChatMessageList({ messages, isStreaming, wardrobeItems = [] }: Props) {
   const lastAssistantIdx = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") return i;
@@ -24,6 +31,10 @@ export default function ChatMessageList({ messages, isStreaming }: Props) {
     <AnimatePresence initial={false}>
       {messages.map((msg, i) => {
         const isLastAssistant = msg.role === "assistant" && i === lastAssistantIdx;
+        const mentionedItems =
+          msg.role === "assistant" && wardrobeItems.length > 0
+            ? findMentionedItems(msg.content, wardrobeItems)
+            : [];
 
         return (
           <motion.div
@@ -38,21 +49,36 @@ export default function ChatMessageList({ messages, isStreaming }: Props) {
                 <Bot size={16} className="text-primary-foreground" />
               </div>
             )}
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-card border border-border text-foreground rounded-bl-md"
-              }`}
-            >
-              {msg.role === "assistant" ? (
-                <TypewriterMessage
-                  text={msg.content}
-                  isStreaming={isLastAssistant && isStreaming}
-                  isNew={isLastAssistant}
-                />
-              ) : (
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+            <div className="max-w-[85%] space-y-2">
+              <div
+                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    : "bg-card border border-border text-foreground rounded-bl-md"
+                }`}
+              >
+                {msg.role === "assistant" ? (
+                  <TypewriterMessage
+                    text={msg.content}
+                    isStreaming={isLastAssistant && isStreaming}
+                    isNew={isLastAssistant}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                )}
+              </div>
+              {/* Mini Product Cards */}
+              {mentionedItems.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 pl-1">
+                  {mentionedItems.map((item) => (
+                    <MiniItemCard
+                      key={item.id}
+                      id={item.id}
+                      name={item.name}
+                      imageUrl={item.image_url}
+                    />
+                  ))}
+                </div>
               )}
             </div>
             {msg.role === "user" && (

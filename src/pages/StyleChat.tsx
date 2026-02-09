@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import ChatEmptyState from "@/components/chat/ChatEmptyState";
 import ChatMessageList, { type Msg } from "@/components/chat/ChatMessageList";
@@ -14,6 +16,21 @@ export default function StyleChat() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch wardrobe items for mini product cards
+  const { data: wardrobeItems = [] } = useQuery({
+    queryKey: ["wardrobe-items-chat", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("clothing_items")
+        .select("id, name, image_url")
+        .eq("user_id", user.id);
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -115,7 +132,7 @@ export default function StyleChat() {
           {messages.length === 0 ? (
             <ChatEmptyState onPromptClick={setInput} />
           ) : (
-            <ChatMessageList messages={messages} isStreaming={isStreaming} />
+            <ChatMessageList messages={messages} isStreaming={isStreaming} wardrobeItems={wardrobeItems} />
           )}
         </div>
 

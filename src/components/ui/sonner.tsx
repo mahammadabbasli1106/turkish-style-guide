@@ -15,11 +15,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
           from { width: 100%; }
           to { width: 0%; }
         }
-        [data-sonner-toast] {
+
+        [data-sonner-toaster] [data-sonner-toast] {
           position: relative !important;
           overflow: hidden !important;
         }
-        [data-sonner-toast]::after {
+
+        [data-sonner-toaster] [data-sonner-toast]::after {
           content: '';
           position: absolute;
           bottom: 0;
@@ -30,6 +32,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           animation: toast-progress-shrink ${TOAST_DURATION}ms linear forwards;
           pointer-events: none;
           z-index: 10;
+        }
+
+        [data-sonner-toaster] [data-sonner-toast][data-removed='true']::after {
+          animation: none;
+          opacity: 0;
         }
       `}</style>
       <Sonner

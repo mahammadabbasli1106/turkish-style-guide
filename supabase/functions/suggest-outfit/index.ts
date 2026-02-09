@@ -70,18 +70,12 @@ serve(async (req) => {
       ? `\n8. Analyze the venue "${venue}" - consider its type, expected dress code, and atmosphere when choosing the outfit.`
       : "";
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert fashion stylist AI. Given a user's wardrobe, real weather conditions, style preferences, venue information, and occasion, suggest the absolute best outfit combination.
+    const aiBody = JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert fashion stylist AI. Given a user's wardrobe, real weather conditions, style preferences, venue information, and occasion, suggest the absolute best outfit combination.
 
 Rules:
 1. ALWAYS pick items that work well together (color coordination, style matching, formality level)
@@ -104,10 +98,10 @@ Respond with a valid JSON object (no markdown, no code blocks):
 }
 
 If a category is empty in the wardrobe, use null for that field.`
-          },
-          {
-            role: "user",
-            content: `Create the perfect outfit for:
+        },
+        {
+          role: "user",
+          content: `Create the perfect outfit for:
 - Style: ${style}
 - Occasion: ${occasion}
 - Location: ${location || "Not specified"}
@@ -116,19 +110,44 @@ If a category is empty in the wardrobe, use null for that field.`
 
 Available wardrobe:
 ${wardrobeDescription}`
-          }
-        ],
-      }),
+        }
+      ],
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    // Retry with exponential backoff for transient errors (429, 500, 502, 503)
+    const MAX_RETRIES = 3;
+    let response: Response | null = null;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: aiBody,
+      });
+
+      if (response.ok || (response.status !== 429 && response.status < 500)) break;
+
+      // Consume body before retrying to avoid resource leak
+      await response.text();
+
+      if (attempt < MAX_RETRIES) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // 1s, 2s, 4s
+        console.log(`AI request failed (${response.status}), retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status ?? 500;
+      if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`AI gateway error: ${status}`);
     }
 
     const data = await response.json();

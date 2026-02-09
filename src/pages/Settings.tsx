@@ -171,6 +171,7 @@ export default function Settings() {
     onSuccess: () => {
       toast.success(t("settings.saved"));
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-avatar"] });
       queryClient.invalidateQueries({ queryKey: ["preferences"] });
     },
     onError: (error: Error) => {

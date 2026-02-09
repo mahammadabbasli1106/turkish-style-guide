@@ -78,11 +78,24 @@ serve(async (req) => {
       },
     ];
 
-    // Add user image
-    const userImageData = userImageBase64.startsWith("data:") ? userImageBase64.split(",")[1] : userImageBase64;
+    // Add user image - handle URL, data URI, or raw base64
+    let userImageData: string;
+    let userImageMime = "image/jpeg";
+    if (userImageBase64.startsWith("http://") || userImageBase64.startsWith("https://")) {
+      // It's a URL — fetch and convert to base64
+      const userImgRes = await fetch(userImageBase64);
+      if (!userImgRes.ok) throw new Error("Failed to fetch user image from URL");
+      userImageMime = userImgRes.headers.get("content-type") || "image/jpeg";
+      const userImgBuffer = await userImgRes.arrayBuffer();
+      userImageData = arrayBufferToBase64(userImgBuffer);
+    } else if (userImageBase64.startsWith("data:")) {
+      userImageData = userImageBase64.split(",")[1];
+    } else {
+      userImageData = userImageBase64;
+    }
     imageParts.push({
       inlineData: {
-        mimeType: "image/jpeg",
+        mimeType: userImageMime,
         data: userImageData,
       },
     });

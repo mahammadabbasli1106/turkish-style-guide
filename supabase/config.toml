@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.virtual-try-on]
 verify_jwt = false
+
+[functions.style-chat]
+verify_jwt = false

@@ -13,6 +13,7 @@ import GettingStartedBanner from "@/components/dashboard/GettingStartedBanner";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import OutfitOfTheDay from "@/components/dashboard/OutfitOfTheDay";
 import FloatingActionButton from "@/components/FloatingActionButton";
+import DailyTipCard from "@/components/dashboard/DailyTipCard";
 
 type WeatherData = {
   temperature: number;
@@ -165,6 +166,9 @@ export default function Dashboard() {
 
         {/* Action Cards */}
         <ActionCards />
+
+        {/* Daily Tip */}
+        <DailyTipCard />
 
         {/* Getting Started */}
         {clothingCount < 5 && <GettingStartedBanner />}

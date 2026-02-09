@@ -31,12 +31,12 @@ const COUNTRY_CODES = [
 ];
 
 const STYLE_OPTIONS = [
-  { id: "minimalist", label: "Minimalist", emoji: "🤍", description: "Clean lines, neutral tones" },
+  { id: "casual", label: "Casual", emoji: "🤍", description: "Relaxed, everyday comfort" },
   { id: "streetwear", label: "Streetwear", emoji: "🔥", description: "Urban, bold, trendy" },
-  { id: "old_money", label: "Old Money", emoji: "💎", description: "Timeless luxury, refined" },
-  { id: "bohemian", label: "Bohemian", emoji: "🌿", description: "Free-spirited, earthy" },
-  { id: "sporty", label: "Sporty", emoji: "⚡", description: "Athletic, active" },
+  { id: "classic", label: "Classic", emoji: "💎", description: "Timeless, refined looks" },
   { id: "elegant", label: "Elegant", emoji: "✨", description: "Sophisticated, polished" },
+  { id: "sporty", label: "Sporty", emoji: "⚡", description: "Athletic, active" },
+  { id: "business", label: "Business", emoji: "👔", description: "Professional, sharp" },
 ];
 
 const GOAL_OPTIONS = [

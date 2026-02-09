@@ -167,6 +167,7 @@ export type Database = {
           height: number | null
           height_unit: string | null
           id: string
+          is_premium: boolean
           location: string | null
           location_permission_granted: boolean | null
           onboarding_completed: boolean | null
@@ -190,6 +191,7 @@ export type Database = {
           height?: number | null
           height_unit?: string | null
           id?: string
+          is_premium?: boolean
           location?: string | null
           location_permission_granted?: boolean | null
           onboarding_completed?: boolean | null
@@ -213,6 +215,7 @@ export type Database = {
           height?: number | null
           height_unit?: string | null
           id?: string
+          is_premium?: boolean
           location?: string | null
           location_permission_granted?: boolean | null
           onboarding_completed?: boolean | null

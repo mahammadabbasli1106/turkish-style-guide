@@ -33,6 +33,9 @@ const resources = {
       
       // Dashboard
       "dashboard.welcome": "Welcome back!",
+      "dashboard.goodMorning": "Good morning",
+      "dashboard.goodAfternoon": "Good afternoon",
+      "dashboard.goodEvening": "Good evening",
       "dashboard.overview": "Here's your style overview",
       "dashboard.clothingItems": "Clothing Items",
       "dashboard.outfitsCreated": "Outfits Created",
@@ -306,6 +309,9 @@ const resources = {
       
       // Dashboard
       "dashboard.welcome": "Tekrar hoş geldiniz!",
+      "dashboard.goodMorning": "Günaydın",
+      "dashboard.goodAfternoon": "İyi günler",
+      "dashboard.goodEvening": "İyi akşamlar",
       "dashboard.overview": "Stil özetiniz",
       "dashboard.clothingItems": "Kıyafet",
       "dashboard.outfitsCreated": "Oluşturulan Kombin",

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import QuickActions from "@/components/dashboard/QuickActions";
@@ -13,6 +13,9 @@ import GettingStartedBanner from "@/components/dashboard/GettingStartedBanner";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import DailyTipCard from "@/components/dashboard/DailyTipCard";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { Loader2 } from "lucide-react";
+import { useCallback } from "react";
 
 type WeatherData = {
   temperature: number;
@@ -29,9 +32,17 @@ const weatherDescriptions: Record<number, string> = {
   75: "Heavy snow", 80: "Light showers", 81: "Showers", 82: "Heavy showers", 95: "Thunderstorm",
 };
 
+function getTimeGreeting(t: (key: string) => string): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return t("dashboard.goodMorning");
+  if (hour < 18) return t("dashboard.goodAfternoon");
+  return t("dashboard.goodEvening");
+}
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const { user, loading, checkOnboardingCompleted } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: onboardingDone, isLoading: onboardingLoading } = useQuery({
     queryKey: ["onboarding-check", user?.id],
@@ -120,6 +131,16 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["current-weather"] });
+    await queryClient.invalidateQueries({ queryKey: ["clothing-count"] });
+    await queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
+  }, [queryClient]);
+
+  const { containerRef, pullDistance, refreshing } = usePullToRefresh({
+    onRefresh: handleRefresh,
+  });
+
   // All hooks above — conditional returns below
   if (loading || onboardingLoading) {
     return (
@@ -136,23 +157,37 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6 max-w-lg mx-auto pb-6"
-      >
-        {/* Greeting */}
-        <div className="pt-2">
-          <p className="text-muted-foreground text-sm">
-            {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-          <h1 className="font-display text-2xl font-bold text-foreground mt-1">
-            {t("dashboard.welcome").replace("!", ",")} {firstName} 👋
-          </h1>
-        </div>
+      <div ref={containerRef} className="relative">
+        {/* Pull-to-refresh indicator */}
+        {(pullDistance > 0 || refreshing) && (
+          <div
+            className="flex justify-center items-center transition-all duration-200"
+            style={{ height: refreshing ? 40 : pullDistance, overflow: "hidden" }}
+          >
+            <Loader2
+              className={`h-5 w-5 text-primary ${refreshing ? "animate-spin" : ""}`}
+              style={{ opacity: Math.min(pullDistance / 60, 1) }}
+            />
+          </div>
+        )}
 
-        {/* Weather */}
-        <WeatherWidget data={weatherData} isLoading={weatherLoading} />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6 max-w-lg mx-auto pb-6"
+        >
+          {/* Greeting */}
+          <div className="pt-2">
+            <p className="text-muted-foreground text-sm">
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+            </p>
+            <h1 className="font-display text-2xl font-bold text-foreground mt-1">
+              {getTimeGreeting(t)}, {firstName} 👋
+            </h1>
+          </div>
+
+          {/* Weather */}
+          <WeatherWidget data={weatherData} isLoading={weatherLoading} />
 
         {/* Quick Actions */}
         <QuickActions />
@@ -168,7 +203,8 @@ export default function Dashboard() {
 
         {/* Getting Started */}
         {clothingCount < 5 && <GettingStartedBanner />}
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* FAB */}
       <FloatingActionButton />

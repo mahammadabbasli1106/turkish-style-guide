@@ -31,10 +31,12 @@ export default function ActionCards() {
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 + i * 0.05 }}
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.02 }}
         >
           <Link
             to={card.to}
-            className="flex items-center gap-4 bg-card rounded-2xl p-4 border border-border shadow-card active:scale-[0.98] transition-transform"
+            className="flex items-center gap-4 bg-card rounded-2xl p-4 border border-border shadow-card transition-shadow hover:shadow-card-hover"
           >
             <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center shrink-0">
               <card.icon size={22} className={card.iconColor} />

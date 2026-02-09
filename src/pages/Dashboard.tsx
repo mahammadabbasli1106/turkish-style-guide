@@ -10,6 +10,9 @@ import QuickActions from "@/components/dashboard/QuickActions";
 import StatsRow from "@/components/dashboard/StatsRow";
 import ActionCards from "@/components/dashboard/ActionCards";
 import GettingStartedBanner from "@/components/dashboard/GettingStartedBanner";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import OutfitOfTheDay from "@/components/dashboard/OutfitOfTheDay";
+import FloatingActionButton from "@/components/FloatingActionButton";
 
 type WeatherData = {
   temperature: number;
@@ -118,11 +121,11 @@ export default function Dashboard() {
   });
 
   // All hooks above — conditional returns below
-  if (loading) {
+  if (loading || onboardingLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <DashboardLayout>
+        <DashboardSkeleton />
+      </DashboardLayout>
     );
   }
 
@@ -148,6 +151,9 @@ export default function Dashboard() {
           </h1>
         </div>
 
+        {/* Outfit of the Day */}
+        <OutfitOfTheDay />
+
         {/* Weather */}
         <WeatherWidget data={weatherData} isLoading={weatherLoading} />
 
@@ -163,6 +169,9 @@ export default function Dashboard() {
         {/* Getting Started */}
         {clothingCount < 5 && <GettingStartedBanner />}
       </motion.div>
+
+      {/* FAB */}
+      <FloatingActionButton />
     </DashboardLayout>
   );
 }

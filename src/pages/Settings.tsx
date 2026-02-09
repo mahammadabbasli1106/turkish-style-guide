@@ -244,7 +244,7 @@ export default function Settings() {
             </div>
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">Change</Button>
+                <Button variant="outline" size="sm">{t("settings.changeAvatar")}</Button>
               </DialogTrigger>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
@@ -270,47 +270,53 @@ export default function Settings() {
           </div>
 
           {/* Full body photo - compact */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-border bg-secondary flex items-center justify-center">
-                {fullBodyPhoto ? (
-                  <img src={fullBodyPhoto} alt="Full body" className="w-full h-full object-cover" />
-                ) : (
-                  <Camera size={20} className="text-muted-foreground" />
+          <div className="space-y-3 pt-4 border-t border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-border bg-secondary flex items-center justify-center">
+                  {fullBodyPhoto ? (
+                    <img src={fullBodyPhoto} alt="Full body" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera size={20} className="text-muted-foreground" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{t("settings.fullBodyPhoto")} *</p>
+                  <p className="text-xs text-muted-foreground">
+                    {fullBodyPhoto ? t("settings.photoUploaded") : t("settings.fullBodyPhotoRequired")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {fullBodyPhoto && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">{t("settings.viewPhoto")}</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle>{t("settings.fullBodyPhoto")}</DialogTitle>
+                      </DialogHeader>
+                      <img src={fullBodyPhoto} alt="Full body" className="w-full rounded-xl" />
+                    </DialogContent>
+                  </Dialog>
                 )}
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploadingPhoto}>
+                  {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : fullBodyPhoto ? t("settings.changePhoto") : t("settings.uploadPhoto")}
+                </Button>
               </div>
-              <div>
-                <p className="font-semibold text-foreground">{t("settings.fullBodyPhoto")} *</p>
-                <p className="text-xs text-muted-foreground">
-                  {fullBodyPhoto ? "Photo uploaded" : "Required for try-on"}
-                </p>
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
             </div>
-            <div className="flex gap-2">
-              {fullBodyPhoto && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">View</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                      <DialogTitle>{t("settings.fullBodyPhoto")}</DialogTitle>
-                    </DialogHeader>
-                    <img src={fullBodyPhoto} alt="Full body" className="w-full rounded-xl" />
-                  </DialogContent>
-                </Dialog>
-              )}
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploadingPhoto}>
-                {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : fullBodyPhoto ? "Change" : "Upload"}
-              </Button>
+            <div className="flex items-center gap-2 p-3 bg-accent/20 rounded-lg border border-accent/30">
+              <AlertCircle size={16} className="text-accent shrink-0" />
+              <p className="text-xs text-foreground">{t("settings.fullBodyPhotoHint")}</p>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              className="hidden"
-            />
           </div>
 
           {/* Profile section */}
@@ -426,10 +432,10 @@ export default function Settings() {
               onClick={async () => {
                 try {
                   await signOut();
-                  toast.success("Signed out successfully");
+                  toast.success(t("settings.signedOut"));
                   navigate("/");
                 } catch {
-                  toast.error("Failed to sign out");
+                  toast.error(t("common.error"));
                 }
               }}
             >
@@ -445,18 +451,18 @@ export default function Settings() {
                   className="w-full justify-center text-destructive/70 hover:text-destructive hover:bg-destructive/10 text-sm"
                 >
                   <Trash2 size={16} className="mr-2" />
-                  Delete Account
+                  {t("settings.deleteAccount")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("settings.deleteAccountTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action is permanent and cannot be undone. All your wardrobe items, outfits, streaks, and profile data will be permanently deleted.
+                    {t("settings.deleteAccountDesc")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     onClick={async () => {
@@ -477,18 +483,18 @@ export default function Settings() {
 
                         if (!resp.ok) {
                           const err = await resp.json().catch(() => ({}));
-                          throw new Error(err.error || "Failed to delete account");
+                          throw new Error(err.error || t("common.error"));
                         }
 
                         await signOut();
-                        toast.success("Account deleted successfully");
+                        toast.success(t("settings.accountDeleted"));
                         navigate("/");
                       } catch (err: any) {
-                        toast.error(err.message || "Failed to delete account");
+                        toast.error(err.message || t("common.error"));
                       }
                     }}
                   >
-                    Delete Account
+                    {t("settings.deleteAccount")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

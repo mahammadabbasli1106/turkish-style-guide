@@ -196,12 +196,21 @@ const resources = {
       
       // Settings - Avatar & Photo
       "settings.selectAvatar": "Select Your Avatar",
+      "settings.changeAvatar": "Change",
       "settings.fullBodyPhoto": "Full Body Photo",
-      "settings.fullBodyPhotoHint": "Required for virtual try-on feature. Upload a clear full-body photo.",
+      "settings.fullBodyPhotoHint": "Required for virtual try-on feature. Upload a clear full-body photo so AI can show how outfits look on you.",
       "settings.uploadFullBodyPhoto": "Click to upload your full body photo",
       "settings.fullBodyPhotoTip": "Stand straight, good lighting, full body visible",
       "settings.fullBodyPhotoRequired": "Full body photo is required",
-      "settings.photoUploaded": "Photo uploaded successfully!",
+      "settings.photoUploaded": "Photo uploaded!",
+      "settings.viewPhoto": "View",
+      "settings.changePhoto": "Change",
+      "settings.uploadPhoto": "Upload",
+      "settings.deleteAccount": "Delete Account",
+      "settings.deleteAccountTitle": "Delete your account?",
+      "settings.deleteAccountDesc": "This action is permanent and cannot be undone. All your wardrobe items, outfits, streaks, and profile data will be permanently deleted.",
+      "settings.accountDeleted": "Account deleted successfully",
+      "settings.signedOut": "Signed out successfully",
       
       // Try-On
       "tryOn.selected": "selected",
@@ -476,12 +485,21 @@ const resources = {
       
       // Settings - Avatar & Photo
       "settings.selectAvatar": "Avatarınızı Seçin",
+      "settings.changeAvatar": "Değiştir",
       "settings.fullBodyPhoto": "Tam Boy Fotoğraf",
-      "settings.fullBodyPhotoHint": "Sanal deneme özelliği için gereklidir. Net bir tam boy fotoğraf yükleyin.",
+      "settings.fullBodyPhotoHint": "Sanal deneme özelliği için gereklidir. AI'ın kıyafetlerin üzerinizde nasıl göründüğünü gösterebilmesi için net bir tam boy fotoğraf yükleyin.",
       "settings.uploadFullBodyPhoto": "Tam boy fotoğrafınızı yüklemek için tıklayın",
       "settings.fullBodyPhotoTip": "Düz durun, iyi aydınlatma, tüm vücut görünür",
       "settings.fullBodyPhotoRequired": "Tam boy fotoğraf gereklidir",
-      "settings.photoUploaded": "Fotoğraf başarıyla yüklendi!",
+      "settings.photoUploaded": "Fotoğraf yüklendi!",
+      "settings.viewPhoto": "Görüntüle",
+      "settings.changePhoto": "Değiştir",
+      "settings.uploadPhoto": "Yükle",
+      "settings.deleteAccount": "Hesabı Sil",
+      "settings.deleteAccountTitle": "Hesabınızı silmek istiyor musunuz?",
+      "settings.deleteAccountDesc": "Bu işlem kalıcıdır ve geri alınamaz. Tüm gardırop, kombin, seri ve profil verileriniz kalıcı olarak silinecektir.",
+      "settings.accountDeleted": "Hesap başarıyla silindi",
+      "settings.signedOut": "Başarıyla çıkış yapıldı",
       
       // Try-On
       "tryOn.selected": "seçildi",

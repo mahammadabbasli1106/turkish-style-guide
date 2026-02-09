@@ -59,7 +59,7 @@ export default function OutfitSuggest() {
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
   const [premiumOpen, setPremiumOpen] = useState(false);
-  const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, recordUsage } = useUsageLimits();
+  const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, isPremium, recordUsage } = useUsageLimits();
 
   // Fetch user's profile for full body photo
   const { data: profile } = useQuery({
@@ -413,9 +413,11 @@ export default function OutfitSuggest() {
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            {outfitSuggestLeft}/{outfitSuggestLimit} suggestions left today
-          </p>
+          {!isPremium && (
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              {outfitSuggestLeft}/{outfitSuggestLimit} suggestions left today
+            </p>
+          )}
 
           {!hasEnoughClothes && (
             <p className="text-sm text-muted-foreground text-center mt-3">

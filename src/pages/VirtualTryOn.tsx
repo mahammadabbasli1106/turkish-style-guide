@@ -28,7 +28,7 @@ export default function VirtualTryOn() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { canTryOn, tryOnsLeft, tryOnLimit, recordUsage } = useUsageLimits();
+  const { canTryOn, tryOnsLeft, tryOnLimit, isPremium, recordUsage } = useUsageLimits();
 
   // Fetch user's full body photo from profile
   const { data: profile } = useQuery({
@@ -347,9 +347,11 @@ export default function VirtualTryOn() {
                 </>
               )}
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              {tryOnsLeft}/{tryOnLimit} try-ons left today
-            </p>
+            {!isPremium && (
+              <p className="text-xs text-muted-foreground text-center">
+                {tryOnsLeft}/{tryOnLimit} try-ons left today
+              </p>
+            )}
           </div>
         )}
       </motion.div>

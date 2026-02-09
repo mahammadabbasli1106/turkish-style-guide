@@ -33,7 +33,7 @@ export default function Wardrobe() {
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
-  const { wardrobeCount, wardrobeLimit, canUploadClothing } = useUsageLimits();
+  const { wardrobeCount, wardrobeLimit, canUploadClothing, isPremium } = useUsageLimits();
 
   const categoryLabels: Record<string, string> = {
     upper_body: t("wardrobe.tops"),
@@ -178,23 +178,25 @@ export default function Wardrobe() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8"
       >
-        {/* Wardrobe progress bar */}
-        <div className="bg-card rounded-xl p-4 border border-border shadow-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">
-              {wardrobeCount}/{wardrobeLimit} slots used
-            </span>
-            {!canUploadClothing && (
-              <button
-                onClick={() => setPremiumOpen(true)}
-                className="text-xs text-primary font-semibold hover:underline"
-              >
-                Upgrade for unlimited
-              </button>
-            )}
+        {/* Wardrobe progress bar - only show for free users */}
+        {!isPremium && (
+          <div className="bg-card rounded-xl p-4 border border-border shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">
+                {wardrobeCount}/{wardrobeLimit} slots used
+              </span>
+              {!canUploadClothing && (
+                <button
+                  onClick={() => setPremiumOpen(true)}
+                  className="text-xs text-primary font-semibold hover:underline"
+                >
+                  Upgrade for unlimited
+                </button>
+              )}
+            </div>
+            <Progress value={progressPercent} className="h-2" />
           </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
+        )}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

@@ -250,14 +250,6 @@ export default function Settings() {
 
   const selectedAvatarUrl = AVATARS.find(a => a.id === selectedAvatar)?.url || AVATARS[0].url;
   const isPremium = (profile as any)?.is_premium ?? false;
-  const memberSince = profile?.created_at ? new Date(profile.created_at) : new Date();
-  const now = new Date();
-  const diffMs = now.getTime() - memberSince.getTime();
-  const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const months = Math.floor(totalDays / 30);
-  const years = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  const remainingDays = totalDays - months * 30;
 
   return (
     <DashboardLayout>
@@ -327,30 +319,6 @@ export default function Settings() {
             </motion.div>
           )}
           <p className="text-xs text-primary-foreground/70 mt-2">{user.email}</p>
-        </div>
-
-        {/* ── Member Since Card ── */}
-        <div className="bg-card rounded-2xl p-5 shadow-card border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">{t("settings.memberSince")}</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center bg-secondary/60 rounded-xl py-3">
-              <p className="text-2xl font-bold text-foreground">{years}</p>
-              <p className="text-xs text-muted-foreground">{t("settings.years")}</p>
-            </div>
-            <div className="text-center bg-secondary/60 rounded-xl py-3">
-              <p className="text-2xl font-bold text-foreground">{remainingMonths}</p>
-              <p className="text-xs text-muted-foreground">{t("settings.months")}</p>
-            </div>
-            <div className="text-center bg-secondary/60 rounded-xl py-3">
-              <p className="text-2xl font-bold text-foreground">{remainingDays}</p>
-              <p className="text-xs text-muted-foreground">{t("settings.days")}</p>
-            </div>
-          </div>
         </div>
 
         {/* ── Your Activity Card ── */}

@@ -19,7 +19,7 @@ export default function StyleChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [premiumOpen, setPremiumOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { canChat, chatMessagesLeft, recordUsage } = useUsageLimits();
+  const { canChat, chatMessagesLeft, isPremium, recordUsage } = useUsageLimits();
 
   // Fetch wardrobe items for mini product cards
   const { data: wardrobeItems = [] } = useQuery({
@@ -155,7 +155,7 @@ export default function StyleChat() {
             setInput={setInput}
             isStreaming={isStreaming}
             onSend={sendMessage}
-            messagesLeft={chatMessagesLeft}
+            messagesLeft={isPremium ? undefined : chatMessagesLeft}
           />
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function StyleChat() {
           setInput={setInput}
           isStreaming={isStreaming}
           onSend={sendMessage}
-          messagesLeft={chatMessagesLeft}
+          messagesLeft={isPremium ? undefined : chatMessagesLeft}
         />
       </div>
 

@@ -3,7 +3,7 @@ import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-const TOAST_DURATION = 2000;
+const TOAST_DURATION = 1000;
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
@@ -11,27 +11,25 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <>
       <style>{`
-        @keyframes toast-progress {
-          from { transform: scaleX(1); }
-          to { transform: scaleX(0); }
+        @keyframes toast-progress-shrink {
+          from { width: 100%; }
+          to { width: 0%; }
         }
         [data-sonner-toast] {
+          position: relative !important;
           overflow: hidden !important;
-          transition: opacity 0.3s ease, transform 0.3s ease !important;
         }
         [data-sonner-toast]::after {
           content: '';
           position: absolute;
           bottom: 0;
           left: 0;
-          right: 0;
           height: 2px;
+          width: 100%;
           background: hsl(var(--foreground));
-          transform-origin: left;
-          animation: toast-progress ${TOAST_DURATION}ms linear forwards;
-        }
-        [data-sonner-toast][data-removed]::after {
-          animation: none;
+          animation: toast-progress-shrink ${TOAST_DURATION}ms linear forwards;
+          pointer-events: none;
+          z-index: 10;
         }
       `}</style>
       <Sonner

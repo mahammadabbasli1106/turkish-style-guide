@@ -82,7 +82,7 @@ export default function StreakWidget() {
       transition={{ delay: 0.15 }}
       className="h-full rounded-2xl p-4 flex flex-col items-center justify-between"
       style={{
-        background: "linear-gradient(135deg, #6C3FA0 0%, #8B5FBF 50%, #A078D1 100%)",
+        background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a1a 50%, #1a2a1a 100%)",
       }}
     >
       {/* Circular progress */}
@@ -101,7 +101,7 @@ export default function StreakWidget() {
             cy="44"
             r={radius}
             fill="none"
-            stroke="#EF4444"
+            stroke="#d4ff00"
             strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -118,7 +118,7 @@ export default function StreakWidget() {
 
       {/* Label */}
       <div className="flex items-center gap-1 mt-1">
-        <Flame size={14} className="text-red-400" />
+        <Flame size={14} style={{ color: "#d4ff00" }} />
         <span className="text-xs font-semibold text-white">
           {t("dashboard.streakLabel")}
         </span>

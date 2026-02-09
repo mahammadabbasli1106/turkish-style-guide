@@ -56,7 +56,7 @@ export default function OutfitSuggest() {
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
-  const [generationCount, setGenerationCount] = useState(0);
+  
 
   // Fetch user's profile for full body photo
   const { data: profile } = useQuery({
@@ -171,26 +171,29 @@ export default function OutfitSuggest() {
             });
           if (error && error.code !== "23505") throw error;
           queryClient.invalidateQueries({ queryKey: ["style-streak"] });
+
+          // Check total generation count for confetti milestone
+          const { count } = await supabase
+            .from("style_checkins")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id);
+
+          const totalCount = count || 0;
+          if (totalCount > 0 && totalCount % 10 === 0) {
+            confetti({
+              particleCount: 150,
+              spread: 80,
+              origin: { y: 0.6 },
+              colors: ["#d4ff00", "#10B981", "#3B82F6", "#F59E0B", "#EF4444"],
+            });
+            toast.success(`🎉 ${totalCount} outfits generated! You're on fire!`);
+          } else {
+            toast.success("Here's your perfect outfit!");
+          }
         } catch (err) {
           console.error("Streak check-in error:", err);
+          toast.success("Here's your perfect outfit!");
         }
-      }
-
-      // Track generation count for confetti
-      const newCount = generationCount + 1;
-      setGenerationCount(newCount);
-
-      if (newCount % 10 === 0) {
-        // 🎉 Confetti celebration every 10 generations
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ["#6C3FA0", "#EF4444", "#F59E0B", "#10B981", "#3B82F6"],
-        });
-        toast.success(`🎉 ${newCount} outfits generated! You're on fire!`);
-      } else {
-        toast.success("Here's your perfect outfit!");
       }
     },
     onError: (error: Error) => {

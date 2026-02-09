@@ -58,12 +58,6 @@ serve(async (req) => {
     // Get real weather data from Open-Meteo (free, no API key)
     const weather = await getWeatherInfo(location);
 
-    // Analyze venue type using AI if venue is provided
-    let venueAnalysis = "";
-    if (venue) {
-      venueAnalysis = await analyzeVenue(venue, LOVABLE_API_KEY);
-    }
-
     // Build wardrobe description
     const wardrobeDescription = Object.entries(wardrobe)
       .map(([category, items]) => {
@@ -71,6 +65,10 @@ serve(async (req) => {
         return `${category}: ${items.map(i => `${i.name} (id: ${i.id}, color: ${i.color || 'unknown'})`).join(", ")}`;
       })
       .join("\n");
+
+    const venueInstruction = venue
+      ? `\n8. Analyze the venue "${venue}" - consider its type, expected dress code, and atmosphere when choosing the outfit.`
+      : "";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -92,7 +90,7 @@ Rules:
 4. Consider the venue type and its dress code/atmosphere
 5. Only use items from the provided wardrobe - NEVER suggest items not in the list
 6. For cold weather (below 15°C), always include outerwear if available
-7. For rainy weather, prioritize water-resistant or appropriate items
+7. For rainy weather, prioritize water-resistant or appropriate items${venueInstruction}
 
 Respond with a valid JSON object (no markdown, no code blocks):
 {
@@ -101,7 +99,8 @@ Respond with a valid JSON object (no markdown, no code blocks):
   "outerwear_id": "uuid or null if not needed based on weather",
   "footwear_id": "uuid or null",
   "accessory_id": "uuid or null",
-  "reasoning": "Detailed explanation of why this combination works for the weather, occasion, and venue"
+  "reasoning": "Detailed explanation of why this combination works for the weather, occasion, and venue",
+  "venueAnalysis": "Brief description of the venue type, dress code, and atmosphere (or empty string if no venue)"
 }
 
 If a category is empty in the wardrobe, use null for that field.`
@@ -113,7 +112,6 @@ If a category is empty in the wardrobe, use null for that field.`
 - Occasion: ${occasion}
 - Location: ${location || "Not specified"}
 - Venue: ${venue || "Not specified"}
-${venueAnalysis ? `- Venue Analysis: ${venueAnalysis}` : ""}
 - Weather: ${weather.description}, ${weather.temperature}°C, Humidity: ${weather.humidity}%, ${weather.feelsLike ? `Feels like: ${weather.feelsLike}°C` : ""}${weather.isRaining ? ", Currently raining" : ""}
 
 Available wardrobe:
@@ -184,7 +182,7 @@ ${wardrobeDescription}`
       items: selectedItems,
       weather,
       reasoning: suggestion.reasoning,
-      venueAnalysis: venueAnalysis || null,
+      venueAnalysis: suggestion.venueAnalysis || null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -301,38 +299,3 @@ function getFallbackWeather(location: string) {
   };
 }
 
-// Analyze venue type using AI
-async function analyzeVenue(venue: string, apiKey: string): Promise<string> {
-  try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: "You are a venue expert. Given a venue name or description, briefly describe the venue type, expected dress code, and atmosphere in one sentence. Be concise."
-          },
-          {
-            role: "user",
-            content: `What type of place is "${venue}" and what would be appropriate to wear there?`
-          }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      return "";
-    }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || "";
-  } catch (error) {
-    console.error("Venue analysis error:", error);
-    return "";
-  }
-}

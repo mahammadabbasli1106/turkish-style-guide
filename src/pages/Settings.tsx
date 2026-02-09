@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -228,73 +229,80 @@ export default function Settings() {
         </div>
 
         <div className="bg-card rounded-2xl p-6 shadow-card border border-border space-y-6">
-          {/* Avatar selection at top */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
-              <User size={20} className="text-primary" />
-              {t("settings.selectAvatar")}
-            </div>
-
-            <div className="flex flex-col items-center gap-4">
-              <img 
+          {/* Avatar selection - compact */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
                 src={selectedAvatarUrl}
-                alt="Selected avatar"
-                className="w-24 h-24 rounded-full border-4 border-primary"
+                alt="Avatar"
+                className="w-14 h-14 rounded-full border-2 border-primary"
               />
-              <div className="grid grid-cols-4 gap-3">
-                {AVATARS.map((avatar) => (
-                  <button
-                    key={avatar.id}
-                    onClick={() => setSelectedAvatar(avatar.id)}
-                    className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
-                      selectedAvatar === avatar.id
-                        ? "border-primary ring-2 ring-primary/30 scale-110"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <img src={avatar.url} alt={avatar.id} className="w-full h-full" />
-                  </button>
-                ))}
+              <div>
+                <p className="font-semibold text-foreground">{t("settings.selectAvatar")}</p>
+                <p className="text-xs text-muted-foreground capitalize">{selectedAvatar}</p>
               </div>
             </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">Change</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>{t("settings.selectAvatar")}</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-4 gap-3 py-4">
+                  {AVATARS.map((avatar) => (
+                    <button
+                      key={avatar.id}
+                      onClick={() => setSelectedAvatar(avatar.id)}
+                      className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
+                        selectedAvatar === avatar.id
+                          ? "border-primary ring-2 ring-primary/30 scale-110"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <img src={avatar.url} alt={avatar.id} className="w-full h-full" />
+                    </button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
-          {/* Full body photo upload - MANDATORY */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
-              <Camera size={20} className="text-primary" />
-              {t("settings.fullBodyPhoto")} *
+          {/* Full body photo - compact */}
+          <div className="flex items-center justify-between pt-4 border-t border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-border bg-secondary flex items-center justify-center">
+                {fullBodyPhoto ? (
+                  <img src={fullBodyPhoto} alt="Full body" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera size={20} className="text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">{t("settings.fullBodyPhoto")} *</p>
+                <p className="text-xs text-muted-foreground">
+                  {fullBodyPhoto ? "Photo uploaded" : "Required for try-on"}
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2 p-3 bg-accent/20 rounded-lg border border-accent/30">
-              <AlertCircle size={16} className="text-accent" />
-              <p className="text-sm text-foreground">{t("settings.fullBodyPhotoHint")}</p>
-            </div>
-
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className={`relative aspect-[3/4] max-w-xs mx-auto rounded-xl border-2 border-dashed cursor-pointer transition-colors overflow-hidden ${
-                fullBodyPhoto ? "border-primary" : "border-border hover:border-primary/50"
-              }`}
-            >
-              {fullBodyPhoto ? (
-                <img 
-                  src={fullBodyPhoto} 
-                  alt="Full body" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                  <Upload size={40} className="text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground text-sm">{t("settings.uploadFullBodyPhoto")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("settings.fullBodyPhotoTip")}</p>
-                </div>
+            <div className="flex gap-2">
+              {fullBodyPhoto && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">View</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle>{t("settings.fullBodyPhoto")}</DialogTitle>
+                    </DialogHeader>
+                    <img src={fullBodyPhoto} alt="Full body" className="w-full rounded-xl" />
+                  </DialogContent>
+                </Dialog>
               )}
-              {isUploadingPhoto && (
-                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              )}
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploadingPhoto}>
+                {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : fullBodyPhoto ? "Change" : "Upload"}
+              </Button>
             </div>
             <input
               ref={fileInputRef}

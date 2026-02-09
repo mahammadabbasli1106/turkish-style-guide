@@ -9,10 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { User, MapPin, Palette, Loader2, Save, Camera, Upload, AlertCircle, LogOut } from "lucide-react";
+import { User, MapPin, Palette, Loader2, Save, Camera, Upload, AlertCircle, LogOut, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type StylePreference = Database["public"]["Enums"]["style_preference"];
 
@@ -400,14 +411,14 @@ export default function Settings() {
           )}
 
           {/* Log out */}
-          <div className="pt-4 border-t border-border">
+          <div className="pt-4 border-t border-border space-y-3">
             <Button
               variant="ghost"
               className="w-full justify-center text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={async () => {
                 try {
                   await signOut();
-                  toast.success(t("nav.signedOut") || "Signed out successfully");
+                  toast.success("Signed out successfully");
                   navigate("/");
                 } catch {
                   toast.error("Failed to sign out");
@@ -417,6 +428,63 @@ export default function Settings() {
               <LogOut size={20} className="mr-2" />
               {t("nav.signOut")}
             </Button>
+
+            {/* Delete Account */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center text-destructive/70 hover:text-destructive hover:bg-destructive/10 text-sm"
+                >
+                  <Trash2 size={16} className="mr-2" />
+                  Delete Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action is permanent and cannot be undone. All your wardrobe items, outfits, streaks, and profile data will be permanently deleted.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session) throw new Error("Not authenticated");
+
+                        const resp = await fetch(
+                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${session.access_token}`,
+                            },
+                          }
+                        );
+
+                        if (!resp.ok) {
+                          const err = await resp.json().catch(() => ({}));
+                          throw new Error(err.error || "Failed to delete account");
+                        }
+
+                        await signOut();
+                        toast.success("Account deleted successfully");
+                        navigate("/");
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to delete account");
+                      }
+                    }}
+                  >
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </motion.div>

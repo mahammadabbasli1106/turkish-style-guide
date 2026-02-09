@@ -223,6 +223,38 @@ export type Database = {
         }
         Relationships: []
       }
+      style_checkins: {
+        Row: {
+          checked_in_at: string
+          created_at: string
+          id: string
+          outfit_suggestion_id: string | null
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          created_at?: string
+          id?: string
+          outfit_suggestion_id?: string | null
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          created_at?: string
+          id?: string
+          outfit_suggestion_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_checkins_outfit_suggestion_id_fkey"
+            columns: ["outfit_suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "outfit_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       try_on_sessions: {
         Row: {
           clothing_item_id: string | null

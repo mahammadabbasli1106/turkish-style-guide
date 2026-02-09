@@ -9,8 +9,11 @@ export default function DashboardSkeleton() {
         <Skeleton className="h-7 w-56" />
       </div>
 
-      {/* Weather Widget */}
-      <Skeleton className="h-12 w-full rounded-full" />
+      {/* Weather + Streak */}
+      <div className="grid grid-cols-2 gap-3 h-40">
+        <Skeleton className="h-full rounded-2xl" />
+        <Skeleton className="h-full rounded-2xl" />
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-4 gap-3">

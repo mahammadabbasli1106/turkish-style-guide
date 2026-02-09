@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera } from "lucide-react";
+import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera, Check } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,6 +55,7 @@ export default function OutfitSuggest() {
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
 
   // Fetch user's profile for full body photo
   const { data: profile } = useQuery({
@@ -131,7 +132,8 @@ export default function OutfitSuggest() {
     },
     onSuccess: (data) => {
       setCurrentSuggestion(data);
-      setTryOnImage(null); // Reset try-on image for new suggestion
+      setTryOnImage(null);
+      setCheckedIn(false);
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
       toast.success("Here's your perfect outfit!");
@@ -441,6 +443,40 @@ export default function OutfitSuggest() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3 mt-6">
+                  {/* I'm wearing this button */}
+                  <Button
+                    className={checkedIn
+                      ? "bg-green-600 text-white hover:bg-green-700"
+                      : "bg-gradient-primary text-primary-foreground"
+                    }
+                    disabled={checkedIn}
+                    onClick={async () => {
+                      if (!user || !currentSuggestion) return;
+                      try {
+                        const { error } = await supabase
+                          .from("style_checkins")
+                          .insert({
+                            user_id: user.id,
+                            outfit_suggestion_id: currentSuggestion.id,
+                          });
+                        if (error && error.code === "23505") {
+                          toast.info(t("suggest.checkedIn"));
+                          setCheckedIn(true);
+                          return;
+                        }
+                        if (error) throw error;
+                        setCheckedIn(true);
+                        queryClient.invalidateQueries({ queryKey: ["style-streak"] });
+                        toast.success(t("suggest.checkedIn"));
+                      } catch (err: any) {
+                        toast.error(err.message || t("common.error"));
+                      }
+                    }}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {t("suggest.wearingThis")}
+                  </Button>
+
                   <Button
                     variant="outline"
                     onClick={() => suggestMutation.mutate()}
@@ -458,7 +494,7 @@ export default function OutfitSuggest() {
                     {t("suggest.saveFavorite")}
                   </Button>
                   <Button
-                    className="bg-gradient-primary text-primary-foreground"
+                    variant="outline"
                     onClick={handleTryOnOutfit}
                     disabled={isGeneratingTryOn || !hasFullBodyPhoto}
                   >

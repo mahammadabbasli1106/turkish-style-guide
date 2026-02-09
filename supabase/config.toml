@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.style-chat]
 verify_jwt = false
+
+[functions.travel-weather]
+verify_jwt = false
+
+[functions.travel-packing]
+verify_jwt = false

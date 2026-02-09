@@ -156,37 +156,70 @@ export type Database = {
           auth_id: string
           avatar_type: string | null
           avatar_url: string | null
+          closet_permission_granted: boolean | null
+          country_code: string | null
           created_at: string
           display_name: string | null
           email: string | null
           full_body_photo_url: string | null
+          gender: string | null
+          goals: string[] | null
+          height: number | null
+          height_unit: string | null
           id: string
           location: string | null
+          location_permission_granted: boolean | null
+          onboarding_completed: boolean | null
+          phone_number: string | null
           updated_at: string
+          weight: number | null
+          weight_unit: string | null
         }
         Insert: {
           auth_id: string
           avatar_type?: string | null
           avatar_url?: string | null
+          closet_permission_granted?: boolean | null
+          country_code?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
           full_body_photo_url?: string | null
+          gender?: string | null
+          goals?: string[] | null
+          height?: number | null
+          height_unit?: string | null
           id?: string
           location?: string | null
+          location_permission_granted?: boolean | null
+          onboarding_completed?: boolean | null
+          phone_number?: string | null
           updated_at?: string
+          weight?: number | null
+          weight_unit?: string | null
         }
         Update: {
           auth_id?: string
           avatar_type?: string | null
           avatar_url?: string | null
+          closet_permission_granted?: boolean | null
+          country_code?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
           full_body_photo_url?: string | null
+          gender?: string | null
+          goals?: string[] | null
+          height?: number | null
+          height_unit?: string | null
           id?: string
           location?: string | null
+          location_permission_granted?: boolean | null
+          onboarding_completed?: boolean | null
+          phone_number?: string | null
           updated_at?: string
+          weight?: number | null
+          weight_unit?: string | null
         }
         Relationships: []
       }

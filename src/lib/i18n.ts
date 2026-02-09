@@ -143,7 +143,7 @@ const resources = {
       
       // PWA
       "pwa.install": "Install App",
-      "pwa.installPrompt": "Install StyleAI for the best experience",
+      "pwa.installPrompt": "Install tarzly.ai for the best experience",
 
       // Settings
       "settings.title": "Profile Settings",
@@ -180,7 +180,31 @@ const resources = {
       "tryOn.multiSelectHint": "Select multiple items to try them together",
       "tryOn.selectedItems": "Selected items",
       "tryOn.items": "items",
-      "tryOn.usingProfilePhoto": "Using your profile photo",
+      // Onboarding
+      "onboarding.phoneTitle": "What's your number?",
+      "onboarding.phoneSubtitle": "We'll use this for account recovery",
+      "onboarding.genderTitle": "How do you identify?",
+      "onboarding.genderSubtitle": "This helps us personalize outfit suggestions",
+      "onboarding.male": "Male",
+      "onboarding.female": "Female",
+      "onboarding.nonBinary": "Non-binary",
+      "onboarding.preferNot": "Prefer not to say",
+      "onboarding.bodyTitle": "Your body profile",
+      "onboarding.bodySubtitle": "Helps AI find the best fits for you",
+      "onboarding.height": "Height",
+      "onboarding.weight": "Weight",
+      "onboarding.styleTitle": "Pick your vibe",
+      "onboarding.styleSubtitle": "Choose 2 styles that speak to you",
+      "onboarding.goalTitle": "What brings you here?",
+      "onboarding.goalSubtitle": "Select your goals",
+      "onboarding.closetTitle": "Train your AI stylist",
+      "onboarding.closetSubtitle": "Upload photos of your current clothes so our AI can learn your wardrobe and create perfect outfits",
+      "onboarding.closetAllow": "Let's do it!",
+      "onboarding.maybeLater": "Maybe later",
+      "onboarding.locationTitle": "Enable location",
+      "onboarding.locationSubtitle": "We use your location for weather-based outfit recommendations. \"It's raining in Istanbul? We've got you covered.\"",
+      "onboarding.locationAllow": "Enable Location",
+      "onboarding.complete": "You're all set! Welcome to tarzly.ai 🎉",
     }
   },
   tr: {
@@ -324,7 +348,7 @@ const resources = {
       
       // PWA
       "pwa.install": "Uygulamayı Yükle",
-      "pwa.installPrompt": "En iyi deneyim için StyleAI'ı yükleyin",
+      "pwa.installPrompt": "En iyi deneyim için tarzly.ai'ı yükleyin",
 
       // Settings
       "settings.title": "Profil Ayarları",
@@ -362,6 +386,32 @@ const resources = {
       "tryOn.selectedItems": "Seçilen parçalar",
       "tryOn.items": "parça",
       "tryOn.usingProfilePhoto": "Profil fotoğrafınız kullanılıyor",
+
+      // Onboarding
+      "onboarding.phoneTitle": "Telefon numaranız?",
+      "onboarding.phoneSubtitle": "Hesap kurtarma için kullanacağız",
+      "onboarding.genderTitle": "Cinsiyetiniz?",
+      "onboarding.genderSubtitle": "Kombin önerilerini kişiselleştirmemize yardımcı olur",
+      "onboarding.male": "Erkek",
+      "onboarding.female": "Kadın",
+      "onboarding.nonBinary": "Non-binary",
+      "onboarding.preferNot": "Belirtmek istemiyorum",
+      "onboarding.bodyTitle": "Vücut profiliniz",
+      "onboarding.bodySubtitle": "AI'ın size en uygun kıyafetleri bulmasına yardımcı olur",
+      "onboarding.height": "Boy",
+      "onboarding.weight": "Kilo",
+      "onboarding.styleTitle": "Tarzınızı seçin",
+      "onboarding.styleSubtitle": "Size hitap eden 2 stil seçin",
+      "onboarding.goalTitle": "Neden buradasınız?",
+      "onboarding.goalSubtitle": "Hedeflerinizi seçin",
+      "onboarding.closetTitle": "AI stilistinizi eğitin",
+      "onboarding.closetSubtitle": "Mevcut kıyafetlerinizin fotoğraflarını yükleyin, AI gardırobunuzu öğrensin ve mükemmel kombinler oluştursun",
+      "onboarding.closetAllow": "Hadi yapalım!",
+      "onboarding.maybeLater": "Belki sonra",
+      "onboarding.locationTitle": "Konumu etkinleştir",
+      "onboarding.locationSubtitle": "Hava durumuna göre kombin önerileri için konumunuzu kullanıyoruz. \"İstanbul'da yağmur mu yağıyor? Sizi düşündük.\"",
+      "onboarding.locationAllow": "Konumu Etkinleştir",
+      "onboarding.complete": "Hazırsınız! tarzly.ai'ye hoş geldiniz 🎉",
     }
   }
 };

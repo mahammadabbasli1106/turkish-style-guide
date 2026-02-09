@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import BottomTabBar from "@/components/BottomTabBar";
+import { motion } from "framer-motion";
 import { 
   Home, 
   Shirt, 
@@ -52,37 +53,72 @@ export default function DashboardLayout({ children }: Props) {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
+       <header className="lg:hidden sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link to="/dashboard" className="font-display text-xl font-bold text-gradient">
-            tarzly.ai
-          </Link>
-          <LanguageSwitch />
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <Link to="/dashboard" className="font-display text-xl font-bold text-gradient">
+              tarzly.ai
+            </Link>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <LanguageSwitch />
+          </motion.div>
         </div>
       </header>
 
       <div className="flex">
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex flex-col w-64 min-h-screen bg-card border-r border-border p-6">
-          <Link to="/dashboard" className="font-display text-2xl font-bold text-gradient mb-8">
-            tarzly.ai
-          </Link>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <Link to="/dashboard" className="font-display text-2xl font-bold text-gradient mb-8 block">
+              tarzly.ai
+            </Link>
+          </motion.div>
 
           <nav className="flex-1 space-y-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-secondary"
-                }`}
-              >
-                <item.icon size={20} />
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item, i) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <motion.div
+                  key={item.path}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.08 * i, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                >
+                  <Link
+                    to={item.path}
+                    className={`group flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-300 ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    <motion.span
+                      whileHover={{ scale: 1.12 }}
+                      transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+                      className={`inline-flex transition-colors duration-300 ${
+                        !isActive ? "group-hover:text-primary" : ""
+                      }`}
+                    >
+                      <item.icon size={20} />
+                    </motion.span>
+                    {item.label}
+                  </Link>
+                </motion.div>
+              );
+            })}
           </nav>
 
           <div className="pt-6 border-t border-border space-y-4">

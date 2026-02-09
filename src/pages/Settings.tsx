@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { User, MapPin, Palette, Loader2, Save, Camera, Upload, AlertCircle } from "lucide-react";
+import { User, MapPin, Palette, Loader2, Save, Camera, Upload, AlertCircle, LogOut } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -43,8 +43,9 @@ const AVATARS = [
 
 export default function Settings() {
   const { t } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState("");
@@ -397,6 +398,26 @@ export default function Settings() {
               {t("settings.fullBodyPhotoRequired")}
             </p>
           )}
+
+          {/* Log out */}
+          <div className="pt-4 border-t border-border">
+            <Button
+              variant="ghost"
+              className="w-full justify-center text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={async () => {
+                try {
+                  await signOut();
+                  toast.success(t("nav.signedOut") || "Signed out successfully");
+                  navigate("/");
+                } catch {
+                  toast.error("Failed to sign out");
+                }
+              }}
+            >
+              <LogOut size={20} className="mr-2" />
+              {t("nav.signOut")}
+            </Button>
+          </div>
         </div>
       </motion.div>
     </DashboardLayout>

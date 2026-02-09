@@ -8,7 +8,7 @@ type Props = {
 };
 
 const markdownClasses =
-  "prose prose-sm dark:prose-invert max-w-none text-foreground " +
+  "prose prose-sm dark:prose-invert max-w-none text-foreground break-words overflow-hidden " +
   "[&>p]:m-0 [&>p]:mb-2 [&>p:last-child]:mb-0 " +
   "[&>ul]:my-1 [&>ul]:pl-4 [&>ol]:my-1 [&>ol]:pl-4 " +
   "[&_li]:my-0.5 [&_li]:text-foreground " +

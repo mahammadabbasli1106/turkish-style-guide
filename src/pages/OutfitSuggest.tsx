@@ -313,10 +313,24 @@ export default function OutfitSuggest() {
             size="lg"
           >
             {suggestMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t("suggest.generating")}
-              </>
+              <motion.div
+                className="flex items-center gap-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                >
+                  <Sparkles className="h-5 w-5" />
+                </motion.div>
+                <motion.span
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                  {t("suggest.generating")}
+                </motion.span>
+              </motion.div>
             ) : (
               <>
                 <Sparkles className="mr-2 h-5 w-5" />

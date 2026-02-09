@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { CloudSun, Loader2, MapPin, Droplets, Thermometer } from "lucide-react";
+import { Cloud, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import WeatherEffects from "./WeatherEffects";
 
 type WeatherData = {
   temperature: number;
@@ -35,49 +34,32 @@ export default function WeatherWidget({ data, isLoading }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-gradient-primary rounded-2xl p-5 text-primary-foreground shadow-warm relative overflow-hidden"
+      className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-full px-5 py-3 shadow-card flex items-center justify-between gap-3"
     >
-      {data && <WeatherEffects description={data.description} />}
       {isLoading ? (
-        <div className="flex items-center gap-3 py-4 justify-center">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">{t("common.loading")}</span>
+        <div className="flex items-center gap-2 w-full justify-center py-0.5">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{t("common.loading")}</span>
         </div>
       ) : data ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-primary-foreground/80">
-              <MapPin size={14} />
-              <span className="text-sm font-medium">{data.location}</span>
-            </div>
-            <CloudSun size={24} className="text-primary-foreground/90" />
+        <>
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-foreground truncate">
+              {data.location} · {data.temperature}° {data.description}
+            </span>
+            <span className="text-xs text-muted-foreground truncate">
+              {getClothingTip(data.description, data.temperature, t)}
+            </span>
           </div>
-          <div className="flex items-end gap-2">
-            <span className="font-display text-5xl font-bold leading-none">{data.temperature}°</span>
-            <span className="text-primary-foreground/80 text-sm pb-1">{data.description}</span>
-          </div>
-          <div className="flex gap-4 pt-1">
-            <div className="flex items-center gap-1.5 text-primary-foreground/70">
-              <Thermometer size={14} />
-              <span className="text-xs">{t("weather.feelsLike")} {data.feelsLike}°</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-primary-foreground/70">
-              <Droplets size={14} />
-              <span className="text-xs">{data.humidity}%</span>
-            </div>
-          </div>
-          {/* Clothing tip */}
-          <p className="text-xs text-primary-foreground/70 italic pt-1">
-            "{getClothingTip(data.description, data.temperature, t)}"
-          </p>
-        </div>
+          <Cloud size={20} className="text-muted-foreground shrink-0" />
+        </>
       ) : (
-        <div className="flex items-center gap-3 py-4">
-          <CloudSun size={24} />
-          <span className="text-sm text-primary-foreground/80">{t("settings.locationPlaceholder")}</span>
+        <div className="flex items-center gap-2 w-full justify-center py-0.5">
+          <Cloud size={18} className="text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{t("settings.locationPlaceholder")}</span>
         </div>
       )}
     </motion.div>

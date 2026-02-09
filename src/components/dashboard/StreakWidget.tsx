@@ -11,14 +11,13 @@ function calculateStreak(dates: string[]): number {
   const sorted = dates
     .map((d) => new Date(d))
     .sort((a, b) => b.getTime() - a.getTime());
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const mostRecent = new Date(sorted[0]);
   mostRecent.setHours(0, 0, 0, 0);
-  
-  // If last check-in wasn't today or yesterday, streak is 0
+
   const diffDays = Math.floor((today.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays > 1) return 0;
 
@@ -38,7 +37,6 @@ function calculateStreak(dates: string[]): number {
   return streak;
 }
 
-// Levels: every 7 days is a new level
 function getLevel(streak: number) {
   return Math.floor(streak / 7) + 1;
 }
@@ -82,7 +80,10 @@ export default function StreakWidget() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      className="h-full bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-between"
+      className="h-full rounded-2xl p-4 flex flex-col items-center justify-between"
+      style={{
+        background: "linear-gradient(135deg, #6C3FA0 0%, #8B5FBF 50%, #A078D1 100%)",
+      }}
     >
       {/* Circular progress */}
       <div className="relative flex items-center justify-center">
@@ -92,7 +93,7 @@ export default function StreakWidget() {
             cy="44"
             r={radius}
             fill="none"
-            stroke="hsl(var(--muted))"
+            stroke="rgba(255,255,255,0.15)"
             strokeWidth="6"
           />
           <motion.circle
@@ -100,7 +101,7 @@ export default function StreakWidget() {
             cy="44"
             r={radius}
             fill="none"
-            stroke="hsl(var(--primary))"
+            stroke="#EF4444"
             strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -110,19 +111,19 @@ export default function StreakWidget() {
             transform="rotate(-90 44 44)"
           />
         </svg>
-        <span className="absolute font-display text-2xl font-bold text-foreground">
+        <span className="absolute font-display text-2xl font-bold text-white">
           {streak}
         </span>
       </div>
 
       {/* Label */}
       <div className="flex items-center gap-1 mt-1">
-        <Flame size={14} className="text-primary" />
-        <span className="text-xs font-semibold text-foreground">
+        <Flame size={14} className="text-red-400" />
+        <span className="text-xs font-semibold text-white">
           {t("dashboard.streakLabel")}
         </span>
       </div>
-      <span className="text-[10px] text-muted-foreground">
+      <span className="text-[10px] text-white/70">
         Lv.{level} · {Math.round(progress * 100)}%
       </span>
     </motion.div>

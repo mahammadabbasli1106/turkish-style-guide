@@ -211,6 +211,14 @@ const resources = {
       "settings.deleteAccountDesc": "This action is permanent and cannot be undone. All your wardrobe items, outfits, streaks, and profile data will be permanently deleted.",
       "settings.accountDeleted": "Account deleted successfully",
       "settings.signedOut": "Signed out successfully",
+      "settings.memberSince": "Member for",
+      "settings.years": "Years",
+      "settings.months": "Months",
+      "settings.days": "Days",
+      "settings.yourActivity": "Your Activity",
+      "settings.activityItems": "Wardrobe Items",
+      "settings.activityOutfits": "Outfits Created",
+      "settings.activityCheckins": "Check-ins",
       
       // Try-On
       "tryOn.selected": "selected",
@@ -534,6 +542,14 @@ const resources = {
       "settings.deleteAccountDesc": "Bu işlem kalıcıdır ve geri alınamaz. Tüm gardırop, kombin, seri ve profil verileriniz kalıcı olarak silinecektir.",
       "settings.accountDeleted": "Hesap başarıyla silindi",
       "settings.signedOut": "Başarıyla çıkış yapıldı",
+      "settings.memberSince": "Üyelik Süresi",
+      "settings.years": "Yıl",
+      "settings.months": "Ay",
+      "settings.days": "Gün",
+      "settings.yourActivity": "Aktiviteniz",
+      "settings.activityItems": "Kıyafet",
+      "settings.activityOutfits": "Kombin",
+      "settings.activityCheckins": "Check-in",
       
       // Try-On
       "tryOn.selected": "seçildi",

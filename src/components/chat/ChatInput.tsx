@@ -8,9 +8,10 @@ type Props = {
   setInput: (v: string) => void;
   isStreaming: boolean;
   onSend: () => void;
+  messagesLeft?: number;
 };
 
-export default function ChatInput({ input, setInput, isStreaming, onSend }: Props) {
+export default function ChatInput({ input, setInput, isStreaming, onSend, messagesLeft }: Props) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -19,7 +20,12 @@ export default function ChatInput({ input, setInput, isStreaming, onSend }: Prop
   }, [isStreaming]);
 
   return (
-    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:sticky lg:bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border pt-3 pb-3 px-4 lg:px-1">
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:sticky lg:bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border pt-2 pb-3 px-4 lg:px-1">
+      {messagesLeft !== undefined && (
+        <p className="text-xs text-muted-foreground text-center mb-2">
+          {messagesLeft}/5 messages left today
+        </p>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();

@@ -6,10 +6,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
+import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
 
 type ClothingItem = {
   id: string;
@@ -28,6 +32,8 @@ export default function Wardrobe() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [premiumOpen, setPremiumOpen] = useState(false);
+  const { wardrobeCount, wardrobeLimit, canUploadClothing } = useUsageLimits();
 
   const categoryLabels: Record<string, string> = {
     upper_body: t("wardrobe.tops"),
@@ -74,6 +80,12 @@ export default function Wardrobe() {
     const file = event.target.files?.[0];
     if (!file || !user || !session) return;
 
+    if (!canUploadClothing) {
+      setPremiumOpen(true);
+      event.target.value = "";
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file");
       return;
@@ -81,7 +93,6 @@ export default function Wardrobe() {
 
     setUploading(true);
     try {
-      // Upload to storage
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
@@ -91,15 +102,12 @@ export default function Wardrobe() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("clothing-images")
         .getPublicUrl(fileName);
 
-      // Convert file to base64 for AI analysis
       const base64 = await fileToBase64(file);
 
-      // Categorize with AI
       toast.loading("AI is analyzing your clothing...", { id: "categorize" });
       
       const { data: categoryData, error: categoryError } = await supabase.functions.invoke(
@@ -113,7 +121,6 @@ export default function Wardrobe() {
 
       if (categoryError) throw categoryError;
 
-      // Save to database
       const { error: dbError } = await supabase
         .from("clothing_items")
         .insert({
@@ -162,6 +169,8 @@ export default function Wardrobe() {
     return acc;
   }, {} as Record<string, ClothingItem[]>);
 
+  const progressPercent = Math.min((wardrobeCount / wardrobeLimit) * 100, 100);
+
   return (
     <DashboardLayout>
       <motion.div
@@ -169,6 +178,24 @@ export default function Wardrobe() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8"
       >
+        {/* Wardrobe progress bar */}
+        <div className="bg-card rounded-xl p-4 border border-border shadow-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-foreground">
+              {wardrobeCount}/{wardrobeLimit} slots used
+            </span>
+            {!canUploadClothing && (
+              <button
+                onClick={() => setPremiumOpen(true)}
+                className="text-xs text-primary font-semibold hover:underline"
+              >
+                Upgrade for unlimited
+              </button>
+            )}
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">My Wardrobe</h1>
@@ -177,29 +204,41 @@ export default function Wardrobe() {
             </p>
           </div>
 
-          <label className="relative">
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              disabled={uploading}
-              className="sr-only"
-            />
-            <Button
-              disabled={uploading}
-              className="bg-gradient-primary text-primary-foreground shadow-warm cursor-pointer"
-              asChild
-            >
-              <span>
-                {uploading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                {uploading ? "Uploading..." : "Add Clothing"}
-              </span>
-            </Button>
-          </label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <label className="relative">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={uploading || !canUploadClothing}
+                    className="sr-only"
+                  />
+                  <Button
+                    disabled={uploading || !canUploadClothing}
+                    className="bg-gradient-primary text-primary-foreground shadow-warm cursor-pointer"
+                    asChild
+                    onClick={!canUploadClothing ? () => setPremiumOpen(true) : undefined}
+                  >
+                    <span>
+                      {uploading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {uploading ? "Uploading..." : "Add Clothing"}
+                    </span>
+                  </Button>
+                </label>
+              </TooltipTrigger>
+              {!canUploadClothing && (
+                <TooltipContent>
+                  Wardrobe full. Upgrade to Premium for unlimited storage.
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Category filter */}
@@ -292,6 +331,12 @@ export default function Wardrobe() {
           </div>
         )}
       </motion.div>
+
+      <PremiumUpgradeModal
+        open={premiumOpen}
+        onOpenChange={setPremiumOpen}
+        trigger="Wardrobe Full — Upgrade to Premium"
+      />
     </DashboardLayout>
   );
 }

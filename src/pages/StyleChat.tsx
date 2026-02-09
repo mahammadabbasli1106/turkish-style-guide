@@ -7,6 +7,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import ChatEmptyState from "@/components/chat/ChatEmptyState";
 import ChatMessageList, { type Msg } from "@/components/chat/ChatMessageList";
 import ChatInput from "@/components/chat/ChatInput";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
+import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/style-chat`;
 
@@ -15,7 +17,9 @@ export default function StyleChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [premiumOpen, setPremiumOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { canChat, chatMessagesLeft, recordUsage } = useUsageLimits();
 
   // Fetch wardrobe items for mini product cards
   const { data: wardrobeItems = [] } = useQuery({
@@ -40,10 +44,18 @@ export default function StyleChat() {
     const text = input.trim();
     if (!text || isStreaming || !session) return;
 
+    if (!canChat) {
+      setPremiumOpen(true);
+      return;
+    }
+
     const userMsg: Msg = { role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsStreaming(true);
+
+    // Record usage immediately
+    await recordUsage("style_chat");
 
     let assistantSoFar = "";
 
@@ -143,6 +155,7 @@ export default function StyleChat() {
             setInput={setInput}
             isStreaming={isStreaming}
             onSend={sendMessage}
+            messagesLeft={chatMessagesLeft}
           />
         </div>
       </div>
@@ -154,8 +167,15 @@ export default function StyleChat() {
           setInput={setInput}
           isStreaming={isStreaming}
           onSend={sendMessage}
+          messagesLeft={chatMessagesLeft}
         />
       </div>
+
+      <PremiumUpgradeModal
+        open={premiumOpen}
+        onOpenChange={setPremiumOpen}
+        trigger="Daily Message Limit Reached"
+      />
     </DashboardLayout>
   );
 }

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import BottomTabBar from "@/components/BottomTabBar";
+import DarkModeToggle from "@/components/DarkModeToggle";
 import { motion } from "framer-motion";
 import { 
   Home, 
@@ -68,7 +69,9 @@ export default function DashboardLayout({ children }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
+            className="flex items-center gap-1"
           >
+            <DarkModeToggle />
             <LanguageSwitch />
           </motion.div>
         </div>
@@ -123,10 +126,13 @@ export default function DashboardLayout({ children }: Props) {
 
           <div className="pt-6 border-t border-border space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground truncate max-w-[140px]">
+              <span className="text-sm text-muted-foreground truncate max-w-[120px]">
                 {user?.email}
               </span>
-              <LanguageSwitch />
+              <div className="flex items-center gap-1">
+                <DarkModeToggle />
+                <LanguageSwitch />
+              </div>
             </div>
             <Button
               variant="ghost"

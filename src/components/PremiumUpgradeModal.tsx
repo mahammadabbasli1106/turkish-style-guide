@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Crown, Shirt, Sparkles, Camera, MessageCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import confetti from "canvas-confetti";
 
 type Props = {
   open: boolean;
@@ -51,8 +54,30 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
     { icon: MessageCircle, title: t("premium.priorityChat"), desc: t("premium.priorityChatDesc") },
   ];
 
-  const handleStart = () => {
-    toast.info(t("premium.comingSoon"));
+  const { user } = useAuth();
+  const [purchasing, setPurchasing] = useState(false);
+
+  const handleStart = async () => {
+    if (!user) return;
+    setPurchasing(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_premium: true })
+        .eq("auth_id", user.id);
+      if (error) throw error;
+
+      // Fire confetti
+      confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      setTimeout(() => confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 } }), 300);
+
+      toast.success(t("premium.activated"));
+      onOpenChange(false);
+    } catch {
+      toast.error(t("common.error"));
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   return (
@@ -189,10 +214,11 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
           </p>
           <Button
             onClick={handleStart}
+            disabled={purchasing}
             className="w-full bg-gradient-primary text-primary-foreground shadow-warm h-12 text-base font-semibold"
             size="lg"
           >
-            {t("premium.startTrial")}
+            {purchasing ? t("common.loading") : t("common.continue")}
           </Button>
         </div>
       </DialogContent>

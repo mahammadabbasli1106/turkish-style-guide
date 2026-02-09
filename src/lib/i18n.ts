@@ -320,6 +320,8 @@ const resources = {
       "premium.cancelAnytime": "Change plans or cancel anytime.",
       "premium.startTrial": "Start 1-Month Free Trial",
       "premium.comingSoon": "Coming Soon! Premium subscriptions will be available shortly.",
+      "premium.activated": "Welcome to Premium! 🎉",
+      "premium.badge": "Premium",
       "premium.perMonth": "/mo",
     }
   },
@@ -643,6 +645,8 @@ const resources = {
       "premium.cancelAnytime": "Planı değiştirin veya istediğiniz zaman iptal edin.",
       "premium.startTrial": "1 Aylık Ücretsiz Deneme Başlat",
       "premium.comingSoon": "Çok yakında! Premium abonelikler kısa süre içinde kullanılabilir olacak.",
+      "premium.activated": "Premium'a hoş geldiniz! 🎉",
+      "premium.badge": "Premium",
       "premium.perMonth": "/ay",
     }
   }

@@ -9,6 +9,8 @@ import { toast } from "@/components/ui/sonner";
 import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
+import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
 
 type ClothingItem = {
   id: string;
@@ -24,7 +26,9 @@ export default function VirtualTryOn() {
   const [userImage, setUserImage] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [resultImage, setResultImage] = useState<string | null>(null);
+  const [premiumOpen, setPremiumOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { canTryOn, tryOnsLeft, tryOnLimit, recordUsage } = useUsageLimits();
 
   // Fetch user's full body photo from profile
   const { data: profile } = useQuery({
@@ -69,6 +73,10 @@ export default function VirtualTryOn() {
       if (!session || selectedItems.length === 0 || !userImage) {
         throw new Error("Missing required data");
       }
+      if (!canTryOn) {
+        setPremiumOpen(true);
+        throw new Error("__limit__");
+      }
 
       // For multiple items, we'll create a combined prompt
       const itemDescriptions = selectedItems.map(item => 
@@ -94,11 +102,13 @@ export default function VirtualTryOn() {
       
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setResultImage(data.resultImageUrl);
       toast.success(t("tryOn.result"));
+      await recordUsage("virtual_tryon");
     },
     onError: (error: Error) => {
+      if (error.message === "__limit__") return;
       console.error("Try-on error:", error);
       toast.error(error.message);
     },
@@ -318,26 +328,37 @@ export default function VirtualTryOn() {
 
         {/* Generate button */}
         {!resultImage && (
-          <Button
-            onClick={() => tryOnMutation.mutate()}
-            disabled={!displayImage || selectedItems.length === 0 || tryOnMutation.isPending}
-            className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
-            size="lg"
-          >
-            {tryOnMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t("tryOn.generating")}
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-5 w-5" />
-                {t("tryOn.generate")} {selectedItems.length > 0 && `(${selectedItems.length} ${t("tryOn.items")})`}
-              </>
-            )}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              onClick={() => tryOnMutation.mutate()}
+              disabled={!displayImage || selectedItems.length === 0 || tryOnMutation.isPending}
+              className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
+              size="lg"
+            >
+              {tryOnMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  {t("tryOn.generating")}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  {t("tryOn.generate")} {selectedItems.length > 0 && `(${selectedItems.length} ${t("tryOn.items")})`}
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              {tryOnsLeft}/{tryOnLimit} try-ons left today
+            </p>
+          </div>
         )}
       </motion.div>
+
+      <PremiumUpgradeModal
+        open={premiumOpen}
+        onOpenChange={setPremiumOpen}
+        trigger="Daily Limit Reached — Upgrade to Premium"
+      />
     </DashboardLayout>
   );
 }

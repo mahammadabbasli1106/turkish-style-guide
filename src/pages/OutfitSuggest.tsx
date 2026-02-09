@@ -13,6 +13,8 @@ import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
+import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
 
 type OutfitItem = {
   id: string;
@@ -56,7 +58,8 @@ export default function OutfitSuggest() {
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
-  
+  const [premiumOpen, setPremiumOpen] = useState(false);
+  const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, recordUsage } = useUsageLimits();
 
   // Fetch user's profile for full body photo
   const { data: profile } = useQuery({
@@ -143,6 +146,10 @@ export default function OutfitSuggest() {
   const suggestMutation = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error("Not authenticated");
+      if (!canSuggestOutfit) {
+        setPremiumOpen(true);
+        throw new Error("__limit__");
+      }
       if (!occasion) throw new Error(t("suggest.occasionRequired") || "Occasion is required");
       if (!venue.trim()) throw new Error(t("suggest.venueRequired") || "Venue is required");
       if (!style) throw new Error(t("suggest.styleRequired") || "Style is required");
@@ -161,6 +168,9 @@ export default function OutfitSuggest() {
       setTryOnImage(null);
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
+
+      // Record usage
+      await recordUsage("outfit_suggest");
 
       // Always create a new check-in (no unique constraint anymore)
       if (user) {
@@ -199,6 +209,7 @@ export default function OutfitSuggest() {
       }
     },
     onError: (error: Error) => {
+      if (error.message === "__limit__") return;
       console.error("Suggest error:", error);
       toast.error(error.message);
     },
@@ -402,6 +413,10 @@ export default function OutfitSuggest() {
             )}
           </Button>
 
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            {outfitSuggestLeft}/{outfitSuggestLimit} suggestions left today
+          </p>
+
           {!hasEnoughClothes && (
             <p className="text-sm text-muted-foreground text-center mt-3">
               {t("suggest.needMoreItems")}
@@ -572,6 +587,11 @@ export default function OutfitSuggest() {
           )}
         </AnimatePresence>
       </motion.div>
+      <PremiumUpgradeModal
+        open={premiumOpen}
+        onOpenChange={setPremiumOpen}
+        trigger="Daily Limit Reached — Upgrade to Premium"
+      />
     </DashboardLayout>
   );
 }

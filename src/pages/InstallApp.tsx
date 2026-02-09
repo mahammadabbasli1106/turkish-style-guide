@@ -57,7 +57,7 @@ export default function InstallApp() {
       {/* Header */}
       <header className="p-4 flex justify-between items-center">
         <Link to="/" className="font-display text-2xl font-bold text-gradient">
-          StyleAI
+          tarzly.ai
         </Link>
         <LanguageSwitch />
       </header>

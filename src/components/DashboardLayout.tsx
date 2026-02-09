@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: Props) {
       <header className="lg:hidden sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <Link to="/dashboard" className="font-display text-xl font-bold text-gradient">
-            StyleAI
+            tarzly.ai
           </Link>
           <div className="flex items-center gap-2">
             <LanguageSwitch />
@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: Props) {
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex flex-col w-64 min-h-screen bg-card border-r border-border p-6">
           <Link to="/dashboard" className="font-display text-2xl font-bold text-gradient mb-8">
-            StyleAI
+            tarzly.ai
           </Link>
 
           <nav className="flex-1 space-y-2">

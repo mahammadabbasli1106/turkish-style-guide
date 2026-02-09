@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera, Check } from "lucide-react";
+import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import confetti from "canvas-confetti";
 
 type OutfitItem = {
   id: string;
@@ -55,7 +56,7 @@ export default function OutfitSuggest() {
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
-  const [checkedIn, setCheckedIn] = useState(false);
+  const [generationCount, setGenerationCount] = useState(0);
 
   // Fetch user's profile for full body photo
   const { data: profile } = useQuery({
@@ -72,6 +73,29 @@ export default function OutfitSuggest() {
     },
     enabled: !!user,
   });
+
+  // Fetch user preferences for default location
+  const { data: userPreferences } = useQuery({
+    queryKey: ["user-preferences", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("default_location")
+        .eq("user_id", user.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Pre-fill location from user preferences
+  useEffect(() => {
+    if (userPreferences?.default_location && !location) {
+      setLocation(userPreferences.default_location);
+    }
+  }, [userPreferences]);
 
   const styles = [
     { value: "casual", label: t("style.casual") },
@@ -130,13 +154,44 @@ export default function OutfitSuggest() {
       
       return data as OutfitSuggestion;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setCurrentSuggestion(data);
       setTryOnImage(null);
-      setCheckedIn(false);
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
-      toast.success("Here's your perfect outfit!");
+
+      // Auto-increment streak on generation
+      if (user) {
+        try {
+          const { error } = await supabase
+            .from("style_checkins")
+            .insert({
+              user_id: user.id,
+              outfit_suggestion_id: data.id,
+            });
+          if (error && error.code !== "23505") throw error;
+          queryClient.invalidateQueries({ queryKey: ["style-streak"] });
+        } catch (err) {
+          console.error("Streak check-in error:", err);
+        }
+      }
+
+      // Track generation count for confetti
+      const newCount = generationCount + 1;
+      setGenerationCount(newCount);
+
+      if (newCount % 10 === 0) {
+        // 🎉 Confetti celebration every 10 generations
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ["#6C3FA0", "#EF4444", "#F59E0B", "#10B981", "#3B82F6"],
+        });
+        toast.success(`🎉 ${newCount} outfits generated! You're on fire!`);
+      } else {
+        toast.success("Here's your perfect outfit!");
+      }
     },
     onError: (error: Error) => {
       console.error("Suggest error:", error);
@@ -443,40 +498,6 @@ export default function OutfitSuggest() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3 mt-6">
-                  {/* I'm wearing this button */}
-                  <Button
-                    className={checkedIn
-                      ? "bg-green-600 text-white hover:bg-green-700"
-                      : "bg-gradient-primary text-primary-foreground"
-                    }
-                    disabled={checkedIn}
-                    onClick={async () => {
-                      if (!user || !currentSuggestion) return;
-                      try {
-                        const { error } = await supabase
-                          .from("style_checkins")
-                          .insert({
-                            user_id: user.id,
-                            outfit_suggestion_id: currentSuggestion.id,
-                          });
-                        if (error && error.code === "23505") {
-                          toast.info(t("suggest.checkedIn"));
-                          setCheckedIn(true);
-                          return;
-                        }
-                        if (error) throw error;
-                        setCheckedIn(true);
-                        queryClient.invalidateQueries({ queryKey: ["style-streak"] });
-                        toast.success(t("suggest.checkedIn"));
-                      } catch (err: any) {
-                        toast.error(err.message || t("common.error"));
-                      }
-                    }}
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    {t("suggest.wearingThis")}
-                  </Button>
-
                   <Button
                     variant="outline"
                     onClick={() => suggestMutation.mutate()}

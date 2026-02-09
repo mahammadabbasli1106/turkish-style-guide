@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -14,35 +15,33 @@ type Props = {
   trigger?: string;
 };
 
-const features = [
-  {
-    icon: Shirt,
-    title: "Unlimited Wardrobe",
-    desc: "Upload as many outfits as you want. No more 20-item cap.",
-  },
-  {
-    icon: Sparkles,
-    title: "Unlimited AI Styling",
-    desc: "Get instant outfit suggestions whenever you need them.",
-  },
-  {
-    icon: Camera,
-    title: "Unlimited Virtual Try-Ons",
-    desc: "See yourself in any outfit without daily limits.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Priority AI Chat",
-    desc: "Unlimited messages with your personal fashion stylist.",
-  },
-];
+type Currency = "TL" | "USD";
+
+const pricing: Record<Currency, { monthly: number; yearly: number; symbol: string }> = {
+  TL: { monthly: 69.99, yearly: 49.99, symbol: "₺" },
+  USD: { monthly: 9.99, yearly: 3.99, symbol: "$" },
+};
 
 export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Props) {
+  const { t, i18n } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<"yearly" | "monthly">("yearly");
+  const [currency, setCurrency] = useState<Currency>(i18n.language === "tr" ? "TL" : "USD");
+
+  const p = pricing[currency];
+
+  const features = [
+    { icon: Shirt, title: t("premium.unlimitedWardrobe"), desc: t("premium.unlimitedWardrobeDesc") },
+    { icon: Sparkles, title: t("premium.unlimitedStyling"), desc: t("premium.unlimitedStylingDesc") },
+    { icon: Camera, title: t("premium.unlimitedTryOn"), desc: t("premium.unlimitedTryOnDesc") },
+    { icon: MessageCircle, title: t("premium.priorityChat"), desc: t("premium.priorityChatDesc") },
+  ];
 
   const handleStart = () => {
-    toast.info("Coming Soon! Premium subscriptions will be available shortly.");
+    toast.info(t("premium.comingSoon"));
   };
+
+  const formatPrice = (amount: number) =>
+    currency === "TL" ? `${amount.toFixed(2)} ₺` : `$${amount.toFixed(2)}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,10 +49,10 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
         {/* Header */}
         <div className="px-6 pt-8 pb-4 text-center">
           <h2 className="font-display text-2xl font-bold text-foreground leading-tight">
-            Unlock Your Full<br />Style Potential
+            {t("premium.headline")}
           </h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Premium members are 3x more likely to build their perfect wardrobe.
+            {t("premium.subheadline")}
           </p>
         </div>
 
@@ -72,11 +71,37 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
           ))}
         </div>
 
-        {/* Plan selection */}
+        {/* Currency toggle + Plan selection */}
         <div className="px-6 pb-4">
-          <p className="text-sm font-medium text-foreground text-center mb-3">
-            Select a plan for your free trial.
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-foreground">
+              {t("premium.selectPlan")}
+            </p>
+            <div className="flex items-center bg-secondary rounded-full p-0.5">
+              <button
+                onClick={() => setCurrency("TL")}
+                className={cn(
+                  "text-xs font-semibold px-3 py-1 rounded-full transition-all",
+                  currency === "TL"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                ₺ TL
+              </button>
+              <button
+                onClick={() => setCurrency("USD")}
+                className={cn(
+                  "text-xs font-semibold px-3 py-1 rounded-full transition-all",
+                  currency === "USD"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                $ USD
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             {/* Yearly */}
@@ -90,19 +115,26 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
               )}
             >
               <span className="absolute -top-2.5 left-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-                60% Savings
+                {t("premium.savings")}
               </span>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-foreground">Yearly</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  {t("premium.yearly")}
+                </span>
                 {selectedPlan === "yearly" && (
                   <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                     <Check className="h-3 w-3 text-primary-foreground" />
                   </div>
                 )}
               </div>
-              <p className="text-lg font-bold text-primary">$3.99<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
-              <p className="text-[10px] text-muted-foreground line-through">$9.99/mo</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Billed yearly after free trial.</p>
+              <p className="text-lg font-bold text-primary">
+                {formatPrice(p.yearly)}
+                <span className="text-xs font-normal text-muted-foreground">{t("premium.perMonth")}</span>
+              </p>
+              <p className="text-[10px] text-muted-foreground line-through">
+                {formatPrice(p.monthly)}{t("premium.perMonth")}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t("premium.billedYearly")}</p>
             </button>
 
             {/* Monthly */}
@@ -116,16 +148,21 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
               )}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-foreground">Monthly</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  {t("premium.monthly")}
+                </span>
                 {selectedPlan === "monthly" && (
                   <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                     <Check className="h-3 w-3 text-primary-foreground" />
                   </div>
                 )}
               </div>
-              <p className="text-lg font-bold text-foreground">$9.99<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-lg font-bold text-foreground">
+                {formatPrice(p.monthly)}
+                <span className="text-xs font-normal text-muted-foreground">{t("premium.perMonth")}</span>
+              </p>
               <p className="text-[10px] text-muted-foreground opacity-0">placeholder</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Billed monthly after free trial.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t("premium.billedMonthly")}</p>
             </button>
           </div>
         </div>
@@ -133,14 +170,14 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
         {/* Footer */}
         <div className="px-6 pb-6 space-y-3">
           <p className="text-xs text-muted-foreground text-center">
-            Change plans or cancel anytime.
+            {t("premium.cancelAnytime")}
           </p>
           <Button
             onClick={handleStart}
             className="w-full bg-gradient-primary text-primary-foreground shadow-warm h-12 text-base font-semibold"
             size="lg"
           >
-            Start 1-Month Free Trial
+            {t("premium.startTrial")}
           </Button>
         </div>
       </DialogContent>

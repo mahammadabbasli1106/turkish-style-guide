@@ -299,6 +299,28 @@ const resources = {
       "dashboard.streakLabel": "Style Streak",
       "suggest.wearingThis": "I'm wearing this ✓",
       "suggest.checkedIn": "Outfit confirmed! 🔥",
+
+      // Premium Modal
+      "premium.headline": "Unlock Your Full Style Potential",
+      "premium.subheadline": "Premium members are 3x more likely to build their perfect wardrobe.",
+      "premium.unlimitedWardrobe": "Unlimited Wardrobe",
+      "premium.unlimitedWardrobeDesc": "Upload as many outfits as you want. No more 20-item cap.",
+      "premium.unlimitedStyling": "Unlimited AI Styling",
+      "premium.unlimitedStylingDesc": "Get instant outfit suggestions whenever you need them.",
+      "premium.unlimitedTryOn": "Unlimited Virtual Try-Ons",
+      "premium.unlimitedTryOnDesc": "See yourself in any outfit without daily limits.",
+      "premium.priorityChat": "Priority AI Chat",
+      "premium.priorityChatDesc": "Unlimited messages with your personal fashion stylist.",
+      "premium.selectPlan": "Select a plan for your free trial.",
+      "premium.yearly": "Yearly",
+      "premium.monthly": "Monthly",
+      "premium.savings": "60% Savings",
+      "premium.billedYearly": "Billed yearly after free trial.",
+      "premium.billedMonthly": "Billed monthly after free trial.",
+      "premium.cancelAnytime": "Change plans or cancel anytime.",
+      "premium.startTrial": "Start 1-Month Free Trial",
+      "premium.comingSoon": "Coming Soon! Premium subscriptions will be available shortly.",
+      "premium.perMonth": "/mo",
     }
   },
   tr: {
@@ -600,6 +622,28 @@ const resources = {
       "dashboard.streakLabel": "Stil Serisi",
       "suggest.wearingThis": "Bunu giyiyorum ✓",
       "suggest.checkedIn": "Kombin onaylandı! 🔥",
+
+      // Premium Modal
+      "premium.headline": "Tüm Stil Potansiyelini Aç",
+      "premium.subheadline": "Premium üyeler mükemmel gardıroblarını oluşturma olasılıkları 3 kat daha fazla.",
+      "premium.unlimitedWardrobe": "Sınırsız Gardırop",
+      "premium.unlimitedWardrobeDesc": "İstediğiniz kadar kıyafet yükleyin. 20 parça sınırı yok.",
+      "premium.unlimitedStyling": "Sınırsız AI Styling",
+      "premium.unlimitedStylingDesc": "İhtiyacınız olduğunda anında kombin önerileri alın.",
+      "premium.unlimitedTryOn": "Sınırsız Sanal Deneme",
+      "premium.unlimitedTryOnDesc": "Günlük limit olmadan her kıyafeti üzerinizde görün.",
+      "premium.priorityChat": "Öncelikli AI Sohbet",
+      "premium.priorityChatDesc": "Kişisel moda stilistinizle sınırsız mesaj.",
+      "premium.selectPlan": "Ücretsiz denemeniz için bir plan seçin.",
+      "premium.yearly": "Yıllık",
+      "premium.monthly": "Aylık",
+      "premium.savings": "%60 Tasarruf",
+      "premium.billedYearly": "Ücretsiz denemeden sonra yıllık faturalandırılır.",
+      "premium.billedMonthly": "Ücretsiz denemeden sonra aylık faturalandırılır.",
+      "premium.cancelAnytime": "Planı değiştirin veya istediğiniz zaman iptal edin.",
+      "premium.startTrial": "1 Aylık Ücretsiz Deneme Başlat",
+      "premium.comingSoon": "Çok yakında! Premium abonelikler kısa süre içinde kullanılabilir olacak.",
+      "premium.perMonth": "/ay",
     }
   }
 };

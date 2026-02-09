@@ -247,6 +247,16 @@ const resources = {
       "chat.title": "Style Assistant",
       "chat.subtitle": "Ask me anything about fashion, outfits, or your wardrobe",
       "chat.placeholder": "Ask about style, outfits, trends...",
+      "chat.chipMorning": "Morning Outfit",
+      "chat.chipMorningPrompt": "What should I wear this morning?",
+      "chat.chipEvening": "Tomorrow's Outfit",
+      "chat.chipEveningPrompt": "Help me plan tomorrow's outfit",
+      "chat.chipWork": "Work Mode",
+      "chat.chipWorkPrompt": "Suggest a professional outfit for work",
+      "chat.chipDate": "Date Night",
+      "chat.chipDatePrompt": "Suggest a date night outfit",
+      "chat.chipGym": "Gym Ready",
+      "chat.chipGymPrompt": "What should I wear to the gym?",
       
       // Travel Mode
       "nav.travel": "Travel",
@@ -538,6 +548,16 @@ const resources = {
       "chat.title": "Stil Asistanı",
       "chat.subtitle": "Moda, kombinler veya gardırobunuz hakkında her şeyi sorun",
       "chat.placeholder": "Stil, kombin, trendler hakkında sorun...",
+      "chat.chipMorning": "Sabah Kombini",
+      "chat.chipMorningPrompt": "Bu sabah ne giysem?",
+      "chat.chipEvening": "Yarının Kombini",
+      "chat.chipEveningPrompt": "Yarın için kombin planla",
+      "chat.chipWork": "İş Modu",
+      "chat.chipWorkPrompt": "İş için profesyonel bir kombin öner",
+      "chat.chipDate": "Romantik Akşam",
+      "chat.chipDatePrompt": "Romantik bir akşam için kombin öner",
+      "chat.chipGym": "Spora Hazır",
+      "chat.chipGymPrompt": "Spor salonu için ne giymeliyim?",
       
       // Travel Mode
       "nav.travel": "Seyahat",

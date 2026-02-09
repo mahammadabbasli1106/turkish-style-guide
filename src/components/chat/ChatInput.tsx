@@ -19,13 +19,13 @@ export default function ChatInput({ input, setInput, isStreaming, onSend }: Prop
   }, [isStreaming]);
 
   return (
-    <div className="sticky bottom-0 bg-background border-t border-border pt-3 pb-2 px-1">
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:sticky lg:bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border pt-3 pb-3 px-4 lg:px-1">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           onSend();
         }}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 max-w-2xl mx-auto"
       >
         <input
           ref={inputRef}

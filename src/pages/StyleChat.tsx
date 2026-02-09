@@ -110,8 +110,8 @@ export default function StyleChat() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] max-w-2xl mx-auto">
-        {/* Scrollable message area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pb-4 px-1 min-h-0">
+        {/* Scrollable message area with padding for fixed input */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pb-32 lg:pb-4 px-1 min-h-0">
           {messages.length === 0 ? (
             <ChatEmptyState onPromptClick={setInput} />
           ) : (
@@ -120,6 +120,18 @@ export default function StyleChat() {
         </div>
 
         {/* Input pinned above bottom nav */}
+        <div className="hidden lg:block">
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            isStreaming={isStreaming}
+            onSend={sendMessage}
+          />
+        </div>
+      </div>
+
+      {/* Mobile: fixed input above bottom nav (rendered outside flex container) */}
+      <div className="lg:hidden">
         <ChatInput
           input={input}
           setInput={setInput}

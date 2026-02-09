@@ -100,8 +100,15 @@ Respond ONLY with valid JSON, no markdown or explanation.`
       const cleanContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       result = JSON.parse(cleanContent);
     } catch {
+      // AI returned non-JSON (e.g. "this is not a clothing item")
       console.error("Failed to parse AI response:", content);
-      throw new Error("Failed to parse clothing analysis");
+      return new Response(JSON.stringify({ 
+        error: "not_clothing",
+        message: "The uploaded image does not appear to contain a clothing item. Please upload a clear photo of a single clothing item."
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify(result), {

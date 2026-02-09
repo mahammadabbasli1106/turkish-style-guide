@@ -159,10 +159,27 @@ const resources = {
       
       // Suggest - Try On
       "suggest.tryOnThisOutfit": "Try On This Outfit",
+      "suggest.needFullBodyPhoto": "Please upload a full body photo in Settings first",
       
       // Auth
       "auth.signInWithGoogle": "Continue with Google",
       "auth.orContinueWith": "or continue with email",
+      
+      // Settings - Avatar & Photo
+      "settings.selectAvatar": "Select Your Avatar",
+      "settings.fullBodyPhoto": "Full Body Photo",
+      "settings.fullBodyPhotoHint": "Required for virtual try-on feature. Upload a clear full-body photo.",
+      "settings.uploadFullBodyPhoto": "Click to upload your full body photo",
+      "settings.fullBodyPhotoTip": "Stand straight, good lighting, full body visible",
+      "settings.fullBodyPhotoRequired": "Full body photo is required",
+      "settings.photoUploaded": "Photo uploaded successfully!",
+      
+      // Try-On
+      "tryOn.selected": "selected",
+      "tryOn.multiSelectHint": "Select multiple items to try them together",
+      "tryOn.selectedItems": "Selected items",
+      "tryOn.items": "items",
+      "tryOn.usingProfilePhoto": "Using your profile photo",
     }
   },
   tr: {
@@ -322,10 +339,27 @@ const resources = {
       
       // Suggest - Try On
       "suggest.tryOnThisOutfit": "Bu Kombini Dene",
+      "suggest.needFullBodyPhoto": "Lütfen önce Ayarlar'dan tam boy fotoğrafınızı yükleyin",
       
       // Auth
       "auth.signInWithGoogle": "Google ile Devam Et",
       "auth.orContinueWith": "veya e-posta ile devam et",
+      
+      // Settings - Avatar & Photo
+      "settings.selectAvatar": "Avatarınızı Seçin",
+      "settings.fullBodyPhoto": "Tam Boy Fotoğraf",
+      "settings.fullBodyPhotoHint": "Sanal deneme özelliği için gereklidir. Net bir tam boy fotoğraf yükleyin.",
+      "settings.uploadFullBodyPhoto": "Tam boy fotoğrafınızı yüklemek için tıklayın",
+      "settings.fullBodyPhotoTip": "Düz durun, iyi aydınlatma, tüm vücut görünür",
+      "settings.fullBodyPhotoRequired": "Tam boy fotoğraf gereklidir",
+      "settings.photoUploaded": "Fotoğraf başarıyla yüklendi!",
+      
+      // Try-On
+      "tryOn.selected": "seçildi",
+      "tryOn.multiSelectHint": "Birlikte denemek için birden fazla parça seçin",
+      "tryOn.selectedItems": "Seçilen parçalar",
+      "tryOn.items": "parça",
+      "tryOn.usingProfilePhoto": "Profil fotoğrafınız kullanılıyor",
     }
   }
 };

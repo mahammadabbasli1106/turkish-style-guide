@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,12 +48,29 @@ export default function OutfitSuggest() {
   const { t } = useTranslation();
   const { user, session, loading } = useAuth();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [style, setStyle] = useState("casual");
   const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
   const [venue, setVenue] = useState("");
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
+  const [tryOnImage, setTryOnImage] = useState<string | null>(null);
+  const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
+
+  // Fetch user's profile for full body photo
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("auth_id", user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const styles = [
     { value: "casual", label: t("style.casual") },
@@ -114,6 +131,7 @@ export default function OutfitSuggest() {
     },
     onSuccess: (data) => {
       setCurrentSuggestion(data);
+      setTryOnImage(null); // Reset try-on image for new suggestion
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
       toast.success("Here's your perfect outfit!");
@@ -141,6 +159,56 @@ export default function OutfitSuggest() {
     },
   });
 
+  // Generate try-on image directly in-page
+  const handleTryOnOutfit = async () => {
+    if (!currentSuggestion || !profile) return;
+    
+    const fullBodyPhotoUrl = (profile as any).full_body_photo_url;
+    if (!fullBodyPhotoUrl) {
+      toast.error(t("suggest.needFullBodyPhoto"));
+      return;
+    }
+
+    setIsGeneratingTryOn(true);
+    try {
+      // Get the first available clothing item from the suggestion
+      const items = currentSuggestion.items;
+      const primaryItem = items.upper_body || items.lower_body || items.outerwear;
+      
+      if (!primaryItem) {
+        toast.error(t("common.error"));
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("virtual-try-on", {
+        body: { 
+          clothingItemId: primaryItem.id,
+          userImageBase64: fullBodyPhotoUrl,
+          additionalItems: Object.values(items)
+            .filter(item => item && item.id !== primaryItem.id)
+            .map(item => ({
+              id: item!.id,
+              name: item!.name,
+              category: item!.category,
+              color: item!.color,
+              image_url: item!.image_url,
+            })),
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      
+      setTryOnImage(data.resultImageUrl);
+      toast.success(t("tryOn.result"));
+    } catch (error: any) {
+      console.error("Try-on error:", error);
+      toast.error(error.message || t("common.error"));
+    } finally {
+      setIsGeneratingTryOn(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -154,6 +222,7 @@ export default function OutfitSuggest() {
   }
 
   const hasEnoughClothes = clothingCount >= 3;
+  const hasFullBodyPhoto = !!(profile as any)?.full_body_photo_url;
 
   return (
     <DashboardLayout>
@@ -376,13 +445,52 @@ export default function OutfitSuggest() {
                   </Button>
                   <Button
                     className="bg-gradient-primary text-primary-foreground"
-                    onClick={() => navigate("/dashboard/try-on")}
+                    onClick={handleTryOnOutfit}
+                    disabled={isGeneratingTryOn || !hasFullBodyPhoto}
                   >
-                    <Camera className="mr-2 h-4 w-4" />
-                    {t("suggest.tryOnThisOutfit")}
+                    {isGeneratingTryOn ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("tryOn.generating")}
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="mr-2 h-4 w-4" />
+                        {t("suggest.tryOnThisOutfit")}
+                      </>
+                    )}
                   </Button>
                 </div>
+                
+                {!hasFullBodyPhoto && (
+                  <p className="text-sm text-muted-foreground mt-3">
+                    {t("suggest.needFullBodyPhoto")}
+                  </p>
+                )}
               </div>
+
+              {/* Try-on result displayed directly below */}
+              {tryOnImage && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="border-t border-border p-6"
+                >
+                  <h3 className="font-display text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Sparkles size={20} className="text-primary" />
+                    {t("tryOn.result")}
+                  </h3>
+                  <div className="max-w-md mx-auto">
+                    <div className="aspect-[3/4] rounded-2xl overflow-hidden shadow-card">
+                      <img 
+                        src={tryOnImage} 
+                        alt="Try-on result" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

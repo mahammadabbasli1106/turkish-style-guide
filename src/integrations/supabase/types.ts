@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatars: {
+        Row: {
+          category: string | null
+          id: string
+          image_url: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          image_url: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          image_url?: string
+          name?: string
+        }
+        Relationships: []
+      }
       clothing_items: {
         Row: {
           ai_tags: string[] | null
@@ -133,30 +154,36 @@ export type Database = {
       profiles: {
         Row: {
           auth_id: string
+          avatar_type: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
           email: string | null
+          full_body_photo_url: string | null
           id: string
           location: string | null
           updated_at: string
         }
         Insert: {
           auth_id: string
+          avatar_type?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          full_body_photo_url?: string | null
           id?: string
           location?: string | null
           updated_at?: string
         }
         Update: {
           auth_id?: string
+          avatar_type?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          full_body_photo_url?: string | null
           id?: string
           location?: string | null
           updated_at?: string

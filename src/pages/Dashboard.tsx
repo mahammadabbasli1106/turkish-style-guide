@@ -4,9 +4,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Shirt, Sparkles, CloudSun, TrendingUp, Camera, History } from "lucide-react";
+import { Shirt, Sparkles, CloudSun, TrendingUp, Camera, History, Loader2, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+type WeatherData = {
+  temperature: number;
+  description: string;
+  location: string;
+  feelsLike: number;
+  humidity: number;
+};
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -38,6 +46,81 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Fetch user's default location from preferences
+  const { data: userPreferences } = useQuery({
+    queryKey: ["user-preferences", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("default_location")
+        .eq("user_id", user.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch current weather for user's city
+  const { data: weatherData, isLoading: weatherLoading } = useQuery({
+    queryKey: ["current-weather", userPreferences?.default_location],
+    queryFn: async (): Promise<WeatherData | null> => {
+      const location = userPreferences?.default_location || "Istanbul";
+      
+      // Get coordinates from location name
+      const geoResponse = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`
+      );
+      const geoData = await geoResponse.json();
+      
+      if (!geoData.results || geoData.results.length === 0) {
+        return null;
+      }
+
+      const { latitude, longitude, name } = geoData.results[0];
+
+      // Get current weather
+      const weatherResponse = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&timezone=auto`
+      );
+      const weather = await weatherResponse.json();
+
+      // Weather code descriptions
+      const weatherDescriptions: Record<number, string> = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Foggy",
+        48: "Foggy",
+        51: "Light drizzle",
+        53: "Drizzle",
+        55: "Heavy drizzle",
+        61: "Light rain",
+        63: "Rain",
+        65: "Heavy rain",
+        71: "Light snow",
+        73: "Snow",
+        75: "Heavy snow",
+        80: "Light showers",
+        81: "Showers",
+        82: "Heavy showers",
+        95: "Thunderstorm",
+      };
+
+      return {
+        temperature: Math.round(weather.current.temperature_2m),
+        feelsLike: Math.round(weather.current.apparent_temperature),
+        humidity: weather.current.relative_humidity_2m,
+        description: weatherDescriptions[weather.current.weather_code] || "Unknown",
+        location: name,
+      };
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 10, // Cache for 10 minutes
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -53,7 +136,6 @@ export default function Dashboard() {
   const stats = [
     { label: t("dashboard.clothingItems"), value: clothingCount, icon: Shirt, color: "bg-primary" },
     { label: t("dashboard.outfitsCreated"), value: outfitCount, icon: Sparkles, color: "bg-accent" },
-    { label: t("dashboard.weatherChecks"), value: "∞", icon: CloudSun, color: "bg-secondary" },
   ];
 
   return (
@@ -72,8 +154,53 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* Current Weather Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-primary rounded-2xl p-6 text-primary-foreground shadow-warm"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary-foreground/20 p-3 rounded-xl">
+                <CloudSun size={32} />
+              </div>
+              <div>
+                <p className="text-primary-foreground/80 text-sm">{t("weather.current")}</p>
+                {weatherLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{t("common.loading")}</span>
+                  </div>
+                ) : weatherData ? (
+                  <>
+                    <p className="font-display text-3xl font-bold">{weatherData.temperature}°C</p>
+                    <p className="text-primary-foreground/90">{weatherData.description}</p>
+                  </>
+                ) : (
+                  <p className="text-primary-foreground/80">{t("settings.locationPlaceholder")}</p>
+                )}
+              </div>
+            </div>
+            {weatherData && (
+              <div className="text-right">
+                <div className="flex items-center gap-1 text-primary-foreground/80 mb-1">
+                  <MapPin size={14} />
+                  <span className="text-sm">{weatherData.location}</span>
+                </div>
+                <p className="text-sm text-primary-foreground/70">
+                  {t("weather.feelsLike")}: {weatherData.feelsLike}°C
+                </p>
+                <p className="text-sm text-primary-foreground/70">
+                  {t("weather.humidity")}: {weatherData.humidity}%
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
         {/* Stats */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}

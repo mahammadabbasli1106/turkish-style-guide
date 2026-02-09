@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Camera, Upload, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,9 +22,32 @@ export default function VirtualTryOn() {
   const { t } = useTranslation();
   const { user, session, loading } = useAuth();
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch user's full body photo from profile
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("auth_id", user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Set user image from profile if available
+  useState(() => {
+    if ((profile as any)?.full_body_photo_url) {
+      setUserImage((profile as any).full_body_photo_url);
+    }
+  });
 
   const { data: clothingItems = [], isLoading: loadingClothes } = useQuery({
     queryKey: ["clothing-items", user?.id],
@@ -43,14 +66,26 @@ export default function VirtualTryOn() {
 
   const tryOnMutation = useMutation({
     mutationFn: async () => {
-      if (!session || !selectedItem || !userImage) {
+      if (!session || selectedItems.length === 0 || !userImage) {
         throw new Error("Missing required data");
       }
 
+      // For multiple items, we'll create a combined prompt
+      const itemDescriptions = selectedItems.map(item => 
+        `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
+      ).join(", ");
+
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: { 
-          clothingItemId: selectedItem.id,
+          clothingItemId: selectedItems[0].id, // Primary item
           userImageBase64: userImage,
+          additionalItems: selectedItems.slice(1).map(item => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            color: item.color,
+            image_url: item.image_url,
+          })),
         },
       });
 
@@ -86,9 +121,21 @@ export default function VirtualTryOn() {
     reader.readAsDataURL(file);
   };
 
+  const toggleItemSelection = (item: ClothingItem) => {
+    setSelectedItems(prev => {
+      const isSelected = prev.some(i => i.id === item.id);
+      if (isSelected) {
+        return prev.filter(i => i.id !== item.id);
+      } else {
+        return [...prev, item];
+      }
+    });
+    setResultImage(null);
+  };
+
   const handleReset = () => {
-    setUserImage(null);
-    setSelectedItem(null);
+    setUserImage((profile as any)?.full_body_photo_url || null);
+    setSelectedItems([]);
     setResultImage(null);
   };
 
@@ -103,6 +150,9 @@ export default function VirtualTryOn() {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+
+  // Use profile full body photo if available
+  const displayImage = userImage || (profile as any)?.full_body_photo_url;
 
   return (
     <DashboardLayout>
@@ -128,9 +178,9 @@ export default function VirtualTryOn() {
               className="aspect-[3/4] bg-card rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              {userImage ? (
+              {displayImage ? (
                 <img 
-                  src={userImage} 
+                  src={displayImage} 
                   alt="Your photo" 
                   className="w-full h-full object-cover"
                 />
@@ -149,6 +199,12 @@ export default function VirtualTryOn() {
               onChange={handleImageUpload}
               className="hidden"
             />
+            
+            {(profile as any)?.full_body_photo_url && (
+              <p className="text-xs text-muted-foreground text-center">
+                {t("tryOn.usingProfilePhoto")}
+              </p>
+            )}
           </div>
 
           {/* Right: Result or clothing selection */}
@@ -190,7 +246,14 @@ export default function VirtualTryOn() {
                   exit={{ opacity: 0 }}
                   className="space-y-4"
                 >
-                  <h3 className="font-semibold text-foreground">{t("tryOn.selectClothing")}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground">{t("tryOn.selectClothing")}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedItems.length} {t("tryOn.selected")}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">{t("tryOn.multiSelectHint")}</p>
                   
                   {loadingClothes ? (
                     <div className="flex items-center justify-center py-12">
@@ -202,32 +265,49 @@ export default function VirtualTryOn() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
-                      {clothingItems.map((item) => (
-                        <motion.div
-                          key={item.id}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setSelectedItem(item)}
-                          className={`aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-colors ${
-                            selectedItem?.id === item.id 
-                              ? "border-primary ring-2 ring-primary/20" 
-                              : "border-transparent"
-                          }`}
-                        >
-                          <img 
-                            src={item.image_url} 
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </motion.div>
-                      ))}
+                      {clothingItems.map((item) => {
+                        const isSelected = selectedItems.some(i => i.id === item.id);
+                        return (
+                          <motion.div
+                            key={item.id}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => toggleItemSelection(item)}
+                            className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-colors ${
+                              isSelected 
+                                ? "border-primary ring-2 ring-primary/20" 
+                                : "border-transparent hover:border-primary/50"
+                            }`}
+                          >
+                            <img 
+                              src={item.image_url} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
+                                <Check size={12} />
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   )}
 
-                  {selectedItem && (
-                    <div className="bg-secondary/50 rounded-xl p-3">
-                      <p className="text-sm font-medium text-foreground">Selected: {selectedItem.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{selectedItem.category.replace("_", " ")}</p>
+                  {selectedItems.length > 0 && (
+                    <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
+                      <p className="text-sm font-medium text-foreground">{t("tryOn.selectedItems")}:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedItems.map(item => (
+                          <span 
+                            key={item.id}
+                            className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
+                          >
+                            {item.name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </motion.div>
@@ -240,7 +320,7 @@ export default function VirtualTryOn() {
         {!resultImage && (
           <Button
             onClick={() => tryOnMutation.mutate()}
-            disabled={!userImage || !selectedItem || tryOnMutation.isPending}
+            disabled={!displayImage || selectedItems.length === 0 || tryOnMutation.isPending}
             className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
             size="lg"
           >
@@ -252,7 +332,7 @@ export default function VirtualTryOn() {
             ) : (
               <>
                 <Sparkles className="mr-2 h-5 w-5" />
-                {t("tryOn.generate")}
+                {t("tryOn.generate")} {selectedItems.length > 0 && `(${selectedItems.length} ${t("tryOn.items")})`}
               </>
             )}
           </Button>

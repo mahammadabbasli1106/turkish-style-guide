@@ -29,7 +29,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
-    const { clothingItemId, userImageBase64 } = await req.json();
+    const { clothingItemId, userImageBase64, additionalItems = [] } = await req.json();
 
     if (!clothingItemId) throw new Error("Clothing item ID is required");
     if (!userImageBase64) throw new Error("User image is required");
@@ -61,6 +61,17 @@ serve(async (req) => {
       throw new Error("Failed to create try-on session");
     }
 
+    // Build prompt with all clothing items
+    let clothingDescription = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral color"})`;
+    
+    // Add additional items to the description
+    if (additionalItems && additionalItems.length > 0) {
+      const additionalDescriptions = additionalItems.map((item: any) => 
+        `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral color"})`
+      ).join(", ");
+      clothingDescription = `a complete outfit consisting of: ${clothingDescription}, ${additionalDescriptions}`;
+    }
+
     // Generate virtual try-on using AI image generation
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -76,7 +87,7 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `Virtual try-on: Take this person and show them wearing the ${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral color"}). Create a realistic fashion photo of the person wearing this specific garment. Keep the person's face, body type, and pose similar to the original image. The result should look like a professional fashion photograph.`
+                text: `Virtual try-on: Take this person and show them wearing ${clothingDescription}. Create a realistic fashion photo of the person wearing these specific garments. Keep the person's face, body type, and pose similar to the original image. The result should look like a professional fashion photograph with all the mentioned clothing items properly styled together.`
               },
               {
                 type: "image_url",

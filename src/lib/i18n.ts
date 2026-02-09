@@ -134,6 +134,7 @@ const resources = {
       "common.edit": "Edit",
       "common.install": "Install App",
       "common.installDesc": "Install for a better experience",
+      "common.continue": "Continue",
       
       // Weather
       "weather.current": "Current Weather",
@@ -314,6 +315,7 @@ const resources = {
       "common.edit": "Düzenle",
       "common.install": "Uygulamayı Yükle",
       "common.installDesc": "Daha iyi bir deneyim için yükleyin",
+      "common.continue": "Devam Et",
       
       // Weather
       "weather.current": "Mevcut Hava",

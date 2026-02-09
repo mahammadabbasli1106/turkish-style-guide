@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -17,17 +17,32 @@ type Props = {
 
 type Currency = "TL" | "USD";
 
-const pricing: Record<Currency, { monthly: number; yearly: number; symbol: string }> = {
-  TL: { monthly: 69.99, yearly: 49.99, symbol: "₺" },
-  USD: { monthly: 9.99, yearly: 3.99, symbol: "$" },
-};
+// Base prices in TRY
+const TRY_MONTHLY = 69.99;
+const TRY_YEARLY_PER_MONTH = 49.99;
 
 export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Props) {
   const { t, i18n } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<"yearly" | "monthly">("yearly");
   const [currency, setCurrency] = useState<Currency>(i18n.language === "tr" ? "TL" : "USD");
+  const [tryToUsd, setTryToUsd] = useState<number>(0.028);
 
-  const p = pricing[currency];
+  useEffect(() => {
+    fetch("https://api.frankfurter.app/latest?from=TRY&to=USD")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.rates?.USD) setTryToUsd(d.rates.USD);
+      })
+      .catch(() => {});
+  }, []);
+
+  const monthly = currency === "TL" ? TRY_MONTHLY : +(TRY_MONTHLY * tryToUsd).toFixed(2);
+  const yearlyPerMonth = currency === "TL" ? TRY_YEARLY_PER_MONTH : +(TRY_YEARLY_PER_MONTH * tryToUsd).toFixed(2);
+  const yearlyTotal = +(yearlyPerMonth * 12).toFixed(2);
+  const savingsPercent = Math.round(((monthly - yearlyPerMonth) / monthly) * 100);
+
+  const formatPrice = (amount: number) =>
+    currency === "TL" ? `${amount.toFixed(2)} ₺` : `$${amount.toFixed(2)}`;
 
   const features = [
     { icon: Shirt, title: t("premium.unlimitedWardrobe"), desc: t("premium.unlimitedWardrobeDesc") },
@@ -39,9 +54,6 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
   const handleStart = () => {
     toast.info(t("premium.comingSoon"));
   };
-
-  const formatPrice = (amount: number) =>
-    currency === "TL" ? `${amount.toFixed(2)} ₺` : `$${amount.toFixed(2)}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,7 +127,7 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
               )}
             >
               <span className="absolute -top-2.5 left-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-                {t("premium.savings")}
+                {savingsPercent}% {i18n.language === "tr" ? "Tasarruf" : "Savings"}
               </span>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-foreground">
@@ -128,13 +140,16 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
                 )}
               </div>
               <p className="text-lg font-bold text-primary">
-                {formatPrice(p.yearly)}
+                {formatPrice(yearlyPerMonth)}
                 <span className="text-xs font-normal text-muted-foreground">{t("premium.perMonth")}</span>
               </p>
               <p className="text-[10px] text-muted-foreground line-through">
-                {formatPrice(p.monthly)}{t("premium.perMonth")}
+                {formatPrice(monthly)}{t("premium.perMonth")}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-1">{t("premium.billedYearly")}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {formatPrice(yearlyTotal)} {i18n.language === "tr" ? "/ yıl" : "/ year"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">{t("premium.billedYearly")}</p>
             </button>
 
             {/* Monthly */}
@@ -158,7 +173,7 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
                 )}
               </div>
               <p className="text-lg font-bold text-foreground">
-                {formatPrice(p.monthly)}
+                {formatPrice(monthly)}
                 <span className="text-xs font-normal text-muted-foreground">{t("premium.perMonth")}</span>
               </p>
               <p className="text-[10px] text-muted-foreground opacity-0">placeholder</p>

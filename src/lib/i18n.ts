@@ -42,6 +42,29 @@ const resources = {
       "dashboard.getOutfit": "Get Outfit Suggestion",
       "dashboard.outfitDesc": "Let AI pick the perfect outfit for today",
       
+      // Dashboard - Daily Edit
+      "dashboard.dailyEditLabel": "The Daily Edit",
+      "dashboard.dailyEditCtaTitle": "What's your vibe today?",
+      "dashboard.dailyEditCtaDesc": "Let AI curate the perfect outfit based on your wardrobe, weather, and mood.",
+      "dashboard.dailyEditCtaAction": "Get your first outfit",
+      "dashboard.dayVibe.sunday": "Your Sunday Vibe",
+      "dashboard.dayVibe.monday": "Your Monday Vibe",
+      "dashboard.dayVibe.tuesday": "Your Tuesday Vibe",
+      "dashboard.dayVibe.wednesday": "Your Wednesday Vibe",
+      "dashboard.dayVibe.thursday": "Your Thursday Vibe",
+      "dashboard.dayVibe.friday": "Your Friday Vibe",
+      "dashboard.dayVibe.saturday": "Your Saturday Vibe",
+
+      // Weather tips
+      "weather.tipRain": "Grab an umbrella and a waterproof jacket",
+      "weather.tipSnow": "Bundle up — heavy layers and boots today",
+      "weather.tipThunder": "Stay cozy indoors or bring a rain shell",
+      "weather.tipHot": "Light fabrics and breathable fits are your friend",
+      "weather.tipWarm": "Light layers are your friend today",
+      "weather.tipCool": "Perfect for a light trench coat today",
+      "weather.tipCold": "Time for a warm coat and scarf",
+      "weather.tipFreezing": "Maximum layers — puffer coat essential",
+
       // Wardrobe
       "wardrobe.title": "My Wardrobe",
       "wardrobe.items": "items",
@@ -290,7 +313,30 @@ const resources = {
       "dashboard.wardrobeDesc": "Kıyafetlerinizi yükleyin ve düzenleyin",
       "dashboard.getOutfit": "Kombin Önerisi Al",
       "dashboard.outfitDesc": "AI bugün için mükemmel kombini seçsin",
-      
+
+      // Dashboard - Daily Edit
+      "dashboard.dailyEditLabel": "Günün Editörü",
+      "dashboard.dailyEditCtaTitle": "Bugün tarzın ne?",
+      "dashboard.dailyEditCtaDesc": "AI, gardırobunuza, hava durumuna ve modunuza göre mükemmel kombini seçsin.",
+      "dashboard.dailyEditCtaAction": "İlk kombinini al",
+      "dashboard.dayVibe.sunday": "Pazar Enerjin",
+      "dashboard.dayVibe.monday": "Pazartesi Enerjin",
+      "dashboard.dayVibe.tuesday": "Salı Enerjin",
+      "dashboard.dayVibe.wednesday": "Çarşamba Enerjin",
+      "dashboard.dayVibe.thursday": "Perşembe Enerjin",
+      "dashboard.dayVibe.friday": "Cuma Enerjin",
+      "dashboard.dayVibe.saturday": "Cumartesi Enerjin",
+
+      // Weather tips
+      "weather.tipRain": "Şemsiye ve su geçirmez ceket al",
+      "weather.tipSnow": "Kalın kat kat giy — bot şart",
+      "weather.tipThunder": "İçeride kal ya da yağmurluk al",
+      "weather.tipHot": "Hafif kumaşlar ve nefes alan kıyafetler",
+      "weather.tipWarm": "Bugün hafif katmanlar yeterli",
+      "weather.tipCool": "Hafif bir trençkot için ideal hava",
+      "weather.tipCold": "Sıcak bir mont ve atkı zamanı",
+      "weather.tipFreezing": "Maksimum katman — şişme mont şart",
+
       // Wardrobe
       "wardrobe.title": "Gardırobum",
       "wardrobe.items": "parça",

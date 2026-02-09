@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { CloudSun, Loader2, MapPin, Droplets, Thermometer } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import WeatherEffects from "./WeatherEffects";
 
 type WeatherData = {
   temperature: number;
@@ -16,52 +15,51 @@ type Props = {
   isLoading: boolean;
 };
 
+function getClothingTip(description: string, temperature: number, t: (key: string) => string): string {
+  const desc = description.toLowerCase();
+  if (desc.includes("rain") || desc.includes("drizzle") || desc.includes("shower")) {
+    return t("weather.tipRain");
+  }
+  if (desc.includes("snow")) {
+    return t("weather.tipSnow");
+  }
+  if (desc.includes("thunder")) {
+    return t("weather.tipThunder");
+  }
+  if (temperature >= 30) return t("weather.tipHot");
+  if (temperature >= 20) return t("weather.tipWarm");
+  if (temperature >= 10) return t("weather.tipCool");
+  if (temperature >= 0) return t("weather.tipCold");
+  return t("weather.tipFreezing");
+}
+
 export default function WeatherWidget({ data, isLoading }: Props) {
   const { t } = useTranslation();
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span className="text-xs">{t("common.loading")}</span>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const tip = getClothingTip(data.description, data.temperature, t);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      className="bg-gradient-primary rounded-2xl p-5 text-primary-foreground shadow-warm relative overflow-hidden"
+      className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap"
     >
-      {data && <WeatherEffects description={data.description} />}
-      {isLoading ? (
-        <div className="flex items-center gap-3 py-4 justify-center">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">{t("common.loading")}</span>
-        </div>
-      ) : data ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-primary-foreground/80">
-              <MapPin size={14} />
-              <span className="text-sm font-medium">{data.location}</span>
-            </div>
-            <CloudSun size={24} className="text-primary-foreground/90" />
-          </div>
-          <div className="flex items-end gap-2">
-            <span className="font-display text-5xl font-bold leading-none">{data.temperature}°</span>
-            <span className="text-primary-foreground/80 text-sm pb-1">{data.description}</span>
-          </div>
-          <div className="flex gap-4 pt-1">
-            <div className="flex items-center gap-1.5 text-primary-foreground/70">
-              <Thermometer size={14} />
-              <span className="text-xs">{t("weather.feelsLike")} {data.feelsLike}°</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-primary-foreground/70">
-              <Droplets size={14} />
-              <span className="text-xs">{data.humidity}%</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3 py-4">
-          <CloudSun size={24} />
-          <span className="text-sm text-primary-foreground/80">{t("settings.locationPlaceholder")}</span>
-        </div>
-      )}
+      <span className="font-medium text-foreground">{data.location}</span>
+      <span className="text-border">•</span>
+      <span>{data.temperature}° {data.description}</span>
+      <span className="text-border">•</span>
+      <span className="italic text-muted-foreground/80">"{tip}"</span>
     </motion.div>
   );
 }

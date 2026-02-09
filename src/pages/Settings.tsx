@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/sonner";
-import { User, MapPin, Palette, Loader2, Save, Camera, Upload, AlertCircle, LogOut, Trash2 } from "lucide-react";
+import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Trash2, Crown, Shirt, Sparkles, Calendar } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -37,7 +37,6 @@ const ALL_STYLES: { value: StylePreference; label: string }[] = [
   { value: "elegant", label: "Elegant" },
 ];
 
-// Predefined avatars using DiceBear
 const AVATARS = [
   { id: "default", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=default" },
   { id: "cool", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=cool" },
@@ -99,6 +98,46 @@ export default function Settings() {
     enabled: !!user,
   });
 
+  // Fetch activity stats
+  const { data: clothingCount = 0 } = useQuery({
+    queryKey: ["clothing-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("clothing_items")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: outfitCount = 0 } = useQuery({
+    queryKey: ["outfit-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("outfit_suggestions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: streakDays = 0 } = useQuery({
+    queryKey: ["streak-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("style_checkins")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
   // Set initial values when data loads
   useEffect(() => {
     if (profile) {
@@ -150,12 +189,10 @@ export default function Settings() {
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
 
-      // Validate full body photo is uploaded
       if (!fullBodyPhoto) {
         throw new Error(t("settings.fullBodyPhotoRequired"));
       }
 
-      // Update profile
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -168,7 +205,6 @@ export default function Settings() {
 
       if (profileError) throw profileError;
 
-      // Update or insert preferences
       const { error: prefsError } = await supabase
         .from("user_preferences")
         .upsert({
@@ -213,38 +249,45 @@ export default function Settings() {
   }
 
   const selectedAvatarUrl = AVATARS.find(a => a.id === selectedAvatar)?.url || AVATARS[0].url;
+  const isPremium = (profile as any)?.is_premium ?? false;
+  const memberSince = profile?.created_at ? new Date(profile.created_at) : new Date();
+  const now = new Date();
+  const diffMs = now.getTime() - memberSince.getTime();
+  const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const months = Math.floor(totalDays / 30);
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  const remainingDays = totalDays - months * 30;
 
   return (
     <DashboardLayout>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl mx-auto space-y-8"
+        className="max-w-lg mx-auto space-y-6 pb-8"
       >
-        <div className="text-center">
-          <h1 className="font-display text-3xl font-bold text-foreground">
-            {t("settings.title")}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
-        </div>
+        {/* ── Hero Profile Section ── */}
+        <div className="relative rounded-3xl bg-gradient-to-br from-primary via-accent to-primary overflow-hidden pt-10 pb-6 px-6 text-center">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-4 left-8 text-4xl">✦</div>
+            <div className="absolute top-8 right-12 text-3xl">✦</div>
+            <div className="absolute bottom-8 left-16 text-2xl">✦</div>
+            <div className="absolute bottom-4 right-8 text-4xl">✦</div>
+          </div>
 
-        <div className="bg-card rounded-2xl p-6 shadow-card border border-border space-y-6">
-          {/* Avatar selection - compact */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img
-                src={selectedAvatarUrl}
-                alt="Avatar"
-                className="w-14 h-14 rounded-full border-2 border-primary"
-              />
-              <div>
-                <p className="font-semibold text-foreground">{t("settings.selectAvatar")}</p>
-                <p className="text-xs text-muted-foreground capitalize">{selectedAvatar}</p>
-              </div>
-            </div>
+          {/* Avatar */}
+          <div className="relative inline-block">
+            <img
+              src={selectedAvatarUrl}
+              alt="Avatar"
+              className="w-24 h-24 rounded-full border-4 border-primary-foreground/30 shadow-lg bg-card"
+            />
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">{t("settings.changeAvatar")}</Button>
+                <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-card border-2 border-primary flex items-center justify-center shadow-md">
+                  <Camera className="h-3.5 w-3.5 text-primary" />
+                </button>
               </DialogTrigger>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
@@ -269,8 +312,89 @@ export default function Settings() {
             </Dialog>
           </div>
 
+          {/* Name + premium */}
+          <h2 className="font-display text-xl font-bold text-primary-foreground mt-4">
+            {displayName || user.email?.split("@")[0]}
+          </h2>
+          {isPremium && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center gap-1.5 bg-primary-foreground/20 backdrop-blur-sm px-3 py-1 rounded-full mt-2"
+            >
+              <Crown className="h-3.5 w-3.5 text-primary-foreground" />
+              <span className="text-xs font-semibold text-primary-foreground">{t("premium.badge")}</span>
+            </motion.div>
+          )}
+          <p className="text-xs text-primary-foreground/70 mt-2">{user.email}</p>
+        </div>
+
+        {/* ── Member Since Card ── */}
+        <div className="bg-card rounded-2xl p-5 shadow-card border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">{t("settings.memberSince")}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center bg-secondary/60 rounded-xl py-3">
+              <p className="text-2xl font-bold text-foreground">{years}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.years")}</p>
+            </div>
+            <div className="text-center bg-secondary/60 rounded-xl py-3">
+              <p className="text-2xl font-bold text-foreground">{remainingMonths}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.months")}</p>
+            </div>
+            <div className="text-center bg-secondary/60 rounded-xl py-3">
+              <p className="text-2xl font-bold text-foreground">{remainingDays}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.days")}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Your Activity Card ── */}
+        <div className="bg-card rounded-2xl p-5 shadow-card border border-border">
+          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            {t("settings.yourActivity")}
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                <Shirt className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground">{t("settings.activityItems")}</p>
+              <div className="mt-1.5 bg-primary/10 rounded-full py-1 px-3">
+                <span className="text-sm font-bold text-primary">{clothingCount}</span>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto rounded-full bg-accent/10 flex items-center justify-center mb-2">
+                <Sparkles className="h-5 w-5 text-accent" />
+              </div>
+              <p className="text-xs text-muted-foreground">{t("settings.activityOutfits")}</p>
+              <div className="mt-1.5 bg-accent/10 rounded-full py-1 px-3">
+                <span className="text-sm font-bold text-accent">{outfitCount}</span>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                <Crown className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground">{t("settings.activityCheckins")}</p>
+              <div className="mt-1.5 bg-primary/10 rounded-full py-1 px-3">
+                <span className="text-sm font-bold text-primary">{streakDays}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Settings Form Card ── */}
+        <div className="bg-card rounded-2xl p-6 shadow-card border border-border space-y-6">
+
           {/* Full body photo - compact */}
-          <div className="space-y-3 pt-4 border-t border-border">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-border bg-secondary flex items-center justify-center">
@@ -329,12 +453,7 @@ export default function Settings() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">{t("auth.email")}</Label>
-                <Input
-                  id="email"
-                  value={user.email || ""}
-                  disabled
-                  className="bg-secondary"
-                />
+                <Input id="email" value={user.email || ""} disabled className="bg-secondary" />
               </div>
 
               <div className="space-y-2">
@@ -364,9 +483,7 @@ export default function Settings() {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                {t("settings.locationHint")}
-              </p>
+              <p className="text-xs text-muted-foreground">{t("settings.locationHint")}</p>
             </div>
           </div>
 

@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL is not configured");
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
 
@@ -63,14 +63,14 @@ serve(async (req) => {
       ? `\n8. Analyze the venue "${venue}" - consider its type, expected dress code, and atmosphere when choosing the outfit.`
       : "";
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${GEMINI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gemini-2.5-flash",
         response_format: { type: "json_object" },
         messages: [
           {

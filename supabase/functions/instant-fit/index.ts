@@ -69,20 +69,29 @@ serve(async (req) => {
 
     console.log("Instant fit: editing user photo with captured clothing");
 
-    const editResp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GEMINI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gemini-2.5-flash-preview-05-20",
-        messages: [{
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Edit this photo of a person. Replace ONLY the clothing on the person with the clothing shown in the second image.
+    // Prepare inline data for native Gemini API
+    const userB64 = userDataUri.startsWith("data:")
+      ? userDataUri.replace(/^data:image\/\w+;base64,/, "")
+      : userDataUri;
+    const userMimeMatch = userDataUri.match(/^data:(image\/\w+);base64,/);
+    const userMime = userMimeMatch ? userMimeMatch[1] : "image/jpeg";
+
+    const clothB64 = clothDataUri.startsWith("data:")
+      ? clothDataUri.replace(/^data:image\/\w+;base64,/, "")
+      : clothDataUri;
+    const clothMimeMatch = clothDataUri.match(/^data:(image\/\w+);base64,/);
+    const clothMime = clothMimeMatch ? clothMimeMatch[1] : "image/jpeg";
+
+    const editResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: `Edit this photo of a person. Replace ONLY the clothing on the person with the clothing shown in the second image.
 
 CRITICAL RULES:
 - Keep the EXACT same person - same face, same skin, same hair, same body proportions
@@ -92,14 +101,17 @@ CRITICAL RULES:
 - Make the new clothing fit naturally on the person's body
 - The first image is the person, the second image shows the clothing item to put on them
 - Output a photorealistic result`
-            },
-            { type: "image_url", image_url: { url: userDataUri } },
-            { type: "image_url", image_url: { url: clothDataUri } },
-          ],
-        }],
-        modalities: ["image", "text"],
-      }),
-    });
+              },
+              { inline_data: { mime_type: userMime, data: userB64 } },
+              { inline_data: { mime_type: clothMime, data: clothB64 } },
+            ],
+          }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+          },
+        }),
+      }
+    );
 
     if (!editResp.ok) {
       const err = await editResp.text();
@@ -114,12 +126,13 @@ CRITICAL RULES:
     let resultB64: string | null = null;
     let resultMime = "image/png";
 
-    const images = editData.choices?.[0]?.message?.images;
-    if (images && images.length > 0) {
-      const imgUrl = images[0]?.image_url?.url;
-      if (imgUrl && imgUrl.startsWith("data:")) {
-        const m = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-        if (m) { resultMime = m[1]; resultB64 = m[2]; }
+    // Extract image from native Gemini response
+    const candidateParts = editData.candidates?.[0]?.content?.parts || [];
+    for (const part of candidateParts) {
+      if (part.inlineData) {
+        resultB64 = part.inlineData.data;
+        resultMime = part.inlineData.mimeType || "image/png";
+        break;
       }
     }
 

@@ -13,19 +13,19 @@ import type { Database } from "@/integrations/supabase/types";
 
 type StylePreference = Database["public"]["Enums"]["style_preference"];
 
-const ALL_STYLES: { value: StylePreference; emoji: string; label: string }[] = [
-  { value: "casual", emoji: "👕", label: "Casual" },
-  { value: "business", emoji: "💼", label: "Business" },
-  { value: "streetwear", emoji: "🔥", label: "Streetwear" },
-  { value: "classic", emoji: "🎩", label: "Classic" },
-  { value: "sporty", emoji: "🏋️", label: "Sporty" },
-  { value: "elegant", emoji: "✨", label: "Elegant" },
+const ALL_STYLES: { value: StylePreference; emoji: string; labelKey: string }[] = [
+  { value: "casual", emoji: "👕", labelKey: "onboarding.casual" },
+  { value: "business", emoji: "💼", labelKey: "onboarding.business" },
+  { value: "streetwear", emoji: "🔥", labelKey: "onboarding.streetwear" },
+  { value: "classic", emoji: "🎩", labelKey: "onboarding.classic" },
+  { value: "sporty", emoji: "🏋️", labelKey: "onboarding.sporty" },
+  { value: "elegant", emoji: "✨", labelKey: "onboarding.elegant" },
 ];
 
 const GENDER_OPTIONS = [
-  { value: "male", emoji: "👨", label: "Male" },
-  { value: "female", emoji: "👩", label: "Female" },
-  { value: "other", emoji: "🧑", label: "Other" },
+  { value: "male", emoji: "👨", labelKey: "onboarding.male" },
+  { value: "female", emoji: "👩", labelKey: "onboarding.female" },
+  { value: "other", emoji: "🧑", labelKey: "onboarding.other" },
 ];
 
 const TOTAL_STEPS = 3;
@@ -179,7 +179,7 @@ export default function OnboardingPage() {
                     }`}
                   >
                     <span className="text-2xl">{g.emoji}</span>
-                    <span className="text-xs font-medium text-foreground">{g.label}</span>
+                    <span className="text-xs font-medium text-foreground">{t(g.labelKey)}</span>
                   </button>
                 ))}
               </div>
@@ -251,7 +251,7 @@ export default function OnboardingPage() {
                     }`}
                   >
                     <span className="text-2xl">{s.emoji}</span>
-                    <span className="text-sm font-medium text-foreground">{s.label}</span>
+                    <span className="text-sm font-medium text-foreground">{t(s.labelKey)}</span>
                   </button>
                 ))}
               </div>

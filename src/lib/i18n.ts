@@ -269,6 +269,13 @@ const resources = {
       "onboarding.locationAllow": "Enable Location",
       "onboarding.finish": "Get Started",
       "onboarding.complete": "You're all set! Welcome to tarzly.ai 🎉",
+      "onboarding.other": "Other",
+      "onboarding.casual": "Casual",
+      "onboarding.business": "Business",
+      "onboarding.streetwear": "Streetwear",
+      "onboarding.classic": "Classic",
+      "onboarding.sporty": "Sporty",
+      "onboarding.elegant": "Elegant",
       
       // Chat
       "chat.title": "Style Assistant",
@@ -619,6 +626,13 @@ const resources = {
       "onboarding.locationAllow": "Konumu Etkinleştir",
       "onboarding.finish": "Başla",
       "onboarding.complete": "Hazırsınız! tarzly.ai'ye hoş geldiniz 🎉",
+      "onboarding.other": "Diğer",
+      "onboarding.casual": "Günlük",
+      "onboarding.business": "İş",
+      "onboarding.streetwear": "Sokak Stili",
+      "onboarding.classic": "Klasik",
+      "onboarding.sporty": "Sportif",
+      "onboarding.elegant": "Şık",
       
       // Chat
       "chat.title": "Stil Asistanı",

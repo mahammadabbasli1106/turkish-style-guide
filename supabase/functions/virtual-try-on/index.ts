@@ -125,16 +125,22 @@ Clothing item: ${clothingDesc}` },
     }
     console.log("Step 1 done. Prompt:", prompt.substring(0, 80));
 
-    // ── STEP 2: Image generation ──
-    console.log("Step 2: Generating image...");
+    // ── STEP 2: Image generation via Lovable AI gateway ──
+    console.log("Step 2: Generating image via Lovable AI gateway...");
 
-    const step2Url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`;
-    const step2Resp = await fetch(step2Url, {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const step2Resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
       }),
     });
 
@@ -148,12 +154,12 @@ Clothing item: ${clothingDesc}` },
     const step2Data = await step2Resp.json();
     let resultB64: string | null = null;
     let resultMime = "image/png";
-    const parts = step2Data.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part.inlineData) {
-        resultB64 = part.inlineData.data;
-        resultMime = part.inlineData.mimeType || "image/png";
-        break;
+    const images = step2Data.choices?.[0]?.message?.images;
+    if (images && images.length > 0) {
+      const imgUrl = images[0]?.image_url?.url;
+      if (imgUrl && imgUrl.startsWith("data:")) {
+        const m = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (m) { resultMime = m[1]; resultB64 = m[2]; }
       }
     }
 

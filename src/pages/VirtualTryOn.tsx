@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -47,11 +47,11 @@ export default function VirtualTryOn() {
   });
 
   // Set user image from profile if available
-  useState(() => {
-    if ((profile as any)?.full_body_photo_url) {
+  useEffect(() => {
+    if ((profile as any)?.full_body_photo_url && !userImage) {
       setUserImage((profile as any).full_body_photo_url);
     }
-  });
+  }, [profile]);
 
   const { data: clothingItems = [], isLoading: loadingClothes } = useQuery({
     queryKey: ["clothing-items", user?.id],
@@ -70,7 +70,7 @@ export default function VirtualTryOn() {
 
   const tryOnMutation = useMutation({
     mutationFn: async () => {
-      if (!session || selectedItems.length === 0 || !userImage) {
+      if (!session || selectedItems.length === 0 || !displayImage) {
         throw new Error("Missing required data");
       }
       if (!canTryOn) {
@@ -86,7 +86,7 @@ export default function VirtualTryOn() {
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: { 
           clothingItemId: selectedItems[0].id, // Primary item
-          userImageBase64: userImage,
+          userImageBase64: displayImage,
           additionalItems: selectedItems.slice(1).map(item => ({
             id: item.id,
             name: item.name,

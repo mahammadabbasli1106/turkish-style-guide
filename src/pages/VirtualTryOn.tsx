@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check } from "lucide-react";
+import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check, Download, Share2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
@@ -158,6 +158,38 @@ export default function VirtualTryOn() {
     setTryOnStatus('idle');
   };
 
+  const handleDownload = async () => {
+    if (!resultImage) return;
+    try {
+      const response = await fetch(resultImage);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `try-on-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download image");
+    }
+  };
+
+  const handleShare = async () => {
+    if (!resultImage) return;
+    try {
+      const response = await fetch(resultImage);
+      const blob = await response.blob();
+      const file = new File([blob], "try-on.png", { type: "image/png" });
+      if (navigator.share) {
+        await navigator.share({ files: [file], title: "My Virtual Try-On" });
+      } else {
+        handleDownload();
+      }
+    } catch {
+      toast.error("Failed to share image");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -256,6 +288,16 @@ export default function VirtualTryOn() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     {t("tryOn.tryAnother")}
                   </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleDownload} className="flex-1">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button variant="outline" onClick={handleShare} className="flex-1">
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share
+                    </Button>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div

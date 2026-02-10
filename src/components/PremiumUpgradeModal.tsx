@@ -10,6 +10,7 @@ import { Crown, Shirt, Sparkles, Camera, MessageCircle, Check } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
+import { useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 
 type Props = {
@@ -26,6 +27,7 @@ const TRY_YEARLY_PER_MONTH = 49.99;
 
 export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Props) {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const [selectedPlan, setSelectedPlan] = useState<"yearly" | "monthly">("yearly");
   const [currency, setCurrency] = useState<Currency>(i18n.language === "tr" ? "TL" : "USD");
   const [tryToUsd, setTryToUsd] = useState<number>(0.028);
@@ -66,6 +68,13 @@ export default function PremiumUpgradeModal({ open, onOpenChange, trigger }: Pro
         .update({ is_premium: true })
         .eq("auth_id", user.id);
       if (error) throw error;
+
+      // Immediately invalidate all premium-related queries so features work without refresh
+      queryClient.invalidateQueries({ queryKey: ["is-premium"] });
+      queryClient.invalidateQueries({ queryKey: ["usage-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["clothing-count"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["instant-fit-count"] });
 
       // Fire confetti
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });

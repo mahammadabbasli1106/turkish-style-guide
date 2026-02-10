@@ -19,6 +19,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   if (loading) {
     return (
@@ -30,6 +31,38 @@ export default function AuthPage() {
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (showConfirmation) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm flex flex-col items-center text-center"
+        >
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+            <span className="text-3xl">📧</span>
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">Check your email</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          </p>
+          <Button
+            onClick={() => window.open(`https://mail.google.com`, "_blank")}
+            className="w-full h-14 bg-primary text-primary-foreground rounded-xl text-base font-medium"
+          >
+            Open Email App
+          </Button>
+          <button
+            onClick={() => { setShowConfirmation(false); setStep("email"); }}
+            className="mt-4 text-sm text-muted-foreground hover:text-foreground"
+          >
+            ← Back to sign in
+          </button>
+        </motion.div>
+      </div>
+    );
   }
 
   const handleEmailContinue = (e: React.FormEvent) => {
@@ -46,7 +79,7 @@ export default function AuthPage() {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success("Check your email to confirm your account!");
+          setShowConfirmation(true);
         }
       } else {
         const { error } = await signIn(email, password);

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,36 @@ type Props = {
 export default function ChatInput({ input, setInput, isStreaming, onSend, messagesLeft }: Props) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
     if (!isStreaming) inputRef.current?.focus();
   }, [isStreaming]);
 
+  // Detect mobile keyboard open/close via visualViewport
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      // If viewport height is significantly less than window height, keyboard is open
+      const isOpen = vv.height < window.innerHeight * 0.75;
+      setKeyboardOpen(isOpen);
+    };
+
+    vv.addEventListener("resize", handleResize);
+    return () => vv.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Emit custom event so BottomTabBar can hide
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("keyboard-state", { detail: { open: keyboardOpen } }));
+  }, [keyboardOpen]);
+
   return (
-    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:sticky lg:bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border pt-2 pb-3 px-4 lg:px-1">
+    <div className={`fixed left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border pt-2 pb-3 px-4 lg:px-1 ${
+      keyboardOpen ? "bottom-0" : "bottom-[calc(5rem+env(safe-area-inset-bottom))]"
+    } lg:sticky lg:bottom-0`}>
       {messagesLeft !== undefined && (
         <p className="text-xs text-muted-foreground text-center mb-2">
           {messagesLeft}/5 messages left today

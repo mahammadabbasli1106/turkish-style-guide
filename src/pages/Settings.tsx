@@ -109,6 +109,7 @@ export default function Settings() {
       return data;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Fetch preferences
@@ -125,6 +126,7 @@ export default function Settings() {
       return data;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Fetch activity stats
@@ -139,6 +141,7 @@ export default function Settings() {
       return count || 0;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: outfitCount = 0 } = useQuery({
@@ -152,6 +155,7 @@ export default function Settings() {
       return count || 0;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: streakDays = 0 } = useQuery({
@@ -165,6 +169,7 @@ export default function Settings() {
       return count || 0;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Set initial values when data loads
@@ -268,7 +273,7 @@ export default function Settings() {
     markDirty();
   };
 
-  if (loading || profileLoading || prefsLoading) {
+  if (loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">

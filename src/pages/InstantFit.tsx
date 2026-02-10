@@ -197,11 +197,11 @@ export default function InstantFit() {
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleDownload} className="flex-1">
                   <Download className="mr-2 h-4 w-4" />
-                  {t("common.download") || "Download"}
+                  {t("common.download")}
                 </Button>
                 <Button variant="outline" onClick={handleShare} className="flex-1">
                   <Share2 className="mr-2 h-4 w-4" />
-                  {t("common.share") || "Share"}
+                  {t("common.share")}
                 </Button>
               </div>
               <Button variant="outline" onClick={handleReset} className="w-full">

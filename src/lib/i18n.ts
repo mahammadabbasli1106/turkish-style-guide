@@ -186,6 +186,7 @@ const resources = {
       "settings.locationHint": "This will be used as default for weather-based outfit suggestions",
       "settings.stylePreferences": "Preferred Styles",
       "settings.saved": "Settings saved successfully!",
+      "settings.unsavedChanges": "⚠️ You have unsaved changes. Please save before leaving.",
       
       // Suggest - Try On
       "suggest.tryOnThisOutfit": "Try On This Outfit",
@@ -533,6 +534,7 @@ const resources = {
       "settings.locationHint": "Bu, hava durumuna göre kombin önerileri için varsayılan olarak kullanılacaktır",
       "settings.stylePreferences": "Tercih Edilen Stiller",
       "settings.saved": "Ayarlar başarıyla kaydedildi!",
+      "settings.unsavedChanges": "⚠️ Kaydedilmemiş değişiklikleriniz var. Lütfen ayrılmadan önce kaydedin.",
       
       // Suggest - Try On
       "suggest.tryOnThisOutfit": "Bu Kombini Dene",

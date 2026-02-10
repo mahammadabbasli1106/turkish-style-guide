@@ -1,82 +1,47 @@
 
 
-# Free Plan Usage Limits and Premium Upgrade Modal
+## Problem
 
-## Overview
-Add a subscription/usage tracking system that enforces free-tier limits across four features, with a polished Premium upgrade modal.
+The "Missing required data" error comes from the mutation guard in `VirtualTryOn.tsx` which checks three conditions: auth session, selected items, and `userImage`. The root cause is a bug where `useState` is used instead of `useEffect` to sync the profile's full-body photo into the `userImage` state.
 
-## What Will Be Built
+```
+useState(() => { ... })  // BUG: runs once at render, profile is still null
+```
 
-### 1. Database: `usage_events` Table
-A new table to persist every usage event with timestamps, enabling the 24-hour rolling window check.
+The profile data loads asynchronously, so when this runs, `profile` is always `null`. The photo appears on screen because `displayImage` has a fallback (`userImage || profile?.full_body_photo_url`), but the actual `userImage` state used in the mutation check stays `null`.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| user_id | uuid | References auth user |
-| feature | text | One of: `outfit_suggest`, `virtual_tryon`, `style_chat` |
-| created_at | timestamptz | When the action occurred |
+## Fix
 
-RLS policies: users can only insert/read their own events. Wardrobe count is already tracked via `clothing_items` table (no new table needed).
+1. **Replace `useState` with `useEffect`** (lines 49-53 of `VirtualTryOn.tsx`)
+   - Add a `useEffect` that watches `profile` and sets `userImage` when `full_body_photo_url` is available
 
-### 2. `useUsageLimits` Hook
-A centralized React hook that:
-- Queries `clothing_items` count for the wardrobe limit (20 max)
-- Queries `usage_events` for the last 24 hours, grouped by feature
-- Returns usage counts and boolean flags (`canSuggestOutfit`, `canTryOn`, `canChat`, `canUploadClothing`)
-- Provides a `recordUsage(feature)` function that inserts a row and refreshes counts
-- Returns `chatMessagesLeft` (5 minus count)
+2. **Update the mutation guard** to also accept `displayImage` as valid
+   - Change `!userImage` to `!displayImage` so that a profile photo counts
+   - Pass `displayImage` (instead of `userImage`) in the edge function call body
 
-### 3. Premium Upgrade Modal Component
-A reusable `<PremiumUpgradeModal>` dialog with:
-- Feature highlights: Unlimited Wardrobe, Unlimited AI Suggestions, Unlimited Try-Ons, 24/7 Personal Stylist Access
-- Two pricing buttons: Monthly ($9.99) and Yearly ($95.99 -- Save 20%)
-- Buttons are non-functional for now (no payment integration yet) -- they show a "Coming Soon" toast
-- Accepts a `trigger` prop describing which limit was hit (shown as heading text)
-
-### 4. Page-Level Integrations
-
-**Wardrobe Page:**
-- Add a progress bar at top: "14/20 slots used" with the `<Progress>` component
-- When count reaches 20, disable the upload button and show a tooltip
-- Clicking disabled button opens Premium modal
-
-**Outfit Suggest Page:**
-- Before calling `suggestMutation.mutate()`, check `canSuggestOutfit`
-- If blocked, open Premium modal with "Daily Limit Reached" message
-- Show remaining count near the generate button: "1/2 suggestions left today"
-- After successful generation, call `recordUsage('outfit_suggest')`
-
-**Virtual Try-On Page:**
-- Same pattern: check `canTryOn` before mutation
-- Show "1/2 try-ons left today" indicator
-- Open Premium modal when limit hit
-- Record usage after success
-
-**Style Chat Page:**
-- Show "3/5 messages left" counter in the chat input area
-- Before sending, check `canChat`
-- If blocked, open Premium modal
-- Record usage after each sent message
+These two small changes will resolve the issue without affecting any other functionality.
 
 ## Technical Details
 
-### New Files
-- `src/hooks/useUsageLimits.ts` -- the centralized hook
-- `src/components/PremiumUpgradeModal.tsx` -- the modal component
+**File:** `src/pages/VirtualTryOn.tsx`
 
-### Modified Files
-- `src/pages/Wardrobe.tsx` -- add progress bar, disable upload at 20, premium modal trigger
-- `src/pages/OutfitSuggest.tsx` -- add limit check before generation, usage recording, remaining counter
-- `src/pages/VirtualTryOn.tsx` -- add limit check before generation, usage recording, remaining counter
-- `src/pages/StyleChat.tsx` -- add message counter, limit check before send, usage recording
-- `src/components/chat/ChatInput.tsx` -- accept and display `messagesLeft` prop
+- Replace the incorrect `useState(() => { ... })` block with:
+  ```typescript
+  useEffect(() => {
+    if ((profile as any)?.full_body_photo_url && !userImage) {
+      setUserImage((profile as any).full_body_photo_url);
+    }
+  }, [profile]);
+  ```
 
-### Database Migration
-One migration to create the `usage_events` table with RLS policies.
-
-### 24-Hour Rolling Window Logic
-The hook queries: `SELECT count(*) FROM usage_events WHERE user_id = ? AND feature = ? AND created_at > now() - interval '24 hours'`
-
-This is done via Supabase JS with a `.gte('created_at', twentyFourHoursAgo.toISOString())` filter, ensuring the rolling window works correctly regardless of midnight boundaries.
+- In the mutation, use `displayImage` instead of `userImage`:
+  ```typescript
+  if (!session || selectedItems.length === 0 || !displayImage) {
+    throw new Error("Missing required data");
+  }
+  ```
+  And pass `displayImage` in the request body:
+  ```typescript
+  userImageBase64: displayImage,
+  ```
 

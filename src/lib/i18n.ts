@@ -164,6 +164,8 @@ const resources = {
       "common.install": "Install App",
       "common.installDesc": "Install for a better experience",
       "common.continue": "Continue",
+      "common.download": "Download",
+      "common.share": "Share",
       
       // Weather
       "weather.current": "Current Weather",
@@ -512,6 +514,8 @@ const resources = {
       "common.install": "Uygulamayı Yükle",
       "common.installDesc": "Daha iyi bir deneyim için yükleyin",
       "common.continue": "Devam Et",
+      "common.download": "İndir",
+      "common.share": "Paylaş",
       
       // Weather
       "weather.current": "Mevcut Hava",

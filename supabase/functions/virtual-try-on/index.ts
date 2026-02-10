@@ -120,7 +120,7 @@ CRITICAL RULES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gemini-2.5-flash-preview-05-20",
+        model: "gemini-2.0-flash-exp",
         messages: [{ role: "user", content: contentParts }],
         modalities: ["image", "text"],
       }),

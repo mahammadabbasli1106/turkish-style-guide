@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
@@ -33,6 +34,7 @@ export default function OnboardingPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState(0);
   const [displayName, setDisplayName] = useState("");
@@ -81,9 +83,11 @@ export default function OnboardingPage() {
           { onConflict: "user_id" }
         );
 
-      toast.success(t("onboarding.complete") || "You're all set!");
+      toast.success(t("onboarding.complete"));
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-check"] });
       navigate("/dashboard", { replace: true });
-    } catch {
+    } catch (err) {
+      console.error("Onboarding error:", err);
       toast.error(t("common.error") || "Something went wrong");
     } finally {
       setSaving(false);
@@ -144,10 +148,10 @@ export default function OnboardingPage() {
                 <User className="w-10 h-10 text-primary" />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2 text-center">
-                {t("onboarding.nameTitle") || "What's your name?"}
+                {t("onboarding.nameTitle")}
               </h2>
               <p className="text-muted-foreground text-sm mb-6 text-center max-w-xs">
-                {t("onboarding.nameSubtitle") || "We'll personalize your experience."}
+                {t("onboarding.nameSubtitle")}
               </p>
 
               <Input
@@ -160,7 +164,7 @@ export default function OnboardingPage() {
               />
 
               <p className="text-sm font-medium text-foreground mb-3 self-start">
-                {t("onboarding.genderLabel") || "Gender"}
+                {t("onboarding.genderLabel")}
               </p>
               <div className="grid grid-cols-3 gap-3 w-full">
                 {GENDER_OPTIONS.map((g) => (
@@ -196,10 +200,10 @@ export default function OnboardingPage() {
                 <MapPin className="w-10 h-10 text-primary" />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2 text-center">
-                {t("onboarding.locationTitle") || "Where are you based?"}
+                {t("onboarding.locationTitle")}
               </h2>
               <p className="text-muted-foreground text-sm mb-8 text-center max-w-xs">
-                {t("onboarding.locationSubtitle") || "We'll use this to tailor weather-based outfit suggestions for you."}
+                {t("onboarding.locationSubtitle")}
               </p>
 
               <Input
@@ -228,10 +232,10 @@ export default function OnboardingPage() {
                 <Palette className="w-10 h-10 text-primary" />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2 text-center">
-                {t("onboarding.styleTitle") || "Pick your style"}
+                {t("onboarding.styleTitle")}
               </h2>
               <p className="text-muted-foreground text-sm mb-6 text-center max-w-xs">
-                {t("onboarding.styleSubtitle") || "Select one or more styles that match your vibe."}
+                {t("onboarding.styleSubtitle")}
               </p>
 
               <div className="grid grid-cols-2 gap-3 w-full">
@@ -273,7 +277,7 @@ export default function OnboardingPage() {
             {saving ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : step === TOTAL_STEPS - 1 ? (
-              t("onboarding.finish") || "Get Started"
+              t("onboarding.finish")
             ) : (
               <span className="flex items-center gap-2">
                 {t("common.continue") || "Continue"}

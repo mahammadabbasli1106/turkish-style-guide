@@ -225,6 +225,7 @@ const resources = {
       "tryOn.multiSelectHint": "Select multiple items to try them together",
       "tryOn.selectedItems": "Selected items",
       "tryOn.items": "items",
+      "tryOn.usingProfilePhoto": "Using your profile photo",
       // Onboarding
       "onboarding.phoneTitle": "What's your number?",
       "onboarding.phoneSubtitle": "We'll use this for account recovery",

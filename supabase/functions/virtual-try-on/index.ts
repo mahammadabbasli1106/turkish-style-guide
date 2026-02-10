@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    const FAL_KEY = Deno.env.get("FAL_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    if (!FAL_KEY) throw new Error("FAL_KEY is not configured");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL is not configured");
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
 
@@ -24,7 +24,7 @@ serve(async (req) => {
     if (!authHeader) throw new Error("Authorization header required");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
+
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
@@ -34,7 +34,7 @@ serve(async (req) => {
     if (!clothingItemId) throw new Error("Clothing item ID is required");
     if (!userImageBase64) throw new Error("User image is required");
 
-    // Fetch the clothing item
+    // Fetch the primary clothing item
     const { data: clothingItem, error: clothingError } = await supabase
       .from("clothing_items")
       .select("*")
@@ -42,9 +42,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    if (clothingError || !clothingItem) {
-      throw new Error("Clothing item not found");
-    }
+    if (clothingError || !clothingItem) throw new Error("Clothing item not found");
 
     // Create try-on session
     const { data: session, error: sessionError } = await supabase
@@ -57,158 +55,206 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (sessionError) {
-      throw new Error("Failed to create try-on session");
-    }
+    if (sessionError) throw new Error("Failed to create try-on session");
 
-    // Build prompt with all clothing items
-    let clothingDescription = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral color"})`;
-    
-    if (additionalItems && additionalItems.length > 0) {
-      const additionalDescriptions = additionalItems.map((item: any) => 
-        `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral color"})`
-      ).join(", ");
-      clothingDescription = `a complete outfit consisting of: ${clothingDescription}, ${additionalDescriptions}`;
-    }
+    // --- Step 1: Upload images to Supabase Storage ---
+    const timestamp = Date.now();
 
-    // Helper to convert ArrayBuffer to base64 without stack overflow
-    const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+    // Helper: decode base64 (handles data URI or raw base64)
+    const decodeBase64 = (input: string): { bytes: Uint8Array; mime: string } => {
+      let base64 = input;
+      let mime = "image/jpeg";
+      if (input.startsWith("data:")) {
+        const match = input.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          mime = match[1];
+          base64 = match[2];
+        }
       }
-      return btoa(binary);
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return { bytes, mime };
     };
 
-    // Build image parts for Gemini
-    const imageParts: any[] = [
-      {
-        text: `Virtual try-on: Take this person and show them wearing ${clothingDescription}. Create a realistic fashion photo of the person wearing these specific garments. Keep the person's face, body type, and pose similar to the original image. The result should look like a professional fashion photograph with all the mentioned clothing items properly styled together.`
-      },
-    ];
+    // Helper: fetch image URL and return bytes
+    const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; mime: string }> => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch image: ${url}`);
+      const mime = res.headers.get("content-type") || "image/jpeg";
+      const buffer = await res.arrayBuffer();
+      return { bytes: new Uint8Array(buffer), mime };
+    };
 
-    // Add user image - handle URL, data URI, or raw base64
-    let userImageData: string;
-    let userImageMime = "image/jpeg";
+    // Upload user image
+    let userImageBytes: Uint8Array;
+    let userImageMime: string;
     if (userImageBase64.startsWith("http://") || userImageBase64.startsWith("https://")) {
-      const userImgRes = await fetch(userImageBase64);
-      if (!userImgRes.ok) throw new Error("Failed to fetch user image from URL");
-      userImageMime = userImgRes.headers.get("content-type") || "image/jpeg";
-      const userImgBuffer = await userImgRes.arrayBuffer();
-      userImageData = arrayBufferToBase64(userImgBuffer);
-    } else if (userImageBase64.startsWith("data:")) {
-      userImageData = userImageBase64.split(",")[1];
+      const fetched = await fetchImageBytes(userImageBase64);
+      userImageBytes = fetched.bytes;
+      userImageMime = fetched.mime;
     } else {
-      userImageData = userImageBase64;
+      const decoded = decodeBase64(userImageBase64);
+      userImageBytes = decoded.bytes;
+      userImageMime = decoded.mime;
     }
-    imageParts.push({
-      inlineData: {
-        mimeType: userImageMime,
-        data: userImageData,
+
+    const userImageExt = userImageMime.includes("png") ? "png" : "jpg";
+    const userImagePath = `${user.id}/user_${timestamp}.${userImageExt}`;
+
+    const { error: userUploadError } = await supabase.storage
+      .from("try-on-images")
+      .upload(userImagePath, userImageBytes, {
+        contentType: userImageMime,
+        upsert: true,
+      });
+    if (userUploadError) throw new Error(`Failed to upload user image: ${userUploadError.message}`);
+
+    const { data: userImageUrlData } = supabase.storage
+      .from("try-on-images")
+      .getPublicUrl(userImagePath);
+    const humanImageUrl = userImageUrlData.publicUrl;
+
+    // Upload clothing image
+    let clothingImageUrl: string;
+    if (clothingItem.image_url.startsWith("http://") || clothingItem.image_url.startsWith("https://")) {
+      // If already a public URL, use directly
+      clothingImageUrl = clothingItem.image_url;
+    } else {
+      // Upload base64 clothing image
+      const clothDecoded = decodeBase64(clothingItem.image_url);
+      const clothExt = clothDecoded.mime.includes("png") ? "png" : "jpg";
+      const clothPath = `${user.id}/cloth_${timestamp}.${clothExt}`;
+      const { error: clothUploadError } = await supabase.storage
+        .from("try-on-images")
+        .upload(clothPath, clothDecoded.bytes, {
+          contentType: clothDecoded.mime,
+          upsert: true,
+        });
+      if (clothUploadError) throw new Error(`Failed to upload clothing image: ${clothUploadError.message}`);
+      const { data: clothUrlData } = supabase.storage
+        .from("try-on-images")
+        .getPublicUrl(clothPath);
+      clothingImageUrl = clothUrlData.publicUrl;
+    }
+
+    // Build garment description
+    let garmentDesc = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral"})`;
+    if (additionalItems.length > 0) {
+      const extras = additionalItems.map((item: any) =>
+        `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
+      ).join(", ");
+      garmentDesc += `, ${extras}`;
+    }
+
+    // --- Step 2: Call Fal.ai IDM-VTON ---
+    console.log("Calling Fal.ai IDM-VTON with:", { humanImageUrl, clothingImageUrl, garmentDesc });
+
+    const falResponse = await fetch("https://queue.fal.run/fal-ai/idm-vton", {
+      method: "POST",
+      headers: {
+        "Authorization": `Key ${FAL_KEY}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        human_image_url: humanImageUrl,
+        garment_image_url: clothingImageUrl,
+        garment_des: garmentDesc,
+      }),
     });
 
-    // Add clothing item image if it's a base64 or accessible URL
-    if (clothingItem.image_url) {
-      if (clothingItem.image_url.startsWith("data:")) {
-        imageParts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: clothingItem.image_url.split(",")[1],
-          },
-        });
-      } else {
-        try {
-          const imgRes = await fetch(clothingItem.image_url);
-          if (imgRes.ok) {
-            const imgBuffer = await imgRes.arrayBuffer();
-            const imgBase64 = arrayBufferToBase64(imgBuffer);
-            imageParts.push({
-              inlineData: {
-                mimeType: imgRes.headers.get("content-type") || "image/jpeg",
-                data: imgBase64,
-              },
-            });
-          }
-        } catch (e) {
-          console.error("Failed to fetch clothing image:", e);
-        }
-      }
-    }
+    if (!falResponse.ok) {
+      const errorText = await falResponse.text();
+      console.error("Fal.ai error:", falResponse.status, errorText);
 
-    // Gemini 2.0 Flash can analyze images but cannot generate them.
-    // We return a detailed styling analysis text instead.
-    const requestBody = {
-      contents: [{ parts: imageParts }],
-    };
-
-    // Retry with exponential backoff for rate limits
-    let response: Response | null = null;
-    const delays = [1000, 2000, 4000];
-    for (let attempt = 0; attempt <= delays.length; attempt++) {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      if (response.status !== 429 && response.status !== 503) break;
-      if (attempt < delays.length) {
-        console.log(`Rate limited (${response.status}), retrying in ${delays[attempt]}ms (attempt ${attempt + 1}/${delays.length})`);
-        await new Promise(r => setTimeout(r, delays[attempt]));
-      }
-    }
-
-    if (!response || !response.ok) {
       await supabase
         .from("try_on_sessions")
         .update({ status: "failed" })
         .eq("id", session.id);
 
-      if (response?.status === 429) {
+      if (falResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errorText = response ? await response.text() : "No response";
-      console.error("Gemini API error:", response?.status, errorText);
-      throw new Error(`Gemini API error: ${response?.status}`);
+      throw new Error(`Fal.ai error: ${falResponse.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const falResult = await falResponse.json();
+    console.log("Fal.ai result:", JSON.stringify(falResult).slice(0, 500));
 
-    // Since gemini-1.5-flash cannot generate images, we return a text description
-    // The frontend should handle this gracefully
-    if (!aiText) {
+    // Fal.ai queue API returns a request_id for async processing
+    // We need to poll for the result
+    let resultImageUrl: string | null = null;
+
+    if (falResult.images?.[0]?.url) {
+      // Synchronous result
+      resultImageUrl = falResult.images[0].url;
+    } else if (falResult.request_id) {
+      // Async queue - poll for result
+      const requestId = falResult.request_id;
+      const pollUrl = `https://queue.fal.run/fal-ai/idm-vton/requests/${requestId}/status`;
+      const resultUrl = `https://queue.fal.run/fal-ai/idm-vton/requests/${requestId}`;
+
+      // Poll for up to 120 seconds
+      const maxAttempts = 60;
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+
+        const statusRes = await fetch(pollUrl, {
+          headers: { "Authorization": `Key ${FAL_KEY}` },
+        });
+
+        if (!statusRes.ok) {
+          console.error("Poll status error:", statusRes.status);
+          continue;
+        }
+
+        const statusData = await statusRes.json();
+        console.log(`Poll attempt ${i + 1}:`, statusData.status);
+
+        if (statusData.status === "COMPLETED") {
+          // Fetch the result
+          const resultRes = await fetch(resultUrl, {
+            headers: { "Authorization": `Key ${FAL_KEY}` },
+          });
+          if (resultRes.ok) {
+            const resultData = await resultRes.json();
+            resultImageUrl = resultData.image?.url || resultData.images?.[0]?.url || null;
+          }
+          break;
+        } else if (statusData.status === "FAILED") {
+          throw new Error("Fal.ai processing failed");
+        }
+      }
+    }
+
+    if (!resultImageUrl) {
       await supabase
         .from("try_on_sessions")
         .update({ status: "failed" })
         .eq("id", session.id);
-      throw new Error("Failed to generate try-on result");
+      throw new Error("Failed to generate try-on result - no image returned");
     }
 
-    // Update session 
+    // Update session with result
     await supabase
       .from("try_on_sessions")
-      .update({ 
+      .update({
         status: "completed",
-        result_image_url: null,
+        result_image_url: resultImageUrl,
       })
       .eq("id", session.id);
 
+    // Clean up temporary uploaded images (best-effort)
+    supabase.storage.from("try-on-images").remove([userImagePath]).catch(() => {});
+
     return new Response(JSON.stringify({
       sessionId: session.id,
-      resultImageUrl: null,
-      description: aiText,
-      clothingItem: clothingItem,
-      note: "Image generation requires Imagen API. Currently returning AI styling analysis.",
+      resultImageUrl: resultImageUrl,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

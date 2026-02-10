@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env missing");
 
     const authHeader = req.headers.get("Authorization");
@@ -50,7 +50,7 @@ serve(async (req) => {
 
     if (sessionError) throw new Error("Failed to create try-on session");
 
-    // Build clothing description for the vision prompt
+    // Build clothing description
     let clothingDesc = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral"})`;
     if (additionalItems.length > 0) {
       const extras = additionalItems.map((item: any) =>
@@ -59,30 +59,47 @@ serve(async (req) => {
       clothingDesc += `, also wearing: ${extras}`;
     }
 
-    // Prepare image URLs for GPT-4o Vision
-    const userImageUrl = userImageBase64.startsWith("data:")
-      ? userImageBase64
-      : userImageBase64.startsWith("http")
-        ? userImageBase64
-        : `data:image/jpeg;base64,${userImageBase64}`;
+    // Prepare image data for Gemini
+    // For Gemini we need base64 data without the data URI prefix
+    let userImageBase64Clean = userImageBase64;
+    let userImageMimeType = "image/jpeg";
+    if (userImageBase64.startsWith("data:")) {
+      const match = userImageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (match) {
+        userImageMimeType = match[1];
+        userImageBase64Clean = match[2];
+      }
+    } else if (userImageBase64.startsWith("http")) {
+      // Fetch the image and convert to base64
+      const imgResp = await fetch(userImageBase64);
+      const imgBuf = await imgResp.arrayBuffer();
+      userImageBase64Clean = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
+      const ct = imgResp.headers.get("content-type");
+      if (ct) userImageMimeType = ct;
+    }
 
-    const clothImageUrl = clothingItem.image_url;
+    // Fetch clothing image as base64
+    let clothImageBase64 = "";
+    let clothImageMimeType = "image/jpeg";
+    if (clothingItem.image_url) {
+      const imgResp = await fetch(clothingItem.image_url);
+      const imgBuf = await imgResp.arrayBuffer();
+      clothImageBase64 = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
+      const ct = imgResp.headers.get("content-type");
+      if (ct) clothImageMimeType = ct;
+    }
 
-    // ── Step A: Vision Analysis with GPT-4o ──
-    console.log("Step A: Analyzing images with GPT-4o Vision...");
+    // ── STEP 1: Text Analysis with Gemini Flash ──
+    console.log("Step 1: Analyzing images with Gemini 2.5 Flash...");
 
-    const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a forensic-level physical description writer. Your ONLY job is to output a single image-generation prompt. No preamble, no quotes, no explanation.
+    const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    const analysisPayload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `You are a forensic-level physical description writer. Your ONLY job is to output a single image-generation prompt. No preamble, no quotes, no explanation.
 
 Rules:
 1. Study the user photo. Write a dry, clinical, technical description: estimated age, ethnicity, exact hair style/length/color, facial structure (jaw shape, nose, brow), facial hair if any, body type (slim/athletic/stocky/etc), skin tone.
@@ -94,94 +111,213 @@ Rules:
 Do NOT use words like: beautiful, stunning, elegant, gorgeous, artistic, dramatic, cinematic.
 Do NOT add items not visible in the photos.
 Do NOT describe emotions or poses beyond "standing naturally".
-Keep it under 80 words. Be blunt and specific like a police report.`,
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Analyze these two images. The first is a photo of the user. The second is a clothing item: ${clothingDesc}. Generate a photorealistic DALL-E 3 prompt showing this person wearing this clothing item naturally.`,
-              },
-              { type: "image_url", image_url: { url: userImageUrl } },
-              { type: "image_url", image_url: { url: clothImageUrl } },
-            ],
-          },
-        ],
-        max_tokens: 500,
-      }),
+Keep it under 80 words. Be blunt and specific like a police report.
+
+The clothing item is: ${clothingDesc}. Generate the prompt now.`
+            },
+            {
+              inlineData: {
+                mimeType: userImageMimeType,
+                data: userImageBase64Clean
+              }
+            },
+            {
+              inlineData: {
+                mimeType: clothImageMimeType,
+                data: clothImageBase64
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        maxOutputTokens: 500,
+        temperature: 0.3,
+      }
+    };
+
+    const analysisResponse = await fetch(analysisUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(analysisPayload),
     });
 
-    if (!visionResponse.ok) {
-      const errText = await visionResponse.text();
-      console.error("GPT-4o Vision error:", visionResponse.status, errText);
+    if (!analysisResponse.ok) {
+      const errText = await analysisResponse.text();
+      console.error("Gemini analysis error:", analysisResponse.status, errText);
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
 
-      if (visionResponse.status === 429) {
+      if (analysisResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`Vision analysis failed: ${visionResponse.status}`);
+      throw new Error(`Analysis failed: ${analysisResponse.status}`);
     }
 
-    const visionData = await visionResponse.json();
-    const generationPrompt = visionData.choices?.[0]?.message?.content;
+    const analysisData = await analysisResponse.json();
+    const generationPrompt = analysisData.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!generationPrompt) {
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error("Vision model returned no description");
+      throw new Error("Gemini returned no description");
     }
 
-    console.log("Step A complete. Prompt length:", generationPrompt.length);
+    console.log("Step 1 complete. Prompt:", generationPrompt.substring(0, 100) + "...");
 
-    // ── Step B: Image Generation with DALL-E 3 ──
-    console.log("Step B: Generating image with DALL-E 3...");
+    // ── STEP 2: Image Generation with Gemini Image Model ──
+    // Try gemini-2.5-flash-image first, fallback to imagen-3.0-generate-001
+    console.log("Step 2: Generating image with gemini-2.5-flash-image...");
 
-    const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: generationPrompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "hd",
-        style: "natural",
-      }),
-    });
+    let resultImageBase64: string | null = null;
+    let resultMimeType = "image/png";
 
-    if (!dalleResponse.ok) {
-      const errText = await dalleResponse.text();
-      console.error("DALL-E 3 error:", dalleResponse.status, errText);
-      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
+    // Attempt 1: gemini-2.5-flash-image
+    const imageModels = [
+      "gemini-2.5-flash-preview-image-generation",
+      "imagen-3.0-generate-001",
+    ];
 
-      if (dalleResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    for (const model of imageModels) {
+      console.log(`Trying model: ${model}`);
+
+      try {
+        if (model.startsWith("gemini")) {
+          // Gemini image generation endpoint
+          const imageUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+          const imagePayload = {
+            contents: [
+              {
+                parts: [
+                  {
+                    text: generationPrompt
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              responseModalities: ["TEXT", "IMAGE"],
+            }
+          };
+
+          const imageResponse = await fetch(imageUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(imagePayload),
+          });
+
+          if (!imageResponse.ok) {
+            const errText = await imageResponse.text();
+            console.error(`${model} error:`, imageResponse.status, errText);
+
+            if (imageResponse.status === 429) {
+              await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
+              return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+                status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+            // Try next model
+            continue;
+          }
+
+          const imageData = await imageResponse.json();
+          // Extract image from Gemini response
+          const parts = imageData.candidates?.[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData) {
+              resultImageBase64 = part.inlineData.data;
+              resultMimeType = part.inlineData.mimeType || "image/png";
+              break;
+            }
+          }
+
+          if (resultImageBase64) {
+            console.log(`Success with ${model}`);
+            break;
+          }
+          console.log(`${model} returned no image, trying next...`);
+
+        } else {
+          // Imagen 3 endpoint
+          const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${GEMINI_API_KEY}`;
+
+          const imagenPayload = {
+            instances: [{ prompt: generationPrompt }],
+            parameters: {
+              sampleCount: 1,
+              aspectRatio: "1:1",
+            }
+          };
+
+          const imagenResponse = await fetch(imagenUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(imagenPayload),
+          });
+
+          if (!imagenResponse.ok) {
+            const errText = await imagenResponse.text();
+            console.error(`${model} error:`, imagenResponse.status, errText);
+            continue;
+          }
+
+          const imagenData = await imagenResponse.json();
+          const prediction = imagenData.predictions?.[0];
+          if (prediction?.bytesBase64Encoded) {
+            resultImageBase64 = prediction.bytesBase64Encoded;
+            resultMimeType = prediction.mimeType || "image/png";
+            console.log(`Success with ${model}`);
+            break;
+          }
+          console.log(`${model} returned no image, trying next...`);
+        }
+      } catch (err) {
+        console.error(`Error with ${model}:`, err);
+        continue;
       }
-      throw new Error(`Image generation failed: ${dalleResponse.status}`);
     }
 
-    const dalleData = await dalleResponse.json();
-    const resultImageUrl = dalleData.data?.[0]?.url;
-
-    if (!resultImageUrl) {
+    if (!resultImageBase64) {
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error("DALL-E 3 returned no image");
+      throw new Error("All image generation models failed");
     }
 
-    console.log("Step B complete. Image generated successfully.");
+    // Upload to Supabase storage
+    const fileName = `tryon_${session.id}_${Date.now()}.png`;
+    const fileBytes = Uint8Array.from(atob(resultImageBase64), c => c.charCodeAt(0));
 
-    // Update session with result
-    await supabase
-      .from("try_on_sessions")
+    const { error: uploadError } = await supabase.storage
+      .from("clothing-images")
+      .upload(`tryons/${fileName}`, fileBytes, {
+        contentType: resultMimeType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      // Return as data URI fallback
+      const dataUri = `data:${resultMimeType};base64,${resultImageBase64}`;
+      await supabase.from("try_on_sessions")
+        .update({ status: "completed", result_image_url: dataUri })
+        .eq("id", session.id);
+
+      return new Response(JSON.stringify({ sessionId: session.id, resultImageUrl: dataUri }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("clothing-images")
+      .getPublicUrl(`tryons/${fileName}`);
+
+    const resultImageUrl = publicUrlData.publicUrl;
+
+    await supabase.from("try_on_sessions")
       .update({ status: "completed", result_image_url: resultImageUrl })
       .eq("id", session.id);
+
+    console.log("Step 2 complete. Image uploaded successfully.");
 
     return new Response(JSON.stringify({
       sessionId: session.id,

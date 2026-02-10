@@ -83,8 +83,9 @@ export default function OnboardingPage() {
           { onConflict: "user_id" }
         );
 
+      // Pre-set the cache to true so Dashboard won't redirect back
+      queryClient.setQueryData(["onboarding-check", user.id], true);
       toast.success(t("onboarding.complete"));
-      await queryClient.invalidateQueries({ queryKey: ["onboarding-check"] });
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Onboarding error:", err);

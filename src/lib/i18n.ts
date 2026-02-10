@@ -16,6 +16,7 @@ const resources = {
       "nav.signIn": "Sign In",
       "nav.signOut": "Sign Out",
       "nav.chat": "Chat",
+      "nav.instantFit": "Instant Fit",
       
       // Landing page
       "hero.title": "Your AI-Powered Style Assistant",
@@ -226,6 +227,18 @@ const resources = {
       "tryOn.selectedItems": "Selected items",
       "tryOn.items": "items",
       "tryOn.usingProfilePhoto": "Using your profile photo",
+
+      // Instant Fit
+      "instantFit.title": "Instant Fit",
+      "instantFit.subtitle": "Snap a photo of any item in-store and see it on you",
+      "instantFit.captureHint": "Take a photo of clothing",
+      "instantFit.captureDesc": "Point your camera at any item in the store",
+      "instantFit.generate": "Try It On Me",
+      "instantFit.result": "Looking great!",
+      "instantFit.tryAnother": "Try Another Item",
+      "instantFit.noProfilePhoto": "Please upload a full body photo in Settings first",
+      "instantFit.triesLeft": "tries left today",
+
       // Onboarding
       "onboarding.phoneTitle": "What's your number?",
       "onboarding.phoneSubtitle": "We'll use this for account recovery",
@@ -348,6 +361,7 @@ const resources = {
       "nav.signIn": "Giriş Yap",
       "nav.signOut": "Çıkış Yap",
       "nav.chat": "Sohbet",
+      "nav.instantFit": "Anında Dene",
       
       // Landing page
       "hero.title": "AI Destekli Stil Asistanınız",
@@ -558,6 +572,17 @@ const resources = {
       "tryOn.selectedItems": "Seçilen parçalar",
       "tryOn.items": "parça",
       "tryOn.usingProfilePhoto": "Profil fotoğrafınız kullanılıyor",
+
+      // Instant Fit
+      "instantFit.title": "Anında Dene",
+      "instantFit.subtitle": "Mağazadaki herhangi bir ürünün fotoğrafını çekin ve üzerinizde görün",
+      "instantFit.captureHint": "Kıyafetin fotoğrafını çekin",
+      "instantFit.captureDesc": "Kameranızı mağazadaki herhangi bir ürüne tutun",
+      "instantFit.generate": "Üzerimde Dene",
+      "instantFit.result": "Harika görünüyor!",
+      "instantFit.tryAnother": "Başka Bir Ürün Dene",
+      "instantFit.noProfilePhoto": "Lütfen önce Ayarlar'dan tam boy fotoğraf yükleyin",
+      "instantFit.triesLeft": "deneme hakkı kaldı",
 
       // Onboarding
       "onboarding.phoneTitle": "Telefon numaranız?",

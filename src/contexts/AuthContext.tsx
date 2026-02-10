@@ -10,7 +10,6 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  checkOnboardingCompleted: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,15 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkOnboardingCompleted = async (): Promise<boolean> => {
-    if (!user) return false;
-    const { data } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("auth_id", user.id)
-      .single();
-    return data?.onboarding_completed ?? false;
-  };
 
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({
@@ -68,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isNewSignUp, signUp, signIn, signOut, checkOnboardingCompleted }}>
+    <AuthContext.Provider value={{ user, session, loading, isNewSignUp, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

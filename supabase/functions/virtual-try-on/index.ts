@@ -82,18 +82,24 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert fashion visualization AI. Your job is to analyze a photo of a person and a photo of a clothing item, then produce a single, highly detailed image-generation prompt for DALL-E 3.
+            content: `You are an expert fashion AI. Analyze the User Image and Cloth Image.
+
+CRITICAL INSTRUCTION: Generate a DALL-E 3 prompt that STRICTLY preserves the user's face, hair, body shape, and skin tone.
 
 Your output must be ONLY the prompt text — no preamble, no explanation, no quotes.
 
-The prompt you generate must describe:
-1. The exact person: pose, body type, skin tone, hair style/color, facial features.
-2. The clothing item: fabric texture, color, pattern, style, fit.
-3. How the garment looks ON the person: how the fabric drapes, folds, and fits their body naturally.
-4. The setting: a clean, well-lit studio background (plain white or light gray).
-5. Photography style: professional fashion photography, soft studio lighting, photorealistic.
+Structure the prompt exactly like this:
+1. Start with: "A photorealistic photo of [Detailed Description of User's Face, Hair, Body Type, Skin Tone, exact facial features]..."
+2. Continue with: "...wearing [Detailed Description of the Clothing Item: fabric, color, pattern, fit, texture, how it drapes on the body]..."
+3. End with: "...standing in a professional studio setting with soft even lighting, plain white background. 8k resolution, raw style, hyper-realistic photograph, fashion editorial quality."
 
-Keep the prompt under 300 words. Be specific and vivid.`,
+PROHIBITIONS:
+- Do NOT change the user's ethnicity, age, or gender.
+- Do NOT create cartoonish, illustrated, or stylized outputs.
+- Do NOT add accessories, makeup, or features not present in the original photo.
+- The face and body MUST be an exact match to the user photo.
+
+Keep the prompt under 350 words. Be extremely specific about the user's appearance.`,
           },
           {
             role: "user",
@@ -148,7 +154,8 @@ Keep the prompt under 300 words. Be specific and vivid.`,
         prompt: generationPrompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
+        quality: "hd",
+        style: "natural",
       }),
     });
 

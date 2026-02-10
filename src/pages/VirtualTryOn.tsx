@@ -27,6 +27,7 @@ export default function VirtualTryOn() {
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [premiumOpen, setPremiumOpen] = useState(false);
+  const [tryOnStatus, setTryOnStatus] = useState<'idle' | 'analyzing' | 'generating' | 'completed'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { canTryOn, tryOnsLeft, tryOnLimit, isPremium, recordUsage } = useUsageLimits();
 
@@ -83,6 +84,9 @@ export default function VirtualTryOn() {
         `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
       ).join(", ");
 
+      setTryOnStatus('analyzing');
+      const stepTimer = setTimeout(() => setTryOnStatus('generating'), 4000);
+
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: { 
           clothingItemId: selectedItems[0].id, // Primary item
@@ -97,6 +101,7 @@ export default function VirtualTryOn() {
         },
       });
 
+      clearTimeout(stepTimer);
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (!data?.resultImageUrl) throw new Error("No result image received");
@@ -105,10 +110,12 @@ export default function VirtualTryOn() {
     },
     onSuccess: async (data) => {
       setResultImage(data.resultImageUrl);
+      setTryOnStatus('completed');
       toast.success(t("tryOn.result"));
       await recordUsage("virtual_tryon");
     },
     onError: (error: Error) => {
+      setTryOnStatus('idle');
       if (error.message === "__limit__") return;
       console.error("Try-on error:", error);
       toast.error(error.message);
@@ -148,6 +155,7 @@ export default function VirtualTryOn() {
     setUserImage((profile as any)?.full_body_photo_url || null);
     setSelectedItems([]);
     setResultImage(null);
+    setTryOnStatus('idle');
   };
 
   if (loading) {
@@ -339,7 +347,7 @@ export default function VirtualTryOn() {
               {tryOnMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Designing your outfit...
+                  {tryOnStatus === 'analyzing' ? '🔍 Analyzing your style...' : '🎨 Designing your outfit...'}
                 </>
               ) : (
                 <>

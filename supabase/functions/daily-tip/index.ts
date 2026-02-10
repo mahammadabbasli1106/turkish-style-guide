@@ -83,26 +83,36 @@ Generate a personalized style tip.`;
       });
     }
 
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
+    // Retry with exponential backoff for rate limits
+    let aiResponse: Response | null = null;
+    const delays = [1000, 2000, 4000];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      aiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        }
+      );
 
-    if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      if (status === 429) {
+      if (aiResponse.status !== 429 && aiResponse.status !== 503) break;
+      if (attempt < delays.length) {
+        console.log(`Rate limited (${aiResponse.status}), retrying in ${delays[attempt]}ms (attempt ${attempt + 1}/${delays.length})`);
+        await new Promise(r => setTimeout(r, delays[attempt]));
+      }
+    }
+
+    if (!aiResponse || !aiResponse.ok) {
+      if (aiResponse?.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      console.error("Gemini error:", status, await aiResponse.text());
+      console.error("Gemini error:", aiResponse?.status, aiResponse ? await aiResponse.text() : "No response");
       return new Response(JSON.stringify({ error: "AI generation failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

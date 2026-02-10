@@ -27,9 +27,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        // Validate the session user actually exists
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          // Stale/orphaned session — sign out
+          console.warn("Session invalid, signing out:", error?.message);
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(session);
+          setUser(user);
+        }
+      }
       setLoading(false);
     });
 

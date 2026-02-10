@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL is not configured");
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
 
@@ -24,13 +24,11 @@ serve(async (req) => {
     if (!authHeader) throw new Error("Authorization header required");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
     const { style, location, occasion, venue } = await req.json();
-
     if (!occasion) throw new Error("Occasion is required");
     if (!style) throw new Error("Style is required");
 
@@ -65,90 +63,61 @@ serve(async (req) => {
       ? `\n8. Analyze the venue "${venue}" - consider its type, expected dress code, and atmosphere when choosing the outfit.`
       : "";
 
-    const prompt = `You are an expert fashion stylist AI. Given a user's wardrobe, real weather conditions, style preferences, venue information, and occasion, suggest the absolute best outfit combination.
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert fashion stylist AI. Given a user's wardrobe, weather, style preferences, venue, and occasion, suggest the best outfit. Return ONLY a JSON object with these fields:
+- "upper_body_id": uuid string or null
+- "lower_body_id": uuid string or null
+- "outerwear_id": uuid string or null (include if cold/rainy)
+- "footwear_id": uuid string or null
+- "accessory_id": uuid string or null
+- "reasoning": string explaining why this combination works
+- "venueAnalysis": string about venue dress code (empty string if no venue)
 
-Rules:
-1. ALWAYS pick items that work well together (color coordination, style matching, formality level)
-2. STRONGLY consider the weather - temperature, rain, humidity affect clothing choices
-3. Match the style preference AND occasion appropriately
-4. Consider the venue type and its dress code/atmosphere
-5. Only use items from the provided wardrobe - NEVER suggest items not in the list
-6. For cold weather (below 15°C), always include outerwear if available
-7. For rainy weather, prioritize water-resistant or appropriate items${venueInstruction}
-
-You MUST respond with ONLY a valid JSON object, no markdown, no code blocks, no explanation:
-{
-  "upper_body_id": "uuid or null",
-  "lower_body_id": "uuid or null", 
-  "outerwear_id": "uuid or null if not needed based on weather",
-  "footwear_id": "uuid or null",
-  "accessory_id": "uuid or null",
-  "reasoning": "Detailed explanation of why this combination works for the weather, occasion, and venue",
-  "venueAnalysis": "Brief description of the venue type, dress code, and atmosphere (or empty string if no venue)"
-}
-
-If a category is empty in the wardrobe, use null for that field.
-
-Create the perfect outfit for:
-- Style: ${style}
-- Occasion: ${occasion}
-- Location: ${location || "Not specified"}
-- Venue: ${venue || "Not specified"}
-- Weather: ${weather.description}, ${weather.temperature}°C, Humidity: ${weather.humidity}%, ${weather.feelsLike ? `Feels like: ${weather.feelsLike}°C` : ""}${weather.isRaining ? ", Currently raining" : ""}
+Rules: Only use item IDs from the provided wardrobe. For cold weather (<15°C) include outerwear. For rain prioritize appropriate items. Match style and occasion. If a category has no items, use null.`,
+          },
+          {
+            role: "user",
+            content: `Style: ${style}
+Occasion: ${occasion}
+Location: ${location || "Not specified"}
+Venue: ${venue || "Not specified"}
+Weather: ${weather.description}, ${weather.temperature}°C, Humidity: ${weather.humidity}%, ${weather.feelsLike ? `Feels like: ${weather.feelsLike}°C` : ""}${weather.isRaining ? ", Currently raining" : ""}${venueInstruction}
 
 Available wardrobe:
-${wardrobeDescription}`;
+${wardrobeDescription}`,
+          },
+        ],
+      }),
+    });
 
-    const MAX_RETRIES = 3;
-    let response: Response | null = null;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" },
-          }),
-        }
-      );
-
-      if (response.ok || (response.status !== 429 && response.status < 500)) break;
-
-      await response.text();
-
-      if (attempt < MAX_RETRIES) {
-        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-        console.log(`Gemini request failed (${response.status}), retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
-        await new Promise(r => setTimeout(r, delay));
-      }
-    }
-
-    if (!response || !response.ok) {
-      const status = response?.status ?? 500;
-      if (status === 429) {
+    if (!response.ok) {
+      if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`Gemini API error: ${status}`);
+      const errorText = await response.text();
+      console.error("OpenAI API error:", response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
+    const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error("No response from AI");
 
-    let suggestion;
-    try {
-      const cleanContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      suggestion = JSON.parse(cleanContent);
-    } catch {
-      console.error("Failed to parse AI response:", content);
-      throw new Error("Failed to parse outfit suggestion");
-    }
+    const suggestion = JSON.parse(content);
 
     const { data: savedSuggestion, error: saveError } = await supabase
       .from("outfit_suggestions")
@@ -202,23 +171,16 @@ ${wardrobeDescription}`;
 async function getWeatherInfo(location: string | undefined) {
   const defaultLocation = "Istanbul";
   const searchLocation = location || defaultLocation;
-  
+
   try {
     const geoResponse = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchLocation)}&count=1&language=en&format=json`
     );
-    
-    if (!geoResponse.ok) {
-      console.error("Geocoding failed:", geoResponse.status);
-      return getFallbackWeather(searchLocation);
-    }
+
+    if (!geoResponse.ok) return getFallbackWeather(searchLocation);
 
     const geoData = await geoResponse.json();
-    
-    if (!geoData.results || geoData.results.length === 0) {
-      console.warn("Location not found:", searchLocation);
-      return getFallbackWeather(searchLocation);
-    }
+    if (!geoData.results || geoData.results.length === 0) return getFallbackWeather(searchLocation);
 
     const { latitude, longitude, name } = geoData.results[0];
 
@@ -226,25 +188,20 @@ async function getWeatherInfo(location: string | undefined) {
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,weather_code,wind_speed_10m&timezone=auto`
     );
 
-    if (!weatherResponse.ok) {
-      console.error("Weather API failed:", weatherResponse.status);
-      return getFallbackWeather(searchLocation);
-    }
+    if (!weatherResponse.ok) return getFallbackWeather(searchLocation);
 
     const weatherData = await weatherResponse.json();
     const current = weatherData.current;
-
-    const weatherDescription = getWeatherDescription(current.weather_code);
     const isRaining = current.rain > 0 || current.precipitation > 0;
 
     return {
       location: name || searchLocation,
       temperature: Math.round(current.temperature_2m),
       feelsLike: Math.round(current.apparent_temperature),
-      description: weatherDescription,
+      description: getWeatherDescription(current.weather_code),
       humidity: current.relative_humidity_2m,
       windSpeed: current.wind_speed_10m,
-      isRaining: isRaining,
+      isRaining,
       needsOuterwear: current.temperature_2m < 18 || isRaining,
     };
   } catch (error) {

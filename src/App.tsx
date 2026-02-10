@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import "@/lib/i18n";
 import Auth from "./pages/Auth";
@@ -33,30 +33,30 @@ function RootRedirect() {
   return <Navigate to={user ? "/dashboard" : "/auth"} replace />;
 }
 
+const router = createBrowserRouter([
+  { path: "/", element: <RootRedirect /> },
+  { path: "/auth", element: <Auth /> },
+  { path: "/onboarding", element: <Onboarding /> },
+  { path: "/dashboard", element: <Dashboard /> },
+  { path: "/dashboard/wardrobe", element: <Wardrobe /> },
+  { path: "/dashboard/suggest", element: <OutfitSuggest /> },
+  { path: "/dashboard/history", element: <OutfitHistory /> },
+  { path: "/dashboard/try-on", element: <VirtualTryOn /> },
+  { path: "/dashboard/instant-fit", element: <InstantFit /> },
+  { path: "/dashboard/chat", element: <StyleChat /> },
+  { path: "/dashboard/travel", element: <TravelMode /> },
+  { path: "/dashboard/settings", element: <Settings /> },
+  { path: "/install", element: <InstallApp /> },
+  { path: "*", element: <NotFound /> },
+]);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<RootRedirect />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/wardrobe" element={<Wardrobe />} />
-            <Route path="/dashboard/suggest" element={<OutfitSuggest />} />
-            <Route path="/dashboard/history" element={<OutfitHistory />} />
-            <Route path="/dashboard/try-on" element={<VirtualTryOn />} />
-            <Route path="/dashboard/instant-fit" element={<InstantFit />} />
-            <Route path="/dashboard/chat" element={<StyleChat />} />
-            <Route path="/dashboard/travel" element={<TravelMode />} />
-            <Route path="/dashboard/settings" element={<Settings />} />
-            <Route path="/install" element={<InstallApp />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

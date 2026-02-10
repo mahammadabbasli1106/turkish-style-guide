@@ -12,25 +12,22 @@ serve(async (req) => {
   }
 
   try {
-    const FAL_KEY = Deno.env.get("FAL_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!FAL_KEY) throw new Error("FAL_KEY is not configured");
-    if (!SUPABASE_URL) throw new Error("SUPABASE_URL is not configured");
-    if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env missing");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Authorization header required");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
     const { clothingItemId, userImageBase64, additionalItems = [] } = await req.json();
-
     if (!clothingItemId) throw new Error("Clothing item ID is required");
     if (!userImageBase64) throw new Error("User image is required");
 
@@ -47,221 +44,146 @@ serve(async (req) => {
     // Create try-on session
     const { data: session, error: sessionError } = await supabase
       .from("try_on_sessions")
-      .insert({
-        user_id: user.id,
-        clothing_item_id: clothingItemId,
-        status: "processing",
-      })
+      .insert({ user_id: user.id, clothing_item_id: clothingItemId, status: "processing" })
       .select()
       .single();
 
     if (sessionError) throw new Error("Failed to create try-on session");
 
-    // --- Step 1: Upload images to Supabase Storage ---
-    const timestamp = Date.now();
-
-    // Helper: decode base64 (handles data URI or raw base64)
-    const decodeBase64 = (input: string): { bytes: Uint8Array; mime: string } => {
-      let base64 = input;
-      let mime = "image/jpeg";
-      if (input.startsWith("data:")) {
-        const match = input.match(/^data:([^;]+);base64,(.+)$/);
-        if (match) {
-          mime = match[1];
-          base64 = match[2];
-        }
-      }
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return { bytes, mime };
-    };
-
-    // Helper: fetch image URL and return bytes
-    const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; mime: string }> => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to fetch image: ${url}`);
-      const mime = res.headers.get("content-type") || "image/jpeg";
-      const buffer = await res.arrayBuffer();
-      return { bytes: new Uint8Array(buffer), mime };
-    };
-
-    // Upload user image
-    let userImageBytes: Uint8Array;
-    let userImageMime: string;
-    if (userImageBase64.startsWith("http://") || userImageBase64.startsWith("https://")) {
-      const fetched = await fetchImageBytes(userImageBase64);
-      userImageBytes = fetched.bytes;
-      userImageMime = fetched.mime;
-    } else {
-      const decoded = decodeBase64(userImageBase64);
-      userImageBytes = decoded.bytes;
-      userImageMime = decoded.mime;
-    }
-
-    const userImageExt = userImageMime.includes("png") ? "png" : "jpg";
-    const userImagePath = `${user.id}/user_${timestamp}.${userImageExt}`;
-
-    const { error: userUploadError } = await supabase.storage
-      .from("try-on-images")
-      .upload(userImagePath, userImageBytes, {
-        contentType: userImageMime,
-        upsert: true,
-      });
-    if (userUploadError) throw new Error(`Failed to upload user image: ${userUploadError.message}`);
-
-    const { data: userImageUrlData } = supabase.storage
-      .from("try-on-images")
-      .getPublicUrl(userImagePath);
-    const humanImageUrl = userImageUrlData.publicUrl;
-
-    // Upload clothing image
-    let clothingImageUrl: string;
-    if (clothingItem.image_url.startsWith("http://") || clothingItem.image_url.startsWith("https://")) {
-      // If already a public URL, use directly
-      clothingImageUrl = clothingItem.image_url;
-    } else {
-      // Upload base64 clothing image
-      const clothDecoded = decodeBase64(clothingItem.image_url);
-      const clothExt = clothDecoded.mime.includes("png") ? "png" : "jpg";
-      const clothPath = `${user.id}/cloth_${timestamp}.${clothExt}`;
-      const { error: clothUploadError } = await supabase.storage
-        .from("try-on-images")
-        .upload(clothPath, clothDecoded.bytes, {
-          contentType: clothDecoded.mime,
-          upsert: true,
-        });
-      if (clothUploadError) throw new Error(`Failed to upload clothing image: ${clothUploadError.message}`);
-      const { data: clothUrlData } = supabase.storage
-        .from("try-on-images")
-        .getPublicUrl(clothPath);
-      clothingImageUrl = clothUrlData.publicUrl;
-    }
-
-    // Build garment description
-    let garmentDesc = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral"})`;
+    // Build clothing description for the vision prompt
+    let clothingDesc = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral"})`;
     if (additionalItems.length > 0) {
       const extras = additionalItems.map((item: any) =>
         `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
       ).join(", ");
-      garmentDesc += `, ${extras}`;
+      clothingDesc += `, also wearing: ${extras}`;
     }
 
-    // --- Step 2: Call Fal.ai IDM-VTON ---
-    console.log("Calling Fal.ai IDM-VTON with:", { humanImageUrl, clothingImageUrl, garmentDesc });
+    // Prepare image URLs for GPT-4o Vision
+    const userImageUrl = userImageBase64.startsWith("data:")
+      ? userImageBase64
+      : userImageBase64.startsWith("http")
+        ? userImageBase64
+        : `data:image/jpeg;base64,${userImageBase64}`;
 
-    const falResponse = await fetch("https://queue.fal.run/fal-ai/idm-vton", {
+    const clothImageUrl = clothingItem.image_url;
+
+    // ── Step A: Vision Analysis with GPT-4o ──
+    console.log("Step A: Analyzing images with GPT-4o Vision...");
+
+    const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Key ${FAL_KEY}`,
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        human_image_url: humanImageUrl,
-        garm_img_url: clothingImageUrl,
-        garment_des: garmentDesc,
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert fashion visualization AI. Your job is to analyze a photo of a person and a photo of a clothing item, then produce a single, highly detailed image-generation prompt for DALL-E 3.
+
+Your output must be ONLY the prompt text — no preamble, no explanation, no quotes.
+
+The prompt you generate must describe:
+1. The exact person: pose, body type, skin tone, hair style/color, facial features.
+2. The clothing item: fabric texture, color, pattern, style, fit.
+3. How the garment looks ON the person: how the fabric drapes, folds, and fits their body naturally.
+4. The setting: a clean, well-lit studio background (plain white or light gray).
+5. Photography style: professional fashion photography, soft studio lighting, photorealistic.
+
+Keep the prompt under 300 words. Be specific and vivid.`,
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Analyze these two images. The first is a photo of the user. The second is a clothing item: ${clothingDesc}. Generate a photorealistic DALL-E 3 prompt showing this person wearing this clothing item naturally.`,
+              },
+              { type: "image_url", image_url: { url: userImageUrl } },
+              { type: "image_url", image_url: { url: clothImageUrl } },
+            ],
+          },
+        ],
+        max_tokens: 500,
       }),
     });
 
-    if (!falResponse.ok) {
-      const errorText = await falResponse.text();
-      console.error("Fal.ai error:", falResponse.status, errorText);
+    if (!visionResponse.ok) {
+      const errText = await visionResponse.text();
+      console.error("GPT-4o Vision error:", visionResponse.status, errText);
+      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
 
-      await supabase
-        .from("try_on_sessions")
-        .update({ status: "failed" })
-        .eq("id", session.id);
-
-      if (falResponse.status === 429) {
+      if (visionResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`Fal.ai error: ${falResponse.status} - ${errorText}`);
+      throw new Error(`Vision analysis failed: ${visionResponse.status}`);
     }
 
-    const falResult = await falResponse.json();
-    console.log("Fal.ai result:", JSON.stringify(falResult).slice(0, 500));
+    const visionData = await visionResponse.json();
+    const generationPrompt = visionData.choices?.[0]?.message?.content;
 
-    // Fal.ai queue API returns a request_id for async processing
-    // We need to poll for the result
-    let resultImageUrl: string | null = null;
+    if (!generationPrompt) {
+      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
+      throw new Error("Vision model returned no description");
+    }
 
-    if (falResult.images?.[0]?.url) {
-      // Synchronous result
-      resultImageUrl = falResult.images[0].url;
-    } else if (falResult.request_id) {
-      // Async queue - poll for result
-      const requestId = falResult.request_id;
-      const pollUrl = `https://queue.fal.run/fal-ai/idm-vton/requests/${requestId}/status`;
-      const resultUrl = `https://queue.fal.run/fal-ai/idm-vton/requests/${requestId}`;
+    console.log("Step A complete. Prompt length:", generationPrompt.length);
 
-      // Poll for up to 120 seconds
-      const maxAttempts = 60;
-      for (let i = 0; i < maxAttempts; i++) {
-        await new Promise(r => setTimeout(r, 2000));
+    // ── Step B: Image Generation with DALL-E 3 ──
+    console.log("Step B: Generating image with DALL-E 3...");
 
-        const statusRes = await fetch(pollUrl, {
-          headers: { "Authorization": `Key ${FAL_KEY}` },
+    const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: generationPrompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+      }),
+    });
+
+    if (!dalleResponse.ok) {
+      const errText = await dalleResponse.text();
+      console.error("DALL-E 3 error:", dalleResponse.status, errText);
+      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
+
+      if (dalleResponse.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-
-        if (!statusRes.ok) {
-          console.error("Poll status error:", statusRes.status);
-          continue;
-        }
-
-        const statusData = await statusRes.json();
-        console.log(`Poll attempt ${i + 1}:`, statusData.status);
-
-        if (statusData.status === "COMPLETED") {
-          // Fetch the result
-          const resultRes = await fetch(resultUrl, {
-            headers: { "Authorization": `Key ${FAL_KEY}` },
-          });
-          if (resultRes.ok) {
-            const resultData = await resultRes.json();
-            console.log("Fal.ai completed result:", JSON.stringify(resultData).slice(0, 1000));
-            resultImageUrl = resultData.image?.url 
-              || resultData.images?.[0]?.url 
-              || resultData.output?.url
-              || (typeof resultData.image === "string" ? resultData.image : null)
-              || null;
-          } else {
-            console.error("Failed to fetch result:", resultRes.status, await resultRes.text());
-          }
-          break;
-        } else if (statusData.status === "FAILED") {
-          throw new Error("Fal.ai processing failed");
-        }
       }
+      throw new Error(`Image generation failed: ${dalleResponse.status}`);
     }
+
+    const dalleData = await dalleResponse.json();
+    const resultImageUrl = dalleData.data?.[0]?.url;
 
     if (!resultImageUrl) {
-      await supabase
-        .from("try_on_sessions")
-        .update({ status: "failed" })
-        .eq("id", session.id);
-      throw new Error("Failed to generate try-on result - no image returned");
+      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
+      throw new Error("DALL-E 3 returned no image");
     }
+
+    console.log("Step B complete. Image generated successfully.");
 
     // Update session with result
     await supabase
       .from("try_on_sessions")
-      .update({
-        status: "completed",
-        result_image_url: resultImageUrl,
-      })
+      .update({ status: "completed", result_image_url: resultImageUrl })
       .eq("id", session.id);
-
-    // Clean up temporary uploaded images (best-effort)
-    supabase.storage.from("try-on-images").remove([userImagePath]).catch(() => {});
 
     return new Response(JSON.stringify({
       sessionId: session.id,
-      resultImageUrl: resultImageUrl,
+      resultImageUrl,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

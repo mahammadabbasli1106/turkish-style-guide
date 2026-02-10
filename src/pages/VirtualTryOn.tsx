@@ -339,7 +339,7 @@ export default function VirtualTryOn() {
               {tryOnMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {t("tryOn.generating")}
+                  Designing your outfit...
                 </>
               ) : (
                 <>

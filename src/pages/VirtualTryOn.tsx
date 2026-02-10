@@ -98,7 +98,8 @@ export default function VirtualTryOn() {
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.resultImageUrl) throw new Error("No result image received");
       
       return data;
     },

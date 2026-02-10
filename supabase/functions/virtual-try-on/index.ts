@@ -144,30 +144,41 @@ serve(async (req) => {
       contents: [{ parts: imageParts }],
     };
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      }
-    );
+    // Retry with exponential backoff for rate limits
+    let response: Response | null = null;
+    const delays = [1000, 2000, 4000];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        }
+      );
 
-    if (!response.ok) {
+      if (response.status !== 429 && response.status !== 503) break;
+      if (attempt < delays.length) {
+        console.log(`Rate limited (${response.status}), retrying in ${delays[attempt]}ms (attempt ${attempt + 1}/${delays.length})`);
+        await new Promise(r => setTimeout(r, delays[attempt]));
+      }
+    }
+
+    if (!response || !response.ok) {
       await supabase
         .from("try_on_sessions")
         .update({ status: "failed" })
         .eq("id", session.id);
 
-      if (response.status === 429) {
+      if (response?.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorText = response ? await response.text() : "No response";
+      console.error("Gemini API error:", response?.status, errorText);
+      throw new Error(`Gemini API error: ${response?.status}`);
     }
 
     const data = await response.json();

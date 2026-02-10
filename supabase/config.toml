@@ -18,5 +18,8 @@ verify_jwt = false
 [functions.travel-packing]
 verify_jwt = false
 
+[functions.instant-fit]
+verify_jwt = false
+
 [functions.daily-tip]
 verify_jwt = false

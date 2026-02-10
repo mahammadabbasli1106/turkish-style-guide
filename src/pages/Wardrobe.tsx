@@ -77,8 +77,8 @@ export default function Wardrobe() {
   });
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user || !session) return;
+    const files = event.target.files;
+    if (!files || files.length === 0 || !user || !session) return;
 
     if (!canUploadClothing) {
       setPremiumOpen(true);
@@ -86,65 +86,73 @@ export default function Wardrobe() {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
+    setUploading(true);
+    let successCount = 0;
+
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+
+      // Check limit per item
+      if (!isPremium && wardrobeCount + successCount >= wardrobeLimit) {
+        setPremiumOpen(true);
+        break;
+      }
+
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("clothing-images")
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("clothing-images")
+          .getPublicUrl(fileName);
+
+        const base64 = await fileToBase64(file);
+
+        toast.loading("AI is analyzing your clothing...", { id: `categorize-${fileName}` });
+        
+        const { data: categoryData, error: categoryError } = await supabase.functions.invoke(
+          "categorize-clothing",
+          { body: { imageUrl: base64 } }
+        );
+
+        toast.dismiss(`categorize-${fileName}`);
+
+        if (categoryError) throw categoryError;
+
+        const { error: dbError } = await supabase
+          .from("clothing_items")
+          .insert({
+            user_id: user.id,
+            name: categoryData.name,
+            category: categoryData.category,
+            color: categoryData.color,
+            season: categoryData.season || [],
+            image_url: publicUrl,
+            ai_tags: categoryData.tags || [],
+          });
+
+        if (dbError) throw dbError;
+        successCount++;
+      } catch (error) {
+        console.error("Upload error:", error);
+        toast.error(`Failed to upload: ${file.name}`);
+      }
     }
 
-    setUploading(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("clothing-images")
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("clothing-images")
-        .getPublicUrl(fileName);
-
-      const base64 = await fileToBase64(file);
-
-      toast.loading("AI is analyzing your clothing...", { id: "categorize" });
-      
-      const { data: categoryData, error: categoryError } = await supabase.functions.invoke(
-        "categorize-clothing",
-        {
-          body: { imageUrl: base64 },
-        }
-      );
-
-      toast.dismiss("categorize");
-
-      if (categoryError) throw categoryError;
-
-      const { error: dbError } = await supabase
-        .from("clothing_items")
-        .insert({
-          user_id: user.id,
-          name: categoryData.name,
-          category: categoryData.category,
-          color: categoryData.color,
-          season: categoryData.season || [],
-          image_url: publicUrl,
-          ai_tags: categoryData.tags || [],
-        });
-
-      if (dbError) throw dbError;
-
+    if (successCount > 0) {
       queryClient.invalidateQueries({ queryKey: ["clothing-items"] });
       queryClient.invalidateQueries({ queryKey: ["clothing-count"] });
-      toast.success(`Added: ${categoryData.name}`);
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload clothing item");
-    } finally {
-      setUploading(false);
-      event.target.value = "";
+      toast.success(`Added ${successCount} item${successCount > 1 ? "s" : ""}`);
     }
+
+    setUploading(false);
+    event.target.value = "";
   };
 
   if (loading) {
@@ -213,6 +221,7 @@ export default function Wardrobe() {
                   <Input
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleFileUpload}
                     disabled={uploading || !canUploadClothing}
                     className="sr-only"
@@ -279,7 +288,7 @@ export default function Wardrobe() {
               Upload photos of your clothes to build your digital wardrobe
             </p>
             <label>
-              <Input type="file" accept="image/*" onChange={handleFileUpload} className="sr-only" />
+              <Input type="file" accept="image/*" multiple onChange={handleFileUpload} className="sr-only" />
               <Button className="bg-gradient-primary text-primary-foreground" asChild>
                 <span>
                   <Plus className="mr-2 h-4 w-4" />

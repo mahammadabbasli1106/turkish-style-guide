@@ -1,6 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Home, Shirt, Sparkles, MessageCircle, User } from "lucide-react";
+import { Home, Shirt, Sparkles, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
@@ -32,6 +33,17 @@ export default function BottomTabBar() {
   const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // Listen for keyboard state events from ChatInput
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setKeyboardOpen(detail?.open ?? false);
+    };
+    window.addEventListener("keyboard-state", handler);
+    return () => window.removeEventListener("keyboard-state", handler);
+  }, []);
 
   const { data: profile } = useQuery({
     queryKey: ["profile-avatar", user?.id],
@@ -51,9 +63,11 @@ export default function BottomTabBar() {
   const avatarType = profile?.avatar_type || "default";
   const avatarUrl = AVATARS[avatarType] || AVATARS.default;
 
+  // Hide when keyboard is open on mobile
+  if (keyboardOpen) return null;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden pointer-events-none">
-      {/* Outer wrapper for gradient border glow */}
       <div className="mx-4 mb-4 w-full max-w-md rounded-3xl p-[1px] bg-gradient-to-r from-primary/40 via-accent/30 to-primary/40 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.25)] pointer-events-auto">
         <div className="flex items-center justify-around h-16 w-full bg-card/75 dark:bg-card/65 backdrop-blur-xl rounded-[calc(1.5rem-1px)] px-2">
         {baseTabs.map((tab) => {

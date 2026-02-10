@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag } from "lucide-react";
+import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
@@ -20,7 +20,29 @@ export default function InstantFit() {
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "analyzing" | "generating" | "completed">("idle");
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const { canTryOn, tryOnsLeft, tryOnLimit, isPremium, recordUsage } = useUsageLimits();
+  const { isPremium, recordUsage } = useUsageLimits();
+
+  // Instant fit has its own 2-usage limit
+  const { data: instantFitCount = 0 } = useQuery({
+    queryKey: ["instant-fit-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("usage_events")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("feature", "instant_fit")
+        .gte("created_at", twentyFourHoursAgo);
+      return data?.length || 0;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 30,
+  });
+
+  const INSTANT_FIT_LIMIT = 2;
+  const canUseInstantFit = isPremium || instantFitCount < INSTANT_FIT_LIMIT;
+  const instantFitLeft = isPremium ? Infinity : Math.max(0, INSTANT_FIT_LIMIT - instantFitCount);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -42,7 +64,7 @@ export default function InstantFit() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!session || !clothingPhoto || !profilePhoto) throw new Error("Missing required data");
-      if (!canTryOn) {
+      if (!canUseInstantFit) {
         setPremiumOpen(true);
         throw new Error("__limit__");
       }
@@ -67,7 +89,8 @@ export default function InstantFit() {
       setResultImage(data.resultImageUrl);
       setStatus("completed");
       toast.success(t("instantFit.result"));
-      await recordUsage("virtual_tryon");
+      // Record as instant_fit feature
+      await supabase.from("usage_events").insert({ user_id: user!.id, feature: "instant_fit" });
     },
     onError: (error: Error) => {
       setStatus("idle");
@@ -97,6 +120,38 @@ export default function InstantFit() {
     setClothingPhoto(null);
     setResultImage(null);
     setStatus("idle");
+  };
+
+  const handleDownload = async () => {
+    if (!resultImage) return;
+    try {
+      const response = await fetch(resultImage);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `instant-fit-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download image");
+    }
+  };
+
+  const handleShare = async () => {
+    if (!resultImage) return;
+    try {
+      const response = await fetch(resultImage);
+      const blob = await response.blob();
+      const file = new File([blob], "instant-fit.png", { type: "image/png" });
+      if (navigator.share) {
+        await navigator.share({ files: [file], title: "My Instant Fit" });
+      } else {
+        handleDownload();
+      }
+    } catch {
+      toast.error("Failed to share image");
+    }
   };
 
   if (loading) {
@@ -138,6 +193,16 @@ export default function InstantFit() {
             >
               <div className="aspect-[3/4] bg-card rounded-2xl overflow-hidden shadow-card">
                 <img src={resultImage} alt="Instant fit result" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleDownload} className="flex-1">
+                  <Download className="mr-2 h-4 w-4" />
+                  {t("common.download") || "Download"}
+                </Button>
+                <Button variant="outline" onClick={handleShare} className="flex-1">
+                  <Share2 className="mr-2 h-4 w-4" />
+                  {t("common.share") || "Share"}
+                </Button>
               </div>
               <Button variant="outline" onClick={handleReset} className="w-full">
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -197,7 +262,7 @@ export default function InstantFit() {
                   </Button>
                   {!isPremium && (
                     <p className="text-xs text-muted-foreground text-center">
-                      {tryOnsLeft}/{tryOnLimit} {t("instantFit.triesLeft")}
+                      {instantFitLeft}/{INSTANT_FIT_LIMIT} {t("instantFit.triesLeft")}
                     </p>
                   )}
                 </div>

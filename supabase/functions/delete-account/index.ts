@@ -19,7 +19,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify the user
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,20 +35,46 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to delete user data and auth account
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Delete user data (cascade should handle most, but be explicit)
-    await adminClient.from("style_checkins").delete().eq("user_id", user.id);
-    await adminClient.from("try_on_sessions").delete().eq("user_id", user.id);
-    await adminClient.from("outfit_suggestions").delete().eq("user_id", user.id);
-    await adminClient.from("clothing_items").delete().eq("user_id", user.id);
-    await adminClient.from("user_preferences").delete().eq("user_id", user.id);
-    await adminClient.from("profiles").delete().eq("auth_id", user.id);
+    // Delete all user data from every table
+    const tables = [
+      { table: "usage_events", column: "user_id" },
+      { table: "style_checkins", column: "user_id" },
+      { table: "try_on_sessions", column: "user_id" },
+      { table: "outfit_suggestions", column: "user_id" },
+      { table: "clothing_items", column: "user_id" },
+      { table: "user_preferences", column: "user_id" },
+      { table: "profiles", column: "auth_id" },
+    ];
+
+    for (const { table, column } of tables) {
+      const { error } = await adminClient.from(table).delete().eq(column, user.id);
+      if (error) {
+        console.error(`Error deleting from ${table}:`, error.message);
+      }
+    }
+
+    // Delete storage files
+    try {
+      const { data: files } = await adminClient.storage
+        .from("clothing-images")
+        .list(user.id);
+      if (files && files.length > 0) {
+        await adminClient.storage
+          .from("clothing-images")
+          .remove(files.map((f) => `${user.id}/${f.name}`));
+      }
+    } catch (e) {
+      console.error("Error deleting storage files:", e);
+    }
 
     // Delete auth user
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error("Error deleting auth user:", deleteError.message);
+      throw deleteError;
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,18 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 8192;
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-    for (let j = 0; j < chunk.length; j++) {
-      binary += String.fromCharCode(chunk[j]);
-    }
-  }
-  return btoa(binary);
-}
+import { encode as encodeBase64, decode as decodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,7 +57,7 @@ serve(async (req) => {
       clothingDesc += `, also wearing: ${extras}`;
     }
 
-    // Prepare user image as base64
+    // Prepare user image - use Deno's native encodeBase64 (no stack overflow)
     let userB64 = userImageBase64;
     let userMime = "image/jpeg";
     if (userImageBase64.startsWith("data:")) {
@@ -77,21 +65,23 @@ serve(async (req) => {
       if (m) { userMime = m[1]; userB64 = m[2]; }
     } else if (userImageBase64.startsWith("http")) {
       const r = await fetch(userImageBase64);
-      userB64 = arrayBufferToBase64(await r.arrayBuffer());
+      const buf = new Uint8Array(await r.arrayBuffer());
+      userB64 = encodeBase64(buf);
       userMime = r.headers.get("content-type") || "image/jpeg";
     }
 
-    // Fetch clothing image as base64
+    // Fetch clothing image
     let clothB64 = "";
     let clothMime = "image/jpeg";
     if (clothingItem.image_url) {
       const r = await fetch(clothingItem.image_url);
-      clothB64 = arrayBufferToBase64(await r.arrayBuffer());
+      const buf = new Uint8Array(await r.arrayBuffer());
+      clothB64 = encodeBase64(buf);
       clothMime = r.headers.get("content-type") || "image/jpeg";
     }
 
     // ── STEP 1: Analysis with gemini-2.5-flash ──
-    console.log("Step 1: Analyzing with gemini-2.5-flash...");
+    console.log("Step 1: Analyzing...");
 
     const step1Url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const step1Resp = await fetch(step1Url, {
@@ -124,7 +114,7 @@ Clothing item: ${clothingDesc}` },
       const err = await step1Resp.text();
       console.error("Step 1 failed:", step1Resp.status, err);
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error(`Analysis failed (${step1Resp.status}): ${err.substring(0, 200)}`);
+      throw new Error(`Analysis failed (${step1Resp.status})`);
     }
 
     const step1Data = await step1Resp.json();
@@ -135,8 +125,8 @@ Clothing item: ${clothingDesc}` },
     }
     console.log("Step 1 done. Prompt:", prompt.substring(0, 80));
 
-    // ── STEP 2: Image generation with gemini-2.5-flash-image (NO FALLBACK) ──
-    console.log("Step 2: Generating with gemini-2.5-flash-preview-image-generation...");
+    // ── STEP 2: Image generation ──
+    console.log("Step 2: Generating image...");
 
     const step2Url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`;
     const step2Resp = await fetch(step2Url, {
@@ -152,7 +142,7 @@ Clothing item: ${clothingDesc}` },
       const err = await step2Resp.text();
       console.error("Step 2 failed:", step2Resp.status, err);
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error(`Model gemini-2.5-flash-image failed (${step2Resp.status}): ${err.substring(0, 200)}`);
+      throw new Error(`Image generation failed (${step2Resp.status})`);
     }
 
     const step2Data = await step2Resp.json();
@@ -169,18 +159,14 @@ Clothing item: ${clothingDesc}` },
 
     if (!resultB64) {
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error("gemini-2.5-flash-image returned no image data");
+      throw new Error("No image generated");
     }
 
-    console.log("Step 2 done. Image generated.");
+    console.log("Step 2 done. Uploading...");
 
-    // Upload to storage
+    // Upload using Deno's native decodeBase64 (no stack overflow)
     const fileName = `tryon_${session.id}_${Date.now()}.png`;
-    const binaryStr = atob(resultB64);
-    const fileBytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      fileBytes[i] = binaryStr.charCodeAt(i);
-    }
+    const fileBytes = decodeBase64(resultB64);
 
     const { error: uploadError } = await supabase.storage
       .from("clothing-images")

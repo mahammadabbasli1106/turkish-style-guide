@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Navigate, useNavigate, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +58,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saveButtonRef = useRef<HTMLDivElement>(null);
 
   const [displayName, setDisplayName] = useState("");
   const [location, setLocation] = useState("");
@@ -65,6 +66,34 @@ export default function Settings() {
   const [selectedAvatar, setSelectedAvatar] = useState("default");
   const [fullBodyPhoto, setFullBodyPhoto] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  const markDirty = useCallback(() => {
+    if (!isDirty) {
+      setIsDirty(true);
+      setTimeout(() => {
+        saveButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+  }, [isDirty]);
+
+  // Block navigation when there are unsaved changes
+  const blocker = useBlocker(isDirty);
+
+  // Show confirmation when trying to navigate away with unsaved changes
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      const leave = window.confirm(
+        t("settings.unsavedWarning") || "You have unsaved changes. Are you sure you want to leave?"
+      );
+      if (leave) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+        saveButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [blocker, t]);
 
   // Fetch profile
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -175,6 +204,7 @@ export default function Settings() {
         .getPublicUrl(fileName);
 
       setFullBodyPhoto(publicUrl);
+      markDirty();
       toast.success(t("settings.photoUploaded"));
     } catch (error) {
       console.error("Upload error:", error);
@@ -218,6 +248,7 @@ export default function Settings() {
       if (prefsError) throw prefsError;
     },
     onSuccess: () => {
+      setIsDirty(false);
       toast.success(t("settings.saved"));
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["profile-avatar"] });
@@ -234,6 +265,7 @@ export default function Settings() {
         ? prev.filter((s) => s !== style)
         : [...prev, style]
     );
+    markDirty();
   };
 
   if (loading || profileLoading || prefsLoading) {
@@ -289,7 +321,7 @@ export default function Settings() {
                   {AVATARS.map((avatar) => (
                     <button
                       key={avatar.id}
-                      onClick={() => setSelectedAvatar(avatar.id)}
+                      onClick={() => { setSelectedAvatar(avatar.id); markDirty(); }}
                       className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
                         selectedAvatar === avatar.id
                           ? "border-primary ring-2 ring-primary/30 scale-110"
@@ -430,7 +462,7 @@ export default function Settings() {
                   id="displayName"
                   placeholder={t("settings.displayNamePlaceholder")}
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => { setDisplayName(e.target.value); markDirty(); }}
                 />
               </div>
             </div>
@@ -449,7 +481,7 @@ export default function Settings() {
                 id="defaultLocation"
                 placeholder={t("settings.locationPlaceholder")}
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => { setLocation(e.target.value); markDirty(); }}
               />
               <p className="text-xs text-muted-foreground">{t("settings.locationHint")}</p>
             </div>
@@ -485,23 +517,32 @@ export default function Settings() {
           </div>
 
           {/* Save button */}
-          <Button
-            onClick={() => saveProfileMutation.mutate()}
-            disabled={saveProfileMutation.isPending || !fullBodyPhoto}
-            className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
-          >
-            {saveProfileMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("common.loading")}
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                {t("common.save")}
-              </>
+          <div ref={saveButtonRef}>
+            {isDirty && (
+              <div className="mb-3 p-3 bg-accent/20 border border-accent/40 rounded-xl text-center">
+                <p className="text-sm font-medium text-foreground">
+                  ⚠️ {t("settings.unsavedChanges") || "You have unsaved changes"}
+                </p>
+              </div>
             )}
-          </Button>
+            <Button
+              onClick={() => saveProfileMutation.mutate()}
+              disabled={saveProfileMutation.isPending || !fullBodyPhoto}
+              className={`w-full bg-gradient-primary text-primary-foreground shadow-warm ${isDirty ? "animate-pulse" : ""}`}
+            >
+              {saveProfileMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("common.loading")}
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  {t("common.save")}
+                </>
+              )}
+            </Button>
+          </div>
           
           {!fullBodyPhoto && (
             <p className="text-sm text-destructive text-center">

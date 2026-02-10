@@ -13,11 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env missing");
 
     const authHeader = req.headers.get("Authorization");
@@ -49,89 +49,71 @@ serve(async (req) => {
 
     if (sessionError) throw new Error("Failed to create try-on session");
 
+    // Build clothing description
     let clothingDesc = `${clothingItem.name} (${clothingItem.category.replace("_", " ")}, ${clothingItem.color || "neutral"})`;
     if (additionalItems.length > 0) {
       const extras = additionalItems.map((item: any) =>
         `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
       ).join(", ");
-      clothingDesc += `, also wearing: ${extras}`;
+      clothingDesc += `, and also: ${extras}`;
     }
 
-    // Prepare user image - use Deno's native encodeBase64 (no stack overflow)
-    let userB64 = userImageBase64;
-    let userMime = "image/jpeg";
+    // Prepare user image as data URI
+    let userDataUri = userImageBase64;
     if (userImageBase64.startsWith("data:")) {
-      const m = userImageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
-      if (m) { userMime = m[1]; userB64 = m[2]; }
+      userDataUri = userImageBase64; // already a data URI
     } else if (userImageBase64.startsWith("http")) {
       const r = await fetch(userImageBase64);
       const buf = new Uint8Array(await r.arrayBuffer());
-      userB64 = encodeBase64(buf);
-      userMime = r.headers.get("content-type") || "image/jpeg";
+      const mime = r.headers.get("content-type") || "image/jpeg";
+      userDataUri = `data:${mime};base64,${encodeBase64(buf)}`;
+    } else {
+      // Raw base64 string
+      userDataUri = `data:image/jpeg;base64,${userImageBase64}`;
     }
 
-    // Fetch clothing image
-    let clothB64 = "";
-    let clothMime = "image/jpeg";
+    // Prepare clothing image as data URI
+    let clothDataUri = "";
     if (clothingItem.image_url) {
       const r = await fetch(clothingItem.image_url);
       const buf = new Uint8Array(await r.arrayBuffer());
-      clothB64 = encodeBase64(buf);
-      clothMime = r.headers.get("content-type") || "image/jpeg";
+      const mime = r.headers.get("content-type") || "image/jpeg";
+      clothDataUri = `data:${mime};base64,${encodeBase64(buf)}`;
     }
 
-    // ── STEP 1: Analysis with gemini-2.5-flash ──
-    console.log("Step 1: Analyzing...");
+    // ── SINGLE STEP: Image editing via Lovable AI ──
+    // Send user photo + clothing photo and ask model to edit the photo
+    console.log("Editing user photo with clothing:", clothingDesc);
 
-    const step1Url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const step1Resp = await fetch(step1Url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: `You are a forensic-level physical description writer. Output ONLY a single image-generation prompt. No preamble, no quotes, no explanation.
+    const contentParts: any[] = [
+      {
+        type: "text",
+        text: `Edit this photo of a person. Replace ONLY the clothing on the person with: ${clothingDesc}.
 
-Rules:
-1. Study the user photo: estimated age, ethnicity, exact hair style/length/color, facial structure, facial hair, body type, skin tone.
-2. Study the clothing: garment type, fabric, color, pattern, fit.
-3. Output ONE prompt:
-"A raw photograph of a [age]-year-old [ethnicity] [man/woman] with [hair] and [face], [body] build, wearing [clothing], standing against a plain white wall. Soft natural window lighting, 8k resolution, shot on Sony A7R IV, 85mm lens, f/1.8, shallow depth of field."
+CRITICAL RULES:
+- Keep the EXACT same person - same face, same skin, same hair, same body proportions
+- Keep the EXACT same pose, position, and angle
+- Keep the EXACT same background, lighting, and environment
+- ONLY change the clothes the person is wearing
+- Make the new clothing fit naturally on the person's body
+- The second image shows the clothing item to put on the person
+- Output a photorealistic result`
+      },
+      {
+        type: "image_url",
+        image_url: { url: userDataUri }
+      }
+    ];
 
-No words like beautiful/stunning/elegant/gorgeous/artistic/dramatic/cinematic.
-No items not in the photos. No emotions. Under 80 words. Like a police report.
-
-Clothing item: ${clothingDesc}` },
-            { inlineData: { mimeType: userMime, data: userB64 } },
-            { inlineData: { mimeType: clothMime, data: clothB64 } },
-          ]
-        }],
-        generationConfig: { maxOutputTokens: 500, temperature: 0.3 },
-      }),
-    });
-
-    if (!step1Resp.ok) {
-      const err = await step1Resp.text();
-      console.error("Step 1 failed:", step1Resp.status, err);
-      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error(`Analysis failed (${step1Resp.status})`);
+    // Add clothing reference image if available
+    if (clothDataUri) {
+      contentParts.push({
+        type: "image_url",
+        image_url: { url: clothDataUri }
+      });
     }
 
-    const step1Data = await step1Resp.json();
-    const prompt = step1Data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!prompt) {
-      await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error("Gemini returned no description");
-    }
-    console.log("Step 1 done. Prompt:", prompt.substring(0, 80));
-
-    // ── STEP 2: Image generation via Lovable AI gateway ──
-    console.log("Step 2: Generating image via Lovable AI gateway...");
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    const step2Resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const editResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -139,22 +121,25 @@ Clothing item: ${clothingDesc}` },
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: contentParts }],
         modalities: ["image", "text"],
       }),
     });
 
-    if (!step2Resp.ok) {
-      const err = await step2Resp.text();
-      console.error("Step 2 failed:", step2Resp.status, err);
+    if (!editResp.ok) {
+      const err = await editResp.text();
+      console.error("Image edit failed:", editResp.status, err);
       await supabase.from("try_on_sessions").update({ status: "failed" }).eq("id", session.id);
-      throw new Error(`Image generation failed (${step2Resp.status})`);
+      if (editResp.status === 429) throw new Error("Rate limit exceeded, please try again later");
+      if (editResp.status === 402) throw new Error("Usage limit reached, please add credits");
+      throw new Error(`Image editing failed (${editResp.status})`);
     }
 
-    const step2Data = await step2Resp.json();
+    const editData = await editResp.json();
     let resultB64: string | null = null;
     let resultMime = "image/png";
-    const images = step2Data.choices?.[0]?.message?.images;
+
+    const images = editData.choices?.[0]?.message?.images;
     if (images && images.length > 0) {
       const imgUrl = images[0]?.image_url?.url;
       if (imgUrl && imgUrl.startsWith("data:")) {
@@ -168,9 +153,9 @@ Clothing item: ${clothingDesc}` },
       throw new Error("No image generated");
     }
 
-    console.log("Step 2 done. Uploading...");
+    console.log("Image edit done. Uploading...");
 
-    // Upload using Deno's native decodeBase64 (no stack overflow)
+    // Upload result
     const fileName = `tryon_${session.id}_${Date.now()}.png`;
     const fileBytes = decodeBase64(resultB64);
 

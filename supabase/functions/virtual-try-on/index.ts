@@ -1,6 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 8192;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    for (let j = 0; j < chunk.length; j++) {
+      binary += String.fromCharCode(chunk[j]);
+    }
+  }
+  return btoa(binary);
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -64,8 +77,7 @@ serve(async (req) => {
       if (m) { userMime = m[1]; userB64 = m[2]; }
     } else if (userImageBase64.startsWith("http")) {
       const r = await fetch(userImageBase64);
-      const buf = new Uint8Array(await r.arrayBuffer());
-      userB64 = btoa(String.fromCharCode(...buf));
+      userB64 = arrayBufferToBase64(await r.arrayBuffer());
       userMime = r.headers.get("content-type") || "image/jpeg";
     }
 
@@ -74,8 +86,7 @@ serve(async (req) => {
     let clothMime = "image/jpeg";
     if (clothingItem.image_url) {
       const r = await fetch(clothingItem.image_url);
-      const buf = new Uint8Array(await r.arrayBuffer());
-      clothB64 = btoa(String.fromCharCode(...buf));
+      clothB64 = arrayBufferToBase64(await r.arrayBuffer());
       clothMime = r.headers.get("content-type") || "image/jpeg";
     }
 
@@ -165,7 +176,11 @@ Clothing item: ${clothingDesc}` },
 
     // Upload to storage
     const fileName = `tryon_${session.id}_${Date.now()}.png`;
-    const fileBytes = Uint8Array.from(atob(resultB64), c => c.charCodeAt(0));
+    const binaryStr = atob(resultB64);
+    const fileBytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      fileBytes[i] = binaryStr.charCodeAt(i);
+    }
 
     const { error: uploadError } = await supabase.storage
       .from("clothing-images")

@@ -160,7 +160,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         human_image_url: humanImageUrl,
-        garment_image_url: clothingImageUrl,
+        garm_img_url: clothingImageUrl,
         garment_des: garmentDesc,
       }),
     });
@@ -223,7 +223,14 @@ serve(async (req) => {
           });
           if (resultRes.ok) {
             const resultData = await resultRes.json();
-            resultImageUrl = resultData.image?.url || resultData.images?.[0]?.url || null;
+            console.log("Fal.ai completed result:", JSON.stringify(resultData).slice(0, 1000));
+            resultImageUrl = resultData.image?.url 
+              || resultData.images?.[0]?.url 
+              || resultData.output?.url
+              || (typeof resultData.image === "string" ? resultData.image : null)
+              || null;
+          } else {
+            console.error("Failed to fetch result:", resultRes.status, await resultRes.text());
           }
           break;
         } else if (statusData.status === "FAILED") {

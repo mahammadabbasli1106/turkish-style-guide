@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "StyleAI - Your AI Fashion Assistant",
-        short_name: "StyleAI",
+        name: "tarzly.ai - Your AI Fashion Stylist",
+        short_name: "tarzly",
         description: "AI-powered outfit suggestions based on your wardrobe, weather, and style preferences",
         theme_color: "#d97756",
         background_color: "#faf9f7",

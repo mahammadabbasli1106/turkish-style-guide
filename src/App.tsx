@@ -6,7 +6,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import "@/lib/i18n";
 import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
+
 import Dashboard from "./pages/Dashboard";
 import Wardrobe from "./pages/Wardrobe";
 import OutfitSuggest from "./pages/OutfitSuggest";
@@ -36,7 +36,7 @@ function RootRedirect() {
 const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
   { path: "/auth", element: <Auth /> },
-  { path: "/onboarding", element: <Onboarding /> },
+  
   { path: "/dashboard", element: <Dashboard /> },
   { path: "/dashboard/wardrobe", element: <Wardrobe /> },
   { path: "/dashboard/suggest", element: <OutfitSuggest /> },

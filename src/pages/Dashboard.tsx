@@ -42,14 +42,9 @@ function getTimeGreeting(t: (key: string) => string): string {
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { user, loading, checkOnboardingCompleted } = useAuth();
+  const { user, loading } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: onboardingDone, isLoading: onboardingLoading } = useQuery({
-    queryKey: ["onboarding-check", user?.id],
-    queryFn: checkOnboardingCompleted,
-    enabled: !!user,
-  });
 
   const { data: clothingCount = 0 } = useQuery({
     queryKey: ["clothing-count", user?.id],
@@ -143,7 +138,7 @@ export default function Dashboard() {
   });
 
   // All hooks above — conditional returns below
-  if (loading || onboardingLoading) {
+  if (loading) {
     return (
       <DashboardLayout>
         <DashboardSkeleton />
@@ -152,7 +147,6 @@ export default function Dashboard() {
   }
 
   if (!user) return <Navigate to="/auth" replace />;
-  if (!onboardingLoading && onboardingDone === false) return <Navigate to="/onboarding" replace />;
 
   const firstName = profile?.display_name?.split(" ")[0] || user.email?.split("@")[0] || "";
   const isPremium = profile?.is_premium ?? false;

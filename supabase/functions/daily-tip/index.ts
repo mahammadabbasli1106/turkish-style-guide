@@ -57,8 +57,26 @@ serve(async (req) => {
 
     const dayOfWeek = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
-    const prompt = `You are a personal fashion stylist AI for the app tarzly.ai. 
-Generate ONE short, personalized daily style tip (max 2 sentences, ~30 words) based on the user's actual wardrobe items and style preferences.
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: "AI not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a personal fashion stylist AI for the app tarzly.ai. Generate ONE short, personalized daily style tip (max 2 sentences, ~30 words) based on the user's actual wardrobe items and style preferences.
 
 Rules:
 - Reference specific items from their wardrobe when possible (by name or type)
@@ -66,61 +84,32 @@ Rules:
 - Consider the day of the week for context (e.g., Monday = work-ready, Friday = relaxed)
 - If the wardrobe is empty, give a general but interesting fashion tip
 - Respond in ${language === "tr" ? "Turkish" : "English"}
-- Do NOT use quotes or bullet points, just the tip text directly
+- Do NOT use quotes or bullet points, just the tip text directly`,
+          },
+          {
+            role: "user",
+            content: `Day: ${dayOfWeek}\nPreferred styles: ${styles}\nWardrobe items:\n${wardrobeSummary}\n\nGenerate a personalized style tip.`,
+          },
+        ],
+      }),
+    });
 
-Day: ${dayOfWeek}
-Preferred styles: ${styles}
-Wardrobe items:
-${wardrobeSummary}
-
-Generate a personalized style tip.`;
-
-    const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Retry with exponential backoff for rate limits
-    let aiResponse: Response | null = null;
-    const delays = [1000, 2000, 4000];
-    for (let attempt = 0; attempt <= delays.length; attempt++) {
-      aiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-          }),
-        }
-      );
-
-      if (aiResponse.status !== 429 && aiResponse.status !== 503) break;
-      if (attempt < delays.length) {
-        console.log(`Rate limited (${aiResponse.status}), retrying in ${delays[attempt]}ms (attempt ${attempt + 1}/${delays.length})`);
-        await new Promise(r => setTimeout(r, delays[attempt]));
-      }
-    }
-
-    if (!aiResponse || !aiResponse.ok) {
-      if (aiResponse?.status === 429) {
+    if (!response.ok) {
+      if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      console.error("Gemini error:", aiResponse?.status, aiResponse ? await aiResponse.text() : "No response");
+      console.error("OpenAI error:", response.status, await response.text());
       return new Response(JSON.stringify({ error: "AI generation failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = await aiResponse.json();
-    const tip = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    const result = await response.json();
+    const tip = result.choices?.[0]?.message?.content?.trim() || "";
 
     return new Response(JSON.stringify({ tip }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

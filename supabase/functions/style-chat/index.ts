@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env missing");
 
     const authHeader = req.headers.get("Authorization");
@@ -29,7 +29,6 @@ serve(async (req) => {
 
     const { messages } = await req.json();
 
-    // Fetch user's wardrobe summary for context
     const { data: clothingItems } = await supabase
       .from("clothing_items")
       .select("name, category, color, season, ai_tags")
@@ -39,7 +38,6 @@ serve(async (req) => {
       ? `The user has ${clothingItems.length} items: ${clothingItems.map(i => `${i.name} (${i.category}, ${i.color || "unknown color"})`).join(", ")}`
       : "The user has no clothing items in their wardrobe yet.";
 
-    // Fetch user profile for personalization
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name, gender, height, weight, goals")
@@ -73,37 +71,23 @@ Wardrobe: ${wardrobeSummary}
 
 If wardrobe is empty, suggest adding items. Answer general fashion questions briefly.`;
 
-    // Convert OpenAI-style messages to Gemini format
-    const geminiContents = [];
-    
-    // Add system instruction as first user message context
-    geminiContents.push({
-      role: "user",
-      parts: [{ text: `System instructions: ${systemPrompt}\n\nNow respond to the following conversation.` }],
-    });
-    geminiContents.push({
-      role: "model",
-      parts: [{ text: "Understood! I'm tarzly.ai, your fashion stylist. How can I help?" }],
-    });
+    const openaiMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages,
+    ];
 
-    // Add conversation messages
-    for (const msg of messages) {
-      geminiContents.push({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts: [{ text: msg.content }],
-      });
-    }
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: geminiContents,
-        }),
-      }
-    );
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: openaiMessages,
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -113,50 +97,15 @@ If wardrobe is empty, suggest adding items. Answer general fashion questions bri
         });
       }
       const t = await response.text();
-      console.error("Gemini API error:", response.status, t);
+      console.error("OpenAI API error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI service unavailable" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Transform Gemini SSE stream to OpenAI-compatible SSE stream
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        const text = decoder.decode(chunk, { stream: true });
-        const lines = text.split("\n");
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr || jsonStr === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (content) {
-              // Re-emit as OpenAI-compatible SSE
-              const openAiChunk = {
-                choices: [{ delta: { content } }],
-              };
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAiChunk)}\n\n`));
-            }
-          } catch {
-            // skip malformed chunks
-          }
-        }
-      },
-      flush(controller) {
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      },
-    });
-
-    const transformedStream = response.body!.pipeThrough(transformStream);
-
-    return new Response(transformedStream, {
+    // OpenAI already returns SSE in the format the frontend expects
+    return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {

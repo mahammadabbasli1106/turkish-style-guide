@@ -11,12 +11,13 @@ import { ArrowLeft, Check, MapPin, Loader2, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import StepFullBodyPhoto from "@/components/onboarding/StepFullBodyPhoto";
+import StepConsent from "@/components/onboarding/StepConsent";
 import { compressImage } from "@/lib/imageUtils";
 import type { Database } from "@/integrations/supabase/types";
 
 type StylePreference = Database["public"]["Enums"]["style_preference"];
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const GENDER_OPTIONS = [
   { value: "masculine", labelKey: "onboarding.masculine" },
@@ -57,6 +58,7 @@ export default function Onboarding() {
   const [selectedStyles, setSelectedStyles] = useState<StylePreference[]>([]);
   const [fullBodyPhoto, setFullBodyPhoto] = useState<string | null>(null);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [consentAgreed, setConsentAgreed] = useState(false);
 
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState(false);
@@ -74,9 +76,9 @@ export default function Onboarding() {
       });
   }, [user]);
 
-  // Auto-save on final step (step 7)
+  // Auto-save on final step (step 8)
   useEffect(() => {
-    if (step !== 7 || saving) return;
+    if (step !== 8 || saving) return;
     const save = async () => {
       setSaving(true);
       try {
@@ -107,6 +109,8 @@ export default function Onboarding() {
           onboarding_completed: true,
           email: user!.email || null,
           full_body_photo_url: fullBodyPhotoUrl,
+          privacy_consent_version: "1.0",
+          privacy_consent_at: new Date().toISOString(),
         };
 
         await supabase
@@ -144,9 +148,10 @@ export default function Onboarding() {
   const goBack = () => { setDirection(-1); setStep((s) => s - 1); };
 
   const canContinue = () => {
-    if (step === 1) return displayName.trim().length > 0;
-    if (step === 2) return gender.length > 0;
-    if (step === 6) return selectedStyles.length >= 2;
+    if (step === 1) return consentAgreed;
+    if (step === 2) return displayName.trim().length > 0;
+    if (step === 3) return gender.length > 0;
+    if (step === 7) return selectedStyles.length >= 2;
     return true;
   };
 
@@ -198,13 +203,13 @@ export default function Onboarding() {
           />
         </div>
         <div className="flex items-center justify-between px-4 py-3">
-          {step > 1 && step < 7 ? (
+          {step > 1 && step < 8 ? (
             <button onClick={goBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
           ) : <div className="w-9" />}
           <span className="text-xs font-medium text-gray-400">
-            {step < 7 && `${step} / ${TOTAL_STEPS}`}
+            {step < 8 && `${step} / ${TOTAL_STEPS}`}
           </span>
           <LanguageSwitch />
         </div>
@@ -223,25 +228,26 @@ export default function Onboarding() {
             transition={{ duration: 0.35, ease: "easeInOut" }}
             className="w-full max-w-md"
           >
-            {step === 1 && <StepIdentity name={displayName} setName={setDisplayName} t={t} />}
-            {step === 2 && <StepGender gender={gender} setGender={setGender} t={t} />}
-            {step === 3 && <StepBody height={height} setHeight={setHeight} weight={weight} setWeight={setWeight} t={t} />}
-            {step === 4 && (
+            {step === 1 && <StepConsent agreed={consentAgreed} setAgreed={setConsentAgreed} />}
+            {step === 2 && <StepIdentity name={displayName} setName={setDisplayName} t={t} />}
+            {step === 3 && <StepGender gender={gender} setGender={setGender} t={t} />}
+            {step === 4 && <StepBody height={height} setHeight={setHeight} weight={weight} setWeight={setWeight} t={t} />}
+            {step === 5 && (
               <StepLocation
                 city={city} searchCity={searchCity} suggestions={citySuggestions}
                 selectCity={(c) => { setCity(c); setCitySuggestions([]); }}
                 detectLocation={detectLocation} detecting={detectingLocation} t={t}
               />
             )}
-            {step === 5 && <StepFullBodyPhoto photo={fullBodyPhoto} setPhoto={setFullBodyPhoto} t={t} />}
-            {step === 6 && <StepStyles selected={selectedStyles} toggle={toggleStyle} t={t} />}
-            {step === 7 && <StepReveal t={t} />}
+            {step === 6 && <StepFullBodyPhoto photo={fullBodyPhoto} setPhoto={setFullBodyPhoto} t={t} />}
+            {step === 7 && <StepStyles selected={selectedStyles} toggle={toggleStyle} t={t} />}
+            {step === 8 && <StepReveal t={t} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Bottom CTA */}
-      {step < 7 && (
+      {step < 8 && (
         <div className="fixed bottom-0 inset-x-0 p-6 bg-gradient-to-t from-[#F9FAFB] via-[#F9FAFB] to-transparent">
           <Button
             onClick={goNext}

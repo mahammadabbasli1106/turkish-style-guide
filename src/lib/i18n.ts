@@ -296,6 +296,20 @@ const resources = {
       "onboarding.classic": "Classic",
       "onboarding.sporty": "Sporty",
       "onboarding.elegant": "Elegant",
+
+      // Onboarding - Consent
+      "onboarding.consentTitle": "Your Privacy & Health Data",
+      "onboarding.consentSubtitle": "Before we get started, here's how we handle your data.",
+      "onboarding.consentBodyTitle": "Height & Weight",
+      "onboarding.consentBodyDesc": "To provide accurate AI fitness insights and find your perfect fit.",
+      "onboarding.consentPhotoTitle": "Full-Body Photo",
+      "onboarding.consentPhotoDesc": "To analyze body composition and power virtual try-on features.",
+      "onboarding.consentEncryptionTitle": "Data Protection",
+      "onboarding.consentEncryptionDesc": "Your data is encrypted and never shared with third parties.",
+      "onboarding.consentCheckbox": "I understand and agree to the collection of my health and photo data for the purposes stated above.",
+      "onboarding.consentWithdraw": "You can withdraw consent or delete your data at any time in Profile Settings.",
+      "onboarding.viewPrivacyPolicy": "View our Privacy Policy",
+      "onboarding.privacyPolicyTitle": "Privacy Policy",
       
       // Chat
       "chat.title": "Style Assistant",
@@ -673,6 +687,20 @@ const resources = {
       "onboarding.classic": "Klasik",
       "onboarding.sporty": "Sportif",
       "onboarding.elegant": "Şık",
+
+      // Onboarding - Consent
+      "onboarding.consentTitle": "Gizlilik & Sağlık Verileri",
+      "onboarding.consentSubtitle": "Başlamadan önce, verilerinizi nasıl kullandığımızı öğrenin.",
+      "onboarding.consentBodyTitle": "Boy & Kilo",
+      "onboarding.consentBodyDesc": "Doğru AI fitness analizleri sunmak ve mükemmel bedeni bulmak için.",
+      "onboarding.consentPhotoTitle": "Tam Boy Fotoğraf",
+      "onboarding.consentPhotoDesc": "Vücut analizini yapmak ve sanal deneme özelliğini sunmak için.",
+      "onboarding.consentEncryptionTitle": "Veri Koruması",
+      "onboarding.consentEncryptionDesc": "Verileriniz şifrelenir ve üçüncü taraflarla asla paylaşılmaz.",
+      "onboarding.consentCheckbox": "Sağlık ve fotoğraf verilerimin yukarıda belirtilen amaçlarla toplanmasını anlıyor ve kabul ediyorum.",
+      "onboarding.consentWithdraw": "İstediğiniz zaman Profil Ayarları'ndan onayınızı geri çekebilir veya verilerinizi silebilirsiniz.",
+      "onboarding.viewPrivacyPolicy": "Gizlilik Politikamızı Görüntüleyin",
+      "onboarding.privacyPolicyTitle": "Gizlilik Politikası",
       
       // Chat
       "chat.title": "Stil Asistanı",

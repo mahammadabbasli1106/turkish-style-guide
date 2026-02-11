@@ -172,6 +172,8 @@ export type Database = {
           location_permission_granted: boolean | null
           onboarding_completed: boolean | null
           phone_number: string | null
+          privacy_consent_at: string | null
+          privacy_consent_version: string | null
           updated_at: string
           weight: number | null
           weight_unit: string | null
@@ -196,6 +198,8 @@ export type Database = {
           location_permission_granted?: boolean | null
           onboarding_completed?: boolean | null
           phone_number?: string | null
+          privacy_consent_at?: string | null
+          privacy_consent_version?: string | null
           updated_at?: string
           weight?: number | null
           weight_unit?: string | null
@@ -220,6 +224,8 @@ export type Database = {
           location_permission_granted?: boolean | null
           onboarding_completed?: boolean | null
           phone_number?: string | null
+          privacy_consent_at?: string | null
+          privacy_consent_version?: string | null
           updated_at?: string
           weight?: number | null
           weight_unit?: string | null

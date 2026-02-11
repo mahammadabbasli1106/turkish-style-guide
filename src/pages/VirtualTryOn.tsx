@@ -11,6 +11,7 @@ import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
+import { signImageUrls, getSignedImageUrl } from "@/lib/storageUtils";
 
 type ClothingItem = {
   id: string;
@@ -48,8 +49,9 @@ export default function VirtualTryOn() {
 
   // Set user image from profile if available
   useEffect(() => {
-    if ((profile as any)?.full_body_photo_url && !userImage) {
-      setUserImage((profile as any).full_body_photo_url);
+    const photoUrl = (profile as any)?.full_body_photo_url;
+    if (photoUrl && !userImage) {
+      getSignedImageUrl(photoUrl).then(url => setUserImage(url));
     }
   }, [profile]);
 
@@ -63,7 +65,7 @@ export default function VirtualTryOn() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as ClothingItem[];
+      return signImageUrls(data as ClothingItem[]);
     },
     enabled: !!user,
   });

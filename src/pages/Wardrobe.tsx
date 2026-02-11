@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
+import { signImageUrls } from "@/lib/storageUtils";
 
 type ClothingItem = {
   id: string;
@@ -51,7 +52,7 @@ export default function Wardrobe() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as ClothingItem[];
+      return signImageUrls(data as ClothingItem[]);
     },
     enabled: !!user,
   });
@@ -100,10 +101,6 @@ export default function Wardrobe() {
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("clothing-images")
-          .getPublicUrl(fileName);
-
         const base64 = await fileToBase64(file);
 
         toast.loading("AI is analyzing your clothing...", { id: `categorize-${fileName}` });
@@ -125,7 +122,7 @@ export default function Wardrobe() {
             category: categoryData.category,
             color: categoryData.color,
             season: categoryData.season || [],
-            image_url: publicUrl,
+            image_url: fileName,
             ai_tags: categoryData.tags || [],
           });
 

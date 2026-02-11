@@ -91,12 +91,22 @@ export default function Dashboard() {
     queryKey: ["current-weather", userPreferences?.default_location],
     queryFn: async (): Promise<WeatherData | null> => {
       const location = userPreferences?.default_location || "Istanbul";
-      const geoResponse = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`
-      );
-      const geoData = await geoResponse.json();
-      if (!geoData.results?.length) return null;
-      const { latitude, longitude, name } = geoData.results[0];
+
+      // Try full location, then just the city part (before comma), then fallback
+      const candidates = [location];
+      if (location.includes(",")) candidates.push(location.split(",")[0].trim());
+
+      let geoResult: any = null;
+      for (const candidate of candidates) {
+        const geoResponse = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(candidate)}&count=1&language=en&format=json`
+        );
+        const geoData = await geoResponse.json();
+        if (geoData.results?.length) { geoResult = geoData.results[0]; break; }
+      }
+      if (!geoResult) return null;
+
+      const { latitude, longitude, name } = geoResult;
       const weatherResponse = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&timezone=auto`
       );

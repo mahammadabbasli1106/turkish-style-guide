@@ -17,12 +17,13 @@ import StyleChat from "./pages/StyleChat";
 import TravelMode from "./pages/TravelMode";
 import InstantFit from "./pages/InstantFit";
 import InstallApp from "./pages/InstallApp";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { user, loading } = useAuth();
+  const { user, loading, isNewSignUp } = useAuth();
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -30,12 +31,14 @@ function RootRedirect() {
       </div>
     );
   }
-  return <Navigate to={user ? "/dashboard" : "/auth"} replace />;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (isNewSignUp) return <Navigate to="/onboarding" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
-
 const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
   { path: "/auth", element: <Auth /> },
+  { path: "/onboarding", element: <Onboarding /> },
   
   { path: "/dashboard", element: <Dashboard /> },
   { path: "/dashboard/wardrobe", element: <Wardrobe /> },

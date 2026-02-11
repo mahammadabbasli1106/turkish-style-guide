@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2 } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
@@ -70,12 +71,19 @@ export default function InstantFit() {
       }
 
       setStatus("analyzing");
+
+      // Compress both images to reduce memory usage in edge function
+      const [compressedUser, compressedClothing] = await Promise.all([
+        compressImage(profilePhoto, 800, 0.7),
+        compressImage(clothingPhoto, 800, 0.7),
+      ]);
+
       const stepTimer = setTimeout(() => setStatus("generating"), 4000);
 
       const { data, error } = await supabase.functions.invoke("instant-fit", {
         body: {
-          userImageBase64: profilePhoto,
-          clothingImageBase64: clothingPhoto,
+          userImageBase64: compressedUser,
+          clothingImageBase64: compressedClothing,
         },
       });
 

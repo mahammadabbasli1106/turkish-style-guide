@@ -41,57 +41,47 @@ serve(async (req) => {
 
     if (sessionError) throw new Error("Failed to create try-on session");
 
-    // Prepare user image as data URI
-    let userDataUri = userImageBase64;
-    if (!userImageBase64.startsWith("data:")) {
-      if (userImageBase64.startsWith("http")) {
-        const r = await fetch(userImageBase64);
-        const buf = new Uint8Array(await r.arrayBuffer());
-        const mime = r.headers.get("content-type") || "image/jpeg";
-        userDataUri = `data:${mime};base64,${encodeBase64(buf)}`;
-      } else {
-        userDataUri = `data:image/jpeg;base64,${userImageBase64}`;
-      }
+    // Prepare user image - extract base64 and mime directly
+    let userB64: string;
+    let userMime: string;
+    if (userImageBase64.startsWith("data:")) {
+      const mimeMatch = userImageBase64.match(/^data:(image\/\w+);base64,/);
+      userMime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      userB64 = userImageBase64.replace(/^data:image\/\w+;base64,/, "");
+    } else if (userImageBase64.startsWith("http")) {
+      const r = await fetch(userImageBase64);
+      const buf = new Uint8Array(await r.arrayBuffer());
+      userMime = r.headers.get("content-type") || "image/jpeg";
+      userB64 = encodeBase64(buf);
+    } else {
+      userMime = "image/jpeg";
+      userB64 = userImageBase64;
     }
 
-    // Prepare clothing image as data URI
-    let clothDataUri = clothingImageBase64;
-    if (!clothingImageBase64.startsWith("data:")) {
-      if (clothingImageBase64.startsWith("http")) {
-        const r = await fetch(clothingImageBase64);
-        const buf = new Uint8Array(await r.arrayBuffer());
-        const mime = r.headers.get("content-type") || "image/jpeg";
-        clothDataUri = `data:${mime};base64,${encodeBase64(buf)}`;
-      } else {
-        clothDataUri = `data:image/jpeg;base64,${clothingImageBase64}`;
-      }
+    // Prepare clothing image
+    let clothB64: string;
+    let clothMime: string;
+    if (clothingImageBase64.startsWith("data:")) {
+      const mimeMatch = clothingImageBase64.match(/^data:(image\/\w+);base64,/);
+      clothMime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      clothB64 = clothingImageBase64.replace(/^data:image\/\w+;base64,/, "");
+    } else if (clothingImageBase64.startsWith("http")) {
+      const r = await fetch(clothingImageBase64);
+      const buf = new Uint8Array(await r.arrayBuffer());
+      clothMime = r.headers.get("content-type") || "image/jpeg";
+      clothB64 = encodeBase64(buf);
+    } else {
+      clothMime = "image/jpeg";
+      clothB64 = clothingImageBase64;
     }
 
     console.log("Instant fit: editing user photo with captured clothing");
 
-    // Prepare inline data for native Gemini API
-    const userB64 = userDataUri.startsWith("data:")
-      ? userDataUri.replace(/^data:image\/\w+;base64,/, "")
-      : userDataUri;
-    const userMimeMatch = userDataUri.match(/^data:(image\/\w+);base64,/);
-    const userMime = userMimeMatch ? userMimeMatch[1] : "image/jpeg";
-
-    const clothB64 = clothDataUri.startsWith("data:")
-      ? clothDataUri.replace(/^data:image\/\w+;base64,/, "")
-      : clothDataUri;
-    const clothMimeMatch = clothDataUri.match(/^data:(image\/\w+);base64,/);
-    const clothMime = clothMimeMatch ? clothMimeMatch[1] : "image/jpeg";
-
-    const editResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                text: `Edit this photo of a person. Replace ONLY the clothing on the person with the clothing shown in the second image.
+    const requestBody = JSON.stringify({
+      contents: [{
+        parts: [
+          {
+            text: `Edit this photo of a person. Replace ONLY the clothing on the person with the clothing shown in the second image.
 
 CRITICAL RULES:
 - Keep the EXACT same person - same face, same skin, same hair, same body proportions
@@ -101,18 +91,28 @@ CRITICAL RULES:
 - Make the new clothing fit naturally on the person's body
 - The first image is the person, the second image shows the clothing item to put on them
 - Output a photorealistic result`
-              },
-              { inline_data: { mime_type: userMime, data: userB64 } },
-              { inline_data: { mime_type: clothMime, data: clothB64 } },
-            ],
-          }],
-          generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
           },
-        }),
+          { inline_data: { mime_type: userMime, data: userB64 } },
+          { inline_data: { mime_type: clothMime, data: clothB64 } },
+        ],
+      }],
+      generationConfig: {
+        responseModalities: ["TEXT", "IMAGE"],
+      },
+    });
+
+    // Free source image memory
+    userB64 = "";
+    clothB64 = "";
+
+    const editResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
       }
     );
-
     if (!editResp.ok) {
       const err = await editResp.text();
       console.error("Image edit failed:", editResp.status, err);

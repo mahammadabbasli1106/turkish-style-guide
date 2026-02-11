@@ -10,7 +10,7 @@ import ChatInput from "@/components/chat/ChatInput";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
 
-const CHAT_URL = "https://bqlynbxecgnrhfvkpvyz.supabase.co/functions/v1/style-chat";
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/style-chat`;
 
 export default function StyleChat() {
   const { user, loading, session } = useAuth();

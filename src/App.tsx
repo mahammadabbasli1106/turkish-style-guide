@@ -35,7 +35,7 @@ function RootRedirect() {
       .from("profiles")
       .select("onboarding_completed")
       .eq("auth_id", user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         setOnboardingDone(!!data?.onboarding_completed);
         setChecking(false);

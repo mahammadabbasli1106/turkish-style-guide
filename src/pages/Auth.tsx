@@ -1,25 +1,26 @@
 import { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Mail, ArrowLeft, RefreshCw } from "lucide-react";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { lovable } from "@/integrations/lovable";
 
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, loading, signIn, signUp } = useAuth();
-  const [step, setStep] = useState<"email" | "password">("email");
+  const [step, setStep] = useState<"email" | "password" | "verify">("email");
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   if (loading) {
     return (
@@ -33,7 +34,25 @@ export default function AuthPage() {
     return <Navigate to="/" replace />;
   }
 
-  if (showConfirmation) {
+  // ── Verification Screen ──
+  if (step === "verify") {
+    const handleResend = async () => {
+      setIsResending(true);
+      try {
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) toast.error(error.message);
+        else toast.success("Verification email resent!");
+      } catch {
+        toast.error("Failed to resend email");
+      } finally {
+        setIsResending(false);
+      }
+    };
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
         <motion.div
@@ -41,30 +60,47 @@ export default function AuthPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm flex flex-col items-center text-center"
         >
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-            <span className="text-3xl">📧</span>
+          {/* Icon */}
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <Mail className="w-9 h-9 text-primary" />
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-2">Check your email</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+
+          <h2 className="text-2xl font-bold text-foreground mb-2">Check your inbox</h2>
+          <p className="text-sm text-muted-foreground mb-1">
+            We've sent a verification link to
           </p>
+          <p className="text-sm font-semibold text-foreground mb-1">{email}</p>
+          <p className="text-xs text-muted-foreground mb-8">
+            The link will expire in 1 hour.
+          </p>
+
           <Button
-            onClick={() => window.open(`https://mail.google.com`, "_blank")}
-            className="w-full h-14 bg-primary text-primary-foreground rounded-xl text-base font-medium"
+            onClick={handleResend}
+            disabled={isResending}
+            variant="outline"
+            className="w-full h-14 rounded-xl text-base font-medium mb-3"
           >
-            Open Email App
+            {isResending ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-5 w-5" />
+            )}
+            Resend Email
           </Button>
+
           <button
-            onClick={() => { setShowConfirmation(false); setStep("email"); }}
-            className="mt-4 text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => { setStep("email"); setPassword(""); setIsSignUp(false); }}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            ← Back to sign in
+            <ArrowLeft size={16} />
+            Back to login
           </button>
         </motion.div>
       </div>
     );
   }
 
+  // ── Handlers ──
   const handleEmailContinue = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) setStep("password");
@@ -78,12 +114,17 @@ export default function AuthPage() {
         const { error } = await signUp(email, password);
         if (error) {
           toast.error(error.message);
+        } else {
+          // Show verification screen
+          setStep("verify");
         }
-        // Auto-confirm is enabled, so user will be signed in automatically via onAuthStateChange
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes("Invalid login credentials")) {
+          if (error.message.includes("Email not confirmed")) {
+            toast.error("Please verify your email before signing in.");
+            setStep("verify");
+          } else if (error.message.includes("Invalid login credentials")) {
             setIsSignUp(true);
             toast.error("Account not found. Please sign up.");
           } else {

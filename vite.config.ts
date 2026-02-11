@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
         name: "tarzly.ai - Your AI Fashion Stylist",
         short_name: "tarzly",
         description: "AI-powered outfit suggestions based on your wardrobe, weather, and style preferences",
-        theme_color: "#d97756",
+        theme_color: "#4A0E8F",
         background_color: "#faf9f7",
         display: "standalone",
         orientation: "portrait",

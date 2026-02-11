@@ -15,7 +15,7 @@ import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import DailyTipCard from "@/components/dashboard/DailyTipCard";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { Loader2, Crown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
 
 type WeatherData = {
@@ -129,7 +129,7 @@ export default function Dashboard() {
       if (!user) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, is_premium")
+        .select("display_name")
         .eq("auth_id", user.id)
         .single();
       return data;
@@ -159,7 +159,6 @@ export default function Dashboard() {
   if (!user) return <Navigate to="/auth" replace />;
 
   const firstName = profile?.display_name?.split(" ")[0] || user.email?.split("@")[0] || "";
-  const isPremium = profile?.is_premium ?? false;
 
   return (
     <DashboardLayout>
@@ -213,16 +212,6 @@ export default function Dashboard() {
                 </motion.span>
               ))}
             </motion.h1>
-            {isPremium && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full mt-2 w-fit"
-              >
-                <Crown className="h-3.5 w-3.5" />
-                <span className="text-xs font-semibold">{t("premium.badge")}</span>
-              </motion.div>
-            )}
           </div>
 
           {/* Weather + Streak row */}

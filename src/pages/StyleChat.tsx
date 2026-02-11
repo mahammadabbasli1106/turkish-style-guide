@@ -7,8 +7,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import ChatEmptyState from "@/components/chat/ChatEmptyState";
 import ChatMessageList, { type Msg } from "@/components/chat/ChatMessageList";
 import ChatInput from "@/components/chat/ChatInput";
-import { useUsageLimits } from "@/hooks/useUsageLimits";
-import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
+import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
+import { toast } from "@/components/ui/sonner";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/style-chat`;
 
@@ -17,9 +17,8 @@ export default function StyleChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [premiumOpen, setPremiumOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { canChat, chatMessagesLeft, isPremium, recordUsage } = useUsageLimits();
+  const { canChat, chatMessagesLeft, recordUsage } = useUsageLimits();
 
   // Fetch wardrobe items for mini product cards
   const { data: wardrobeItems = [] } = useQuery({
@@ -45,7 +44,7 @@ export default function StyleChat() {
     if (!text || isStreaming || !session) return;
 
     if (!canChat) {
-      setPremiumOpen(true);
+      toast(LIMIT_REACHED_MESSAGE);
       return;
     }
 
@@ -139,7 +138,6 @@ export default function StyleChat() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] max-w-2xl mx-auto">
-        {/* Scrollable message area with padding for fixed input */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pb-32 lg:pb-4 px-1 min-h-0">
           {messages.length === 0 ? (
             <ChatEmptyState onPromptClick={setInput} />
@@ -148,34 +146,26 @@ export default function StyleChat() {
           )}
         </div>
 
-        {/* Input pinned above bottom nav */}
         <div className="hidden lg:block">
           <ChatInput
             input={input}
             setInput={setInput}
             isStreaming={isStreaming}
             onSend={sendMessage}
-            messagesLeft={isPremium ? undefined : chatMessagesLeft}
+            messagesLeft={chatMessagesLeft}
           />
         </div>
       </div>
 
-      {/* Mobile: fixed input above bottom nav (rendered outside flex container) */}
       <div className="lg:hidden">
         <ChatInput
           input={input}
           setInput={setInput}
           isStreaming={isStreaming}
           onSend={sendMessage}
-          messagesLeft={isPremium ? undefined : chatMessagesLeft}
+          messagesLeft={chatMessagesLeft}
         />
       </div>
-
-      <PremiumUpgradeModal
-        open={premiumOpen}
-        onOpenChange={setPremiumOpen}
-        trigger="Daily Message Limit Reached"
-      />
     </DashboardLayout>
   );
 }

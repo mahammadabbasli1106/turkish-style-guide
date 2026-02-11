@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/sonner";
-import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Trash2, Crown, Shirt, Sparkles, Calendar } from "lucide-react";
+import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Trash2, Shirt, Sparkles, Calendar } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -288,7 +288,6 @@ export default function Settings() {
   }
 
   const selectedAvatarUrl = AVATARS.find(a => a.id === selectedAvatar)?.url || AVATARS[0].url;
-  const isPremium = (profile as any)?.is_premium ?? false;
 
   return (
     <DashboardLayout>
@@ -347,16 +346,6 @@ export default function Settings() {
           <h2 className="font-display text-xl font-bold text-primary-foreground mt-4">
             {displayName || user.email?.split("@")[0]}
           </h2>
-          {isPremium && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center gap-1.5 bg-primary-foreground/20 backdrop-blur-sm px-3 py-1 rounded-full mt-2"
-            >
-              <Crown className="h-3.5 w-3.5 text-primary-foreground" />
-              <span className="text-xs font-semibold text-primary-foreground">{t("premium.badge")}</span>
-            </motion.div>
-          )}
           <p className="text-xs text-primary-foreground/70 mt-2">{user.email}</p>
         </div>
 
@@ -387,7 +376,7 @@ export default function Settings() {
             </div>
             <div className="text-center">
               <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                <Crown className="h-5 w-5 text-primary" />
+                <Calendar className="h-5 w-5 text-primary" />
               </div>
               <p className="text-xs text-muted-foreground">{t("settings.activityCheckins")}</p>
               <div className="mt-1.5 bg-primary/10 rounded-full py-1 px-3">

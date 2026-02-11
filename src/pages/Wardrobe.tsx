@@ -12,8 +12,7 @@ import { Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useUsageLimits } from "@/hooks/useUsageLimits";
-import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
+import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
 
 type ClothingItem = {
   id: string;
@@ -32,8 +31,7 @@ export default function Wardrobe() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [premiumOpen, setPremiumOpen] = useState(false);
-  const { wardrobeCount, wardrobeLimit, canUploadClothing, isPremium } = useUsageLimits();
+  const { wardrobeCount, wardrobeLimit, canUploadClothing } = useUsageLimits();
 
   const categoryLabels: Record<string, string> = {
     upper_body: t("wardrobe.tops"),
@@ -42,6 +40,7 @@ export default function Wardrobe() {
     footwear: t("wardrobe.footwear"),
     accessory: t("wardrobe.accessories"),
   };
+
   const { data: clothingItems = [], isLoading } = useQuery({
     queryKey: ["clothing-items", user?.id],
     queryFn: async () => {
@@ -51,7 +50,6 @@ export default function Wardrobe() {
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      
       if (error) throw error;
       return data as ClothingItem[];
     },
@@ -60,10 +58,7 @@ export default function Wardrobe() {
 
   const deleteMutation = useMutation({
     mutationFn: async (itemId: string) => {
-      const { error } = await supabase
-        .from("clothing_items")
-        .delete()
-        .eq("id", itemId);
+      const { error } = await supabase.from("clothing_items").delete().eq("id", itemId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -71,9 +66,7 @@ export default function Wardrobe() {
       queryClient.invalidateQueries({ queryKey: ["clothing-count"] });
       toast.success("Item deleted");
     },
-    onError: () => {
-      toast.error("Failed to delete item");
-    },
+    onError: () => { toast.error("Failed to delete item"); },
   });
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +74,7 @@ export default function Wardrobe() {
     if (!files || files.length === 0 || !user || !session) return;
 
     if (!canUploadClothing) {
-      setPremiumOpen(true);
+      toast(LIMIT_REACHED_MESSAGE);
       event.target.value = "";
       return;
     }
@@ -92,9 +85,8 @@ export default function Wardrobe() {
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) continue;
 
-      // Check limit per item
-      if (!isPremium && wardrobeCount + successCount >= wardrobeLimit) {
-        setPremiumOpen(true);
+      if (wardrobeCount + successCount >= wardrobeLimit) {
+        toast(LIMIT_REACHED_MESSAGE);
         break;
       }
 
@@ -163,9 +155,7 @@ export default function Wardrobe() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!user) return <Navigate to="/auth" replace />;
 
   const categories = Object.keys(categoryLabels);
   const filteredItems = selectedCategory
@@ -186,25 +176,15 @@ export default function Wardrobe() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8"
       >
-        {/* Wardrobe progress bar - only show for free users */}
-        {!isPremium && (
-          <div className="bg-card rounded-xl p-4 border border-border shadow-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">
-                {wardrobeCount}/{wardrobeLimit} slots used
-              </span>
-              {!canUploadClothing && (
-                <button
-                  onClick={() => setPremiumOpen(true)}
-                  className="text-xs text-primary font-semibold hover:underline"
-                >
-                  Upgrade for unlimited
-                </button>
-              )}
-            </div>
-            <Progress value={progressPercent} className="h-2" />
+        {/* Wardrobe progress bar */}
+        <div className="bg-card rounded-xl p-4 border border-border shadow-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-foreground">
+              {wardrobeCount}/{wardrobeLimit} slots used
+            </span>
           </div>
-        )}
+          <Progress value={progressPercent} className="h-2" />
+        </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -230,7 +210,7 @@ export default function Wardrobe() {
                     disabled={uploading || !canUploadClothing}
                     className="bg-gradient-primary text-primary-foreground shadow-warm cursor-pointer"
                     asChild
-                    onClick={!canUploadClothing ? () => setPremiumOpen(true) : undefined}
+                    onClick={!canUploadClothing ? () => toast(LIMIT_REACHED_MESSAGE) : undefined}
                   >
                     <span>
                       {uploading ? (
@@ -245,7 +225,7 @@ export default function Wardrobe() {
               </TooltipTrigger>
               {!canUploadClothing && (
                 <TooltipContent>
-                  Wardrobe full. Upgrade to Premium for unlimited storage.
+                  Wardrobe full — {wardrobeLimit} items max.
                 </TooltipContent>
               )}
             </Tooltip>
@@ -254,20 +234,11 @@ export default function Wardrobe() {
 
         {/* Category filter */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedCategory === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(null)}
-          >
+          <Button variant={selectedCategory === null ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory(null)}>
             All ({clothingItems.length})
           </Button>
           {categories.map((category) => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-            >
+            <Button key={category} variant={selectedCategory === category ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory(category)}>
               {categoryLabels[category]} ({groupedItems[category]?.length || 0})
             </Button>
           ))}
@@ -281,19 +252,12 @@ export default function Wardrobe() {
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <Shirt className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-            <h3 className="font-display text-xl font-semibold text-foreground mb-2">
-              No items yet
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Upload photos of your clothes to build your digital wardrobe
-            </p>
+            <h3 className="font-display text-xl font-semibold text-foreground mb-2">No items yet</h3>
+            <p className="text-muted-foreground mb-6">Upload photos of your clothes to build your digital wardrobe</p>
             <label>
               <Input type="file" accept="image/*" multiple onChange={handleFileUpload} className="sr-only" />
               <Button className="bg-gradient-primary text-primary-foreground" asChild>
-                <span>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Your First Item
-                </span>
+                <span><Plus className="mr-2 h-4 w-4" />Add Your First Item</span>
               </Button>
             </label>
           </div>
@@ -310,20 +274,12 @@ export default function Wardrobe() {
                   className="group relative bg-card rounded-xl overflow-hidden shadow-card border border-border hover:shadow-card-hover transition-shadow"
                 >
                   <div className="aspect-square">
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform">
-                    <p className="text-primary-foreground text-sm font-medium truncate">
-                      {item.name}
-                    </p>
-                    <p className="text-primary-foreground/70 text-xs capitalize">
-                      {item.category.replace("_", " ")}
-                    </p>
+                    <p className="text-primary-foreground text-sm font-medium truncate">{item.name}</p>
+                    <p className="text-primary-foreground/70 text-xs capitalize">{item.category.replace("_", " ")}</p>
                   </div>
                   <button
                     onClick={() => deleteMutation.mutate(item.id)}
@@ -342,17 +298,10 @@ export default function Wardrobe() {
           </div>
         )}
       </motion.div>
-
-      <PremiumUpgradeModal
-        open={premiumOpen}
-        onOpenChange={setPremiumOpen}
-        trigger="Wardrobe Full — Upgrade to Premium"
-      />
     </DashboardLayout>
   );
 }
 
-// Helper function
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

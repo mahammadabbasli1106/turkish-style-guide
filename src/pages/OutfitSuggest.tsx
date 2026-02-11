@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/sonner";
 import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";

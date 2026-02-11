@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as encodeBase64, decode as decodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { decode as decodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,13 +28,13 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
-    const { clothingItemId, userImageBase64, additionalItems = [] } = await req.json();
+    const { clothingItemId, userImageBase64, clothingImageBase64, additionalItems = [] } = await req.json();
     if (!clothingItemId) throw new Error("Clothing item ID is required");
     if (!userImageBase64) throw new Error("User image is required");
 
     const { data: clothingItem, error: clothingError } = await supabase
       .from("clothing_items")
-      .select("*")
+      .select("name, category, color")
       .eq("id", clothingItemId)
       .eq("user_id", user.id)
       .single();
@@ -58,31 +58,29 @@ serve(async (req) => {
       clothingDesc += `, and also: ${extras}`;
     }
 
-    // Prepare user image - extract base64 and mime
+    // Extract base64 and mime from user image (already compressed by client)
     let userB64: string;
     let userMime: string;
     if (userImageBase64.startsWith("data:")) {
       const mimeMatch = userImageBase64.match(/^data:(image\/\w+);base64,/);
       userMime = mimeMatch ? mimeMatch[1] : "image/jpeg";
       userB64 = userImageBase64.replace(/^data:image\/\w+;base64,/, "");
-    } else if (userImageBase64.startsWith("http")) {
-      const r = await fetch(userImageBase64);
-      const buf = new Uint8Array(await r.arrayBuffer());
-      userMime = r.headers.get("content-type") || "image/jpeg";
-      userB64 = encodeBase64(buf);
     } else {
       userMime = "image/jpeg";
       userB64 = userImageBase64;
     }
 
-    // Prepare clothing image - fetch from storage URL
+    // Use client-compressed clothing image if provided, otherwise skip
     let clothB64 = "";
     let clothMime = "image/jpeg";
-    if (clothingItem.image_url) {
-      const r = await fetch(clothingItem.image_url);
-      const buf = new Uint8Array(await r.arrayBuffer());
-      clothMime = r.headers.get("content-type") || "image/jpeg";
-      clothB64 = encodeBase64(buf);
+    if (clothingImageBase64) {
+      if (clothingImageBase64.startsWith("data:")) {
+        const mimeMatch = clothingImageBase64.match(/^data:(image\/\w+);base64,/);
+        clothMime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+        clothB64 = clothingImageBase64.replace(/^data:image\/\w+;base64,/, "");
+      } else {
+        clothB64 = clothingImageBase64;
+      }
     }
 
     console.log("Editing user photo with clothing:", clothingDesc);
@@ -111,17 +109,21 @@ CRITICAL RULES:
       clothB64 = "";
     }
 
+    // Serialize and free parts array
+    const requestBody = JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        responseModalities: ["TEXT", "IMAGE"],
+      },
+    });
+    parts.length = 0;
+
     const editResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
-          },
-        }),
+        body: requestBody,
       }
     );
 

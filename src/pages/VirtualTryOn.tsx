@@ -88,14 +88,23 @@ export default function VirtualTryOn() {
       setTryOnStatus('analyzing');
 
       // Compress user image to reduce memory usage in edge function
-      const compressedUserImage = await compressImage(displayImage, 800, 0.7);
+      const compressedUserImage = await compressImage(displayImage, 512, 0.6);
+
+      // Compress all selected clothing images client-side to avoid large storage fetches
+      const compressedClothingImages = await Promise.all(
+        selectedItems.map(async (item) => ({
+          ...item,
+          compressedImage: await compressImage(item.image_url, 512, 0.6),
+        }))
+      );
 
       const stepTimer = setTimeout(() => setTryOnStatus('generating'), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: { 
-          clothingItemId: selectedItems[0].id, // Primary item
+          clothingItemId: selectedItems[0].id,
           userImageBase64: compressedUserImage,
+          clothingImageBase64: compressedClothingImages[0].compressedImage,
           additionalItems: selectedItems.slice(1).map(item => ({
             id: item.id,
             name: item.name,

@@ -170,17 +170,24 @@ ${wardrobeDescription}`,
 
 async function getWeatherInfo(location: string | undefined) {
   const defaultLocation = "Istanbul";
-  const searchLocation = location || defaultLocation;
+  const rawLocation = location || defaultLocation;
+  // Extract city name (before comma) for better geocoding results
+  const searchLocation = rawLocation.split(",")[0].trim();
 
   try {
-    const geoResponse = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchLocation)}&count=1&language=en&format=json`
-    );
+    // Try with the extracted city name first
+    let geoData = await fetchGeoData(searchLocation);
+    
+    // If no results, try the full location string
+    if ((!geoData.results || geoData.results.length === 0) && searchLocation !== rawLocation) {
+      console.log(`Geocoding failed for "${searchLocation}", trying full: "${rawLocation}"`);
+      geoData = await fetchGeoData(rawLocation);
+    }
 
-    if (!geoResponse.ok) return getFallbackWeather(searchLocation);
-
-    const geoData = await geoResponse.json();
-    if (!geoData.results || geoData.results.length === 0) return getFallbackWeather(searchLocation);
+    if (!geoData.results || geoData.results.length === 0) {
+      console.log(`Geocoding failed for "${rawLocation}", using fallback`);
+      return getFallbackWeather(rawLocation);
+    }
 
     const { latitude, longitude, name } = geoData.results[0];
 
@@ -188,14 +195,17 @@ async function getWeatherInfo(location: string | undefined) {
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,weather_code,wind_speed_10m&timezone=auto`
     );
 
-    if (!weatherResponse.ok) return getFallbackWeather(searchLocation);
+    if (!weatherResponse.ok) {
+      console.log(`Weather API failed: ${weatherResponse.status}`);
+      return getFallbackWeather(rawLocation);
+    }
 
     const weatherData = await weatherResponse.json();
     const current = weatherData.current;
     const isRaining = current.rain > 0 || current.precipitation > 0;
 
     return {
-      location: name || searchLocation,
+      location: name || rawLocation,
       temperature: Math.round(current.temperature_2m),
       feelsLike: Math.round(current.apparent_temperature),
       description: getWeatherDescription(current.weather_code),
@@ -206,8 +216,16 @@ async function getWeatherInfo(location: string | undefined) {
     };
   } catch (error) {
     console.error("Weather API error:", error);
-    return getFallbackWeather(searchLocation);
+    return getFallbackWeather(rawLocation);
   }
+}
+
+async function fetchGeoData(query: string) {
+  const geoResponse = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`
+  );
+  if (!geoResponse.ok) return { results: [] };
+  return await geoResponse.json();
 }
 
 function getWeatherDescription(code: number): string {

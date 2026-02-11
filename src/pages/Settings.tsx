@@ -557,6 +557,15 @@ export default function Settings() {
               <Shield className="h-4 w-4" />
               Privacy Policy
             </a>
+            <a
+              href="https://sites.google.com/view/tarzly-terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Shield className="h-4 w-4" />
+              Terms &amp; Conditions
+            </a>
             <Button
               variant="ghost"
               className="w-full justify-center text-destructive hover:text-destructive hover:bg-destructive/10"

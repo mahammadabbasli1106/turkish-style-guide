@@ -10,8 +10,7 @@ import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check, Download, Share2 }
 import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useUsageLimits } from "@/hooks/useUsageLimits";
-import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
+import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
 
 type ClothingItem = {
   id: string;
@@ -27,10 +26,9 @@ export default function VirtualTryOn() {
   const [userImage, setUserImage] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [resultImage, setResultImage] = useState<string | null>(null);
-  const [premiumOpen, setPremiumOpen] = useState(false);
   const [tryOnStatus, setTryOnStatus] = useState<'idle' | 'analyzing' | 'generating' | 'completed'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { canTryOn, tryOnsLeft, tryOnLimit, isPremium, recordUsage } = useUsageLimits();
+  const { canTryOn, tryOnsLeft, tryOnLimit, recordUsage } = useUsageLimits();
 
   // Fetch user's full body photo from profile
   const { data: profile } = useQuery({
@@ -76,21 +74,17 @@ export default function VirtualTryOn() {
         throw new Error("Missing required data");
       }
       if (!canTryOn) {
-        setPremiumOpen(true);
+        toast(LIMIT_REACHED_MESSAGE);
         throw new Error("__limit__");
       }
 
-      // For multiple items, we'll create a combined prompt
       const itemDescriptions = selectedItems.map(item => 
         `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
       ).join(", ");
 
       setTryOnStatus('analyzing');
 
-      // Compress user image to reduce memory usage in edge function
       const compressedUserImage = await compressImage(displayImage, 512, 0.6);
-
-      // Compress all selected clothing images client-side to avoid large storage fetches
       const compressedClothingImages = await Promise.all(
         selectedItems.map(async (item) => ({
           ...item,
@@ -139,12 +133,10 @@ export default function VirtualTryOn() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file");
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       setUserImage(e.target?.result as string);
@@ -156,11 +148,8 @@ export default function VirtualTryOn() {
   const toggleItemSelection = (item: ClothingItem) => {
     setSelectedItems(prev => {
       const isSelected = prev.some(i => i.id === item.id);
-      if (isSelected) {
-        return prev.filter(i => i.id !== item.id);
-      } else {
-        return [...prev, item];
-      }
+      if (isSelected) return prev.filter(i => i.id !== item.id);
+      return [...prev, item];
     });
     setResultImage(null);
   };
@@ -212,11 +201,8 @@ export default function VirtualTryOn() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!user) return <Navigate to="/auth" replace />;
 
-  // Use profile full body photo if available
   const displayImage = userImage || (profile as any)?.full_body_photo_url;
 
   return (
@@ -244,11 +230,7 @@ export default function VirtualTryOn() {
               onClick={() => fileInputRef.current?.click()}
             >
               {displayImage ? (
-                <img 
-                  src={displayImage} 
-                  alt="Your photo" 
-                  className="w-full h-full object-cover"
-                />
+                <img src={displayImage} alt="Your photo" className="w-full h-full object-cover" />
               ) : (
                 <div className="text-center p-6">
                   <Upload size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -257,18 +239,10 @@ export default function VirtualTryOn() {
                 </div>
               )}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             
             {(profile as any)?.full_body_photo_url && (
-              <p className="text-xs text-muted-foreground text-center">
-                {t("tryOn.usingProfilePhoto")}
-              </p>
+              <p className="text-xs text-muted-foreground text-center">{t("tryOn.usingProfilePhoto")}</p>
             )}
           </div>
 
@@ -276,29 +250,15 @@ export default function VirtualTryOn() {
           <div className="space-y-4">
             <AnimatePresence mode="wait">
               {resultImage ? (
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="space-y-4"
-                >
+                <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-4">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
                     <Sparkles size={20} className="text-primary" />
                     {t("tryOn.result")}
                   </h3>
                   <div className="aspect-[3/4] bg-card rounded-2xl overflow-hidden shadow-card">
-                    <img 
-                      src={resultImage} 
-                      alt="Try-on result" 
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={resultImage} alt="Try-on result" className="w-full h-full object-cover" />
                   </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleReset}
-                    className="w-full"
-                  >
+                  <Button variant="outline" onClick={handleReset} className="w-full">
                     <RefreshCw className="mr-2 h-4 w-4" />
                     {t("tryOn.tryAnother")}
                   </Button>
@@ -314,18 +274,10 @@ export default function VirtualTryOn() {
                   </div>
                 </motion.div>
               ) : (
-                <motion.div
-                  key="selection"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-4"
-                >
+                <motion.div key="selection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-foreground">{t("tryOn.selectClothing")}</h3>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedItems.length} {t("tryOn.selected")}
-                    </span>
+                    <span className="text-sm text-muted-foreground">{selectedItems.length} {t("tryOn.selected")}</span>
                   </div>
                   
                   <p className="text-sm text-muted-foreground">{t("tryOn.multiSelectHint")}</p>
@@ -335,9 +287,7 @@ export default function VirtualTryOn() {
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : clothingItems.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      Add clothes to your wardrobe first
-                    </div>
+                    <div className="text-center py-12 text-muted-foreground">Add clothes to your wardrobe first</div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
                       {clothingItems.map((item) => {
@@ -349,16 +299,10 @@ export default function VirtualTryOn() {
                             whileTap={{ scale: 0.95 }}
                             onClick={() => toggleItemSelection(item)}
                             className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-colors ${
-                              isSelected 
-                                ? "border-primary ring-2 ring-primary/20" 
-                                : "border-transparent hover:border-primary/50"
+                              isSelected ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-primary/50"
                             }`}
                           >
-                            <img 
-                              src={item.image_url} 
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                             {isSelected && (
                               <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
                                 <Check size={12} />
@@ -375,12 +319,7 @@ export default function VirtualTryOn() {
                       <p className="text-sm font-medium text-foreground">{t("tryOn.selectedItems")}:</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedItems.map(item => (
-                          <span 
-                            key={item.id}
-                            className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
-                          >
-                            {item.name}
-                          </span>
+                          <span key={item.id} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{item.name}</span>
                         ))}
                       </div>
                     </div>
@@ -412,20 +351,12 @@ export default function VirtualTryOn() {
                 </>
               )}
             </Button>
-            {!isPremium && (
-              <p className="text-xs text-muted-foreground text-center">
-                {tryOnsLeft}/{tryOnLimit} try-ons left today
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground text-center">
+              {tryOnsLeft}/{tryOnLimit} try-ons left today
+            </p>
           </div>
         )}
       </motion.div>
-
-      <PremiumUpgradeModal
-        open={premiumOpen}
-        onOpenChange={setPremiumOpen}
-        trigger="Daily Limit Reached — Upgrade to Premium"
-      />
     </DashboardLayout>
   );
 }

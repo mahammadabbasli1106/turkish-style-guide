@@ -10,18 +10,16 @@ import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2 } f
 import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useUsageLimits } from "@/hooks/useUsageLimits";
-import PremiumUpgradeModal from "@/components/PremiumUpgradeModal";
+import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
 
 export default function InstantFit() {
   const { t } = useTranslation();
   const { user, session, loading } = useAuth();
   const [clothingPhoto, setClothingPhoto] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
-  const [premiumOpen, setPremiumOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "analyzing" | "generating" | "completed">("idle");
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const { isPremium, recordUsage } = useUsageLimits();
+  const { recordUsage } = useUsageLimits();
 
   // Instant fit has its own 2-usage limit
   const { data: instantFitCount = 0 } = useQuery({
@@ -42,8 +40,8 @@ export default function InstantFit() {
   });
 
   const INSTANT_FIT_LIMIT = 2;
-  const canUseInstantFit = isPremium || instantFitCount < INSTANT_FIT_LIMIT;
-  const instantFitLeft = isPremium ? Infinity : Math.max(0, INSTANT_FIT_LIMIT - instantFitCount);
+  const canUseInstantFit = instantFitCount < INSTANT_FIT_LIMIT;
+  const instantFitLeft = Math.max(0, INSTANT_FIT_LIMIT - instantFitCount);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -66,13 +64,12 @@ export default function InstantFit() {
     mutationFn: async () => {
       if (!session || !clothingPhoto || !profilePhoto) throw new Error("Missing required data");
       if (!canUseInstantFit) {
-        setPremiumOpen(true);
+        toast(LIMIT_REACHED_MESSAGE);
         throw new Error("__limit__");
       }
 
       setStatus("analyzing");
 
-      // Compress both images to reduce memory usage in edge function
       const [compressedUser, compressedClothing] = await Promise.all([
         compressImage(profilePhoto, 512, 0.6),
         compressImage(clothingPhoto, 512, 0.6),
@@ -97,7 +94,6 @@ export default function InstantFit() {
       setResultImage(data.resultImageUrl);
       setStatus("completed");
       toast.success(t("instantFit.result"));
-      // Record as instant_fit feature
       await supabase.from("usage_events").insert({ user_id: user!.id, feature: "instant_fit" });
     },
     onError: (error: Error) => {
@@ -111,24 +107,13 @@ export default function InstantFit() {
   const handleCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file"); return; }
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setClothingPhoto(e.target?.result as string);
-      setResultImage(null);
-      setStatus("idle");
-    };
+    reader.onload = (e) => { setClothingPhoto(e.target?.result as string); setResultImage(null); setStatus("idle"); };
     reader.readAsDataURL(file);
   };
 
-  const handleReset = () => {
-    setClothingPhoto(null);
-    setResultImage(null);
-    setStatus("idle");
-  };
+  const handleReset = () => { setClothingPhoto(null); setResultImage(null); setStatus("idle"); };
 
   const handleDownload = async () => {
     if (!resultImage) return;
@@ -137,13 +122,9 @@ export default function InstantFit() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `instant-fit-${Date.now()}.png`;
-      a.click();
+      a.href = url; a.download = `instant-fit-${Date.now()}.png`; a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Failed to download image");
-    }
+    } catch { toast.error("Failed to download image"); }
   };
 
   const handleShare = async () => {
@@ -152,14 +133,9 @@ export default function InstantFit() {
       const response = await fetch(resultImage);
       const blob = await response.blob();
       const file = new File([blob], "instant-fit.png", { type: "image/png" });
-      if (navigator.share) {
-        await navigator.share({ files: [file], title: "My Instant Fit" });
-      } else {
-        handleDownload();
-      }
-    } catch {
-      toast.error("Failed to share image");
-    }
+      if (navigator.share) { await navigator.share({ files: [file], title: "My Instant Fit" }); }
+      else { handleDownload(); }
+    } catch { toast.error("Failed to share image"); }
   };
 
   if (loading) {
@@ -192,39 +168,24 @@ export default function InstantFit() {
 
         <AnimatePresence mode="wait">
           {resultImage ? (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-4"
-            >
+            <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-4">
               <div className="aspect-[3/4] bg-card rounded-2xl overflow-hidden shadow-card">
                 <img src={resultImage} alt="Instant fit result" className="w-full h-full object-cover" />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleDownload} className="flex-1">
-                  <Download className="mr-2 h-4 w-4" />
-                  {t("common.download")}
+                  <Download className="mr-2 h-4 w-4" /> {t("common.download")}
                 </Button>
                 <Button variant="outline" onClick={handleShare} className="flex-1">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  {t("common.share")}
+                  <Share2 className="mr-2 h-4 w-4" /> {t("common.share")}
                 </Button>
               </div>
               <Button variant="outline" onClick={handleReset} className="w-full">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                {t("instantFit.tryAnother")}
+                <RefreshCw className="mr-2 h-4 w-4" /> {t("instantFit.tryAnother")}
               </Button>
             </motion.div>
           ) : (
-            <motion.div
-              key="capture"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
+            <motion.div key="capture" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div
                 className="aspect-[3/4] bg-card rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => cameraInputRef.current?.click()}
@@ -239,14 +200,7 @@ export default function InstantFit() {
                   </div>
                 )}
               </div>
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleCapture}
-                className="hidden"
-              />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCapture} className="hidden" />
 
               {clothingPhoto && (
                 <div className="space-y-2">
@@ -268,23 +222,15 @@ export default function InstantFit() {
                       </>
                     )}
                   </Button>
-                  {!isPremium && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      {instantFitLeft}/{INSTANT_FIT_LIMIT} {t("instantFit.triesLeft")}
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground text-center">
+                    {instantFitLeft}/{INSTANT_FIT_LIMIT} {t("instantFit.triesLeft")}
+                  </p>
                 </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
-
-      <PremiumUpgradeModal
-        open={premiumOpen}
-        onOpenChange={setPremiumOpen}
-        trigger="Daily Limit Reached — Upgrade to Premium"
-      />
     </DashboardLayout>
   );
 }

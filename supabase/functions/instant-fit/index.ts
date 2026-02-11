@@ -167,7 +167,10 @@ CRITICAL RULES:
     });
   } catch (error) {
     console.error("instant-fit error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    const SAFE_ERRORS = ["User profile photo is required", "Clothing photo is required", "Rate limit exceeded, please try again later", "No image generated"];
+    const rawMsg = error instanceof Error ? error.message : "";
+    const safeMsg = SAFE_ERRORS.includes(rawMsg) ? rawMsg : "An error occurred. Please try again.";
+    return new Response(JSON.stringify({ error: safeMsg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

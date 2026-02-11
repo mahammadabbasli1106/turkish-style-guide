@@ -239,8 +239,11 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("travel-packing error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: error instanceof Error && error.message.includes("wardrobe") ? 400 : 500,
+    const SAFE_ERRORS = ["Invalid trip days (1-30)", "Invalid packing style", "Invalid trip vibe", "Add at least 3 items to your wardrobe to use Travel Mode", "Failed to fetch wardrobe"];
+    const rawMsg = error instanceof Error ? error.message : "";
+    const safeMsg = SAFE_ERRORS.includes(rawMsg) ? rawMsg : "An error occurred. Please try again.";
+    return new Response(JSON.stringify({ error: safeMsg }), {
+      status: rawMsg.includes("wardrobe") || rawMsg.includes("Invalid") ? 400 : 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

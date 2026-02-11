@@ -184,7 +184,10 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("travel-weather error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    const SAFE_ERRORS = ["Invalid city parameter", "Invalid city name", "Invalid authentication", "Authorization header required"];
+    const rawMsg = error instanceof Error ? error.message : "";
+    const safeMsg = SAFE_ERRORS.includes(rawMsg) ? rawMsg : "An error occurred. Please try again.";
+    return new Response(JSON.stringify({ error: safeMsg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

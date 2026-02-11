@@ -108,8 +108,7 @@ If the image is not a clothing item, return: {"error": "not_clothing"}`,
     });
   } catch (error) {
     console.error("categorize-clothing error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

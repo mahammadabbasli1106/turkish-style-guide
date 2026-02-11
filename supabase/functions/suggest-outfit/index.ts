@@ -160,8 +160,10 @@ ${wardrobeDescription}`,
     });
   } catch (error) {
     console.error("suggest-outfit error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    const SAFE_ERRORS = ["Occasion is required", "Style is required", "No clothing items in wardrobe. Please add some clothes first.", "Failed to fetch wardrobe"];
+    const rawMsg = error instanceof Error ? error.message : "";
+    const safeMsg = SAFE_ERRORS.includes(rawMsg) ? rawMsg : "An error occurred. Please try again.";
+    return new Response(JSON.stringify({ error: safeMsg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

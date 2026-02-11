@@ -74,8 +74,8 @@ export default function InstantFit() {
 
       // Compress both images to reduce memory usage in edge function
       const [compressedUser, compressedClothing] = await Promise.all([
-        compressImage(profilePhoto, 800, 0.7),
-        compressImage(clothingPhoto, 800, 0.7),
+        compressImage(profilePhoto, 512, 0.6),
+        compressImage(clothingPhoto, 512, 0.6),
       ]);
 
       const stepTimer = setTimeout(() => setStatus("generating"), 4000);

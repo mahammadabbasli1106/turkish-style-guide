@@ -14,6 +14,7 @@ import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Tras
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { getSignedImageUrl } from "@/lib/storageUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -178,7 +179,13 @@ export default function Settings() {
       setDisplayName(profile.display_name || "");
       setLocation(profile.location || "");
       setSelectedAvatar((profile as any).avatar_type || "default");
-      setFullBodyPhoto((profile as any).full_body_photo_url || null);
+      // Generate signed URL for full body photo
+      const photoUrl = (profile as any).full_body_photo_url;
+      if (photoUrl) {
+        getSignedImageUrl(photoUrl).then(url => setFullBodyPhoto(url));
+      } else {
+        setFullBodyPhoto(null);
+      }
     }
     if (preferences) {
       setSelectedStyles(preferences.preferred_styles || []);
@@ -204,11 +211,8 @@ export default function Settings() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("clothing-images")
-        .getPublicUrl(fileName);
-
-      setFullBodyPhoto(publicUrl);
+      // Store just the path, not the full URL
+      setFullBodyPhoto(fileName);
       markDirty();
       toast.success(t("settings.photoUploaded"));
     } catch (error) {

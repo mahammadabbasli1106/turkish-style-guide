@@ -30,7 +30,7 @@ export default function AuthPage() {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (showConfirmation) {

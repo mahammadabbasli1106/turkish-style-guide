@@ -12,6 +12,13 @@ import LanguageSwitch from "@/components/LanguageSwitch";
 import { lovable } from "@/integrations/lovable";
 import tarzlyIcon from "@/assets/tarzly-icon.png";
 
+const LogoBlock = () => (
+  <div className="flex flex-col items-center mb-8">
+    <img src={tarzlyIcon} alt="tarzly logo" className="w-16 h-16 rounded-2xl shadow-warm mb-4" />
+    <h1 className="text-2xl font-semibold text-foreground mb-1">tarzly.ai</h1>
+  </div>
+);
+
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, loading, signIn, signUp } = useAuth();
@@ -34,13 +41,6 @@ export default function AuthPage() {
   if (user) {
     return <Navigate to="/" replace />;
   }
-
-  const LogoBlock = () => (
-    <div className="flex flex-col items-center mb-8">
-      <img src={tarzlyIcon} alt="tarzly logo" className="w-16 h-16 rounded-2xl shadow-warm mb-4" />
-      <h1 className="text-2xl font-semibold text-foreground mb-1">tarzly.ai</h1>
-    </div>
-  );
 
   // ── Verification Screen ──
   if (step === "verify") {

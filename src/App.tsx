@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import SplashScreen from "@/components/SplashScreen";
 import "@/lib/i18n";
 import Auth from "./pages/Auth";
 
@@ -28,6 +29,7 @@ function RootRedirect() {
   const { user, loading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
     if (!user) { setChecking(false); return; }
@@ -37,7 +39,13 @@ function RootRedirect() {
       .eq("auth_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        setOnboardingDone(!!data?.onboarding_completed);
+        const done = !!data?.onboarding_completed;
+        setOnboardingDone(done);
+        if (done) {
+          // Returning user — show splash
+          setShowSplash(true);
+          setTimeout(() => setShowSplash(false), 2000);
+        }
         setChecking(false);
       });
   }, [user]);
@@ -51,6 +59,7 @@ function RootRedirect() {
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (!onboardingDone) return <Navigate to="/onboarding" replace />;
+  if (showSplash) return <SplashScreen />;
   return <Navigate to="/dashboard" replace />;
 }
 

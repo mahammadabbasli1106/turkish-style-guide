@@ -10,11 +10,13 @@ import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, Check, MapPin, Loader2, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import LanguageSwitch from "@/components/LanguageSwitch";
+import StepFullBodyPhoto from "@/components/onboarding/StepFullBodyPhoto";
+import { compressImage } from "@/lib/imageUtils";
 import type { Database } from "@/integrations/supabase/types";
 
 type StylePreference = Database["public"]["Enums"]["style_preference"];
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const GENDER_OPTIONS = [
   { value: "masculine", labelKey: "onboarding.masculine" },
@@ -53,6 +55,7 @@ export default function Onboarding() {
   const [city, setCity] = useState("");
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [selectedStyles, setSelectedStyles] = useState<StylePreference[]>([]);
+  const [fullBodyPhoto, setFullBodyPhoto] = useState<string | null>(null);
   const [detectingLocation, setDetectingLocation] = useState(false);
 
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
@@ -71,26 +74,41 @@ export default function Onboarding() {
       });
   }, [user]);
 
-  // Auto-save on step 6
+  // Auto-save on final step (step 7)
   useEffect(() => {
-    if (step !== 6 || saving) return;
+    if (step !== 7 || saving) return;
     const save = async () => {
       setSaving(true);
       try {
+        // Upload full body photo if provided
+        let fullBodyPhotoUrl: string | null = null;
+        if (fullBodyPhoto) {
+          const fileName = `${user!.id}/full-body-${Date.now()}.jpg`;
+          const base64Data = fullBodyPhoto.split(",")[1];
+          const byteArray = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+          const { error: uploadError } = await supabase.storage
+            .from("try-on-images")
+            .upload(fileName, byteArray, { contentType: "image/jpeg", upsert: true });
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from("try-on-images").getPublicUrl(fileName);
+            fullBodyPhotoUrl = urlData.publicUrl;
+          }
+        }
+
         const profileData = {
           auth_id: user!.id,
           display_name: displayName,
           gender,
           height,
           weight,
-          height_unit: "cm",
-          weight_unit: "kg",
+          height_unit: "cm" as const,
+          weight_unit: "kg" as const,
           location: city,
           onboarding_completed: true,
           email: user!.email || null,
+          full_body_photo_url: fullBodyPhotoUrl,
         };
 
-        // Upsert profile - creates if not exists, updates if exists
         await supabase
           .from("profiles")
           .upsert(profileData, { onConflict: "auth_id" });
@@ -128,7 +146,7 @@ export default function Onboarding() {
   const canContinue = () => {
     if (step === 1) return displayName.trim().length > 0;
     if (step === 2) return gender.length > 0;
-    if (step === 5) return selectedStyles.length >= 2;
+    if (step === 6) return selectedStyles.length >= 2;
     return true;
   };
 
@@ -180,13 +198,13 @@ export default function Onboarding() {
           />
         </div>
         <div className="flex items-center justify-between px-4 py-3">
-          {step > 1 && step < 6 ? (
+          {step > 1 && step < 7 ? (
             <button onClick={goBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
           ) : <div className="w-9" />}
           <span className="text-xs font-medium text-gray-400">
-            {step < 6 && `${step} / ${TOTAL_STEPS}`}
+            {step < 7 && `${step} / ${TOTAL_STEPS}`}
           </span>
           <LanguageSwitch />
         </div>
@@ -215,14 +233,15 @@ export default function Onboarding() {
                 detectLocation={detectLocation} detecting={detectingLocation} t={t}
               />
             )}
-            {step === 5 && <StepStyles selected={selectedStyles} toggle={toggleStyle} t={t} />}
-            {step === 6 && <StepReveal t={t} />}
+            {step === 5 && <StepFullBodyPhoto photo={fullBodyPhoto} setPhoto={setFullBodyPhoto} t={t} />}
+            {step === 6 && <StepStyles selected={selectedStyles} toggle={toggleStyle} t={t} />}
+            {step === 7 && <StepReveal t={t} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Bottom CTA */}
-      {step < 6 && (
+      {step < 7 && (
         <div className="fixed bottom-0 inset-x-0 p-6 bg-gradient-to-t from-[#F9FAFB] via-[#F9FAFB] to-transparent">
           <Button
             onClick={goNext}

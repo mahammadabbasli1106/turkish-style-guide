@@ -92,8 +92,10 @@ export default function Onboarding() {
             .from("try-on-images")
             .upload(fileName, byteArray, { contentType: "image/jpeg", upsert: true });
           if (!uploadError) {
-            const { data: urlData } = supabase.storage.from("try-on-images").getPublicUrl(fileName);
-            fullBodyPhotoUrl = urlData.publicUrl;
+            const { data: signedData } = await supabase.storage
+              .from("try-on-images")
+              .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year for profile photo
+            fullBodyPhotoUrl = signedData?.signedUrl || null;
           }
         }
 

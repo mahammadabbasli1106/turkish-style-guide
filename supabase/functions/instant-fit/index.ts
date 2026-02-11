@@ -141,21 +141,29 @@ CRITICAL RULES:
       throw new Error("No image generated");
     }
 
-    // Upload result
-    const fileName = `instantfit_${session.id}_${Date.now()}.png`;
+    // Upload result to private try-on-images bucket under user's folder
+    const fileName = `${user.id}/instantfit_${session.id}_${Date.now()}.png`;
     const fileBytes = decodeBase64(resultB64);
 
     const { error: uploadError } = await supabase.storage
-      .from("clothing-images")
-      .upload(`tryons/${fileName}`, fileBytes, { contentType: resultMime, upsert: true });
+      .from("try-on-images")
+      .upload(fileName, fileBytes, { contentType: resultMime, upsert: true });
 
     let resultImageUrl: string;
     if (uploadError) {
       console.error("Upload error, using data URI:", uploadError);
       resultImageUrl = `data:${resultMime};base64,${resultB64}`;
     } else {
-      const { data: pubUrl } = supabase.storage.from("clothing-images").getPublicUrl(`tryons/${fileName}`);
-      resultImageUrl = pubUrl.publicUrl;
+      // Create a signed URL that expires in 1 hour
+      const { data: signedData, error: signError } = await supabase.storage
+        .from("try-on-images")
+        .createSignedUrl(fileName, 3600);
+      if (signError || !signedData?.signedUrl) {
+        console.error("Signed URL error:", signError);
+        resultImageUrl = `data:${resultMime};base64,${resultB64}`;
+      } else {
+        resultImageUrl = signedData.signedUrl;
+      }
     }
 
     await supabase.from("try_on_sessions")

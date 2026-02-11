@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 import "@/lib/i18n";
 import Auth from "./pages/Auth";
 
@@ -23,8 +25,24 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { user, loading, isNewSignUp } = useAuth();
-  if (loading) {
+  const { user, loading } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [onboardingDone, setOnboardingDone] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setChecking(false); return; }
+    supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("auth_id", user.id)
+      .single()
+      .then(({ data }) => {
+        setOnboardingDone(!!data?.onboarding_completed);
+        setChecking(false);
+      });
+  }, [user]);
+
+  if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
@@ -32,9 +50,10 @@ function RootRedirect() {
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
-  if (isNewSignUp) return <Navigate to="/onboarding" replace />;
+  if (!onboardingDone) return <Navigate to="/onboarding" replace />;
   return <Navigate to="/dashboard" replace />;
 }
+
 const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
   { path: "/auth", element: <Auth /> },

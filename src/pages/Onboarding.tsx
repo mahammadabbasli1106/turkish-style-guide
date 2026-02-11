@@ -64,7 +64,7 @@ export default function Onboarding() {
       .from("profiles")
       .select("onboarding_completed")
       .eq("auth_id", user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (data?.onboarding_completed) setOnboardingDone(true);
         setCheckingOnboarding(false);
@@ -77,19 +77,23 @@ export default function Onboarding() {
     const save = async () => {
       setSaving(true);
       try {
+        const profileData = {
+          auth_id: user!.id,
+          display_name: displayName,
+          gender,
+          height,
+          weight,
+          height_unit: "cm",
+          weight_unit: "kg",
+          location: city,
+          onboarding_completed: true,
+          email: user!.email || null,
+        };
+
+        // Upsert profile - creates if not exists, updates if exists
         await supabase
           .from("profiles")
-          .update({
-            display_name: displayName,
-            gender,
-            height,
-            weight,
-            height_unit: "cm",
-            weight_unit: "kg",
-            location: city,
-            onboarding_completed: true,
-          })
-          .eq("auth_id", user!.id);
+          .upsert(profileData, { onConflict: "auth_id" });
 
         await supabase
           .from("user_preferences")

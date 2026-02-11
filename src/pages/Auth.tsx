@@ -14,7 +14,7 @@ import tarzlyIcon from "@/assets/tarzly-icon.png";
 
 const LogoBlock = () => (
   <div className="flex flex-col items-center mb-8">
-    <img src={tarzlyIcon} alt="tarzly logo" className="w-20 h-20 mb-4" />
+    <img src={tarzlyIcon} alt="tarzly logo" className="w-20 h-20 rounded-full mb-4" />
     <h1 className="text-2xl font-semibold text-foreground mb-1">tarzly.ai</h1>
   </div>
 );

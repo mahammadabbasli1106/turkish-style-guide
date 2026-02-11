@@ -78,9 +78,8 @@ export default function AuthPage() {
         const { error } = await signUp(email, password);
         if (error) {
           toast.error(error.message);
-        } else {
-          setShowConfirmation(true);
         }
+        // Auto-confirm is enabled, so user will be signed in automatically via onAuthStateChange
       } else {
         const { error } = await signIn(email, password);
         if (error) {

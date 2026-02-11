@@ -27,6 +27,22 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
+    // Server-side usage limit check
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: usageCount } = await supabase
+      .from("usage_events")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("feature", "style_chat")
+      .gte("created_at", twentyFourHoursAgo);
+    
+    if ((usageCount ?? 0) >= 5) {
+      return new Response(JSON.stringify({ error: "Daily limit reached. Please try again tomorrow." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { messages } = await req.json();
 
     const { data: clothingItems } = await supabase
@@ -103,6 +119,9 @@ If wardrobe is empty, suggest adding items. Answer general fashion questions bri
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Record usage server-side
+    await supabase.from("usage_events").insert({ user_id: user.id, feature: "style_chat" });
 
     // OpenAI already returns SSE in the format the frontend expects
     return new Response(response.body, {

@@ -555,7 +555,7 @@ export default function Settings() {
               className="flex items-center justify-center gap-2 w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Shield className="h-4 w-4" />
-              {t("settings.privacyPolicy") || "Privacy Policy"}
+              Privacy Policy
             </a>
             <Button
               variant="ghost"

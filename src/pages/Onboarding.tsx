@@ -147,7 +147,7 @@ export default function Onboarding() {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
       );
       const revRes = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=en`
       );
       const revData = await revRes.json();
       const cityName = revData.address?.city || revData.address?.town || revData.address?.village || "";

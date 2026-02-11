@@ -1,11 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 
-// Use custom Supabase project if configured, otherwise fall back to Lovable Cloud
-const SUPABASE_URL =
-  import.meta.env.VITE_MY_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_MY_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Hardcoded external Supabase project credentials
+const SUPABASE_URL = "https://bqlynbxecgnrhfvkpvyz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxbHluYnhlY2ducmhmdmtwdnl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NTY2MzEsImV4cCI6MjA4NjIzMjYzMX0.HPLfdshYk3VZYwI5wM4G5b2L5bpOthNU2fHkNNDzVD8";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

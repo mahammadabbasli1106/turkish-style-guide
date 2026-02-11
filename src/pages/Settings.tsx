@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/sonner";
-import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Trash2, Shirt, Sparkles, Calendar } from "lucide-react";
+import { User, MapPin, Palette, Loader2, Save, Camera, AlertCircle, LogOut, Trash2, Shirt, Sparkles, Calendar, Shield } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -548,6 +548,15 @@ export default function Settings() {
 
           {/* Log out */}
           <div className="pt-4 border-t border-border space-y-3">
+            <a
+              href="https://sites.google.com/view/tarzly-privacy/home"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Shield className="h-4 w-4" />
+              {t("settings.privacyPolicy") || "Privacy Policy"}
+            </a>
             <Button
               variant="ghost"
               className="w-full justify-center text-destructive hover:text-destructive hover:bg-destructive/10"

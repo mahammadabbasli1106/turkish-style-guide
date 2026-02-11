@@ -239,13 +239,13 @@ export default function AuthPage() {
         <LanguageSwitch />
       </div>
 
+      <LogoBlock />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm flex flex-col items-center"
       >
-        <LogoBlock />
         <p className="text-sm text-muted-foreground mb-8">{t("auth.signIn")}</p>
 
         {step === "email" ? (

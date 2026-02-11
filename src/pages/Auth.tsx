@@ -7,14 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
-import { Loader2, X, Mail, ArrowLeft, RefreshCw } from "lucide-react";
+import { Loader2, X, Mail, ArrowLeft, RefreshCw, KeyRound } from "lucide-react";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { lovable } from "@/integrations/lovable";
+import tarzlyIcon from "@/assets/tarzly-icon.png";
 
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, loading, signIn, signUp } = useAuth();
-  const [step, setStep] = useState<"email" | "password" | "verify">("email");
+  const [step, setStep] = useState<"email" | "password" | "verify" | "forgot" | "forgot-sent">("email");
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +34,13 @@ export default function AuthPage() {
   if (user) {
     return <Navigate to="/" replace />;
   }
+
+  const LogoBlock = () => (
+    <div className="flex flex-col items-center mb-8">
+      <img src={tarzlyIcon} alt="tarzly logo" className="w-16 h-16 rounded-2xl shadow-warm mb-4" />
+      <h1 className="text-2xl font-semibold text-foreground mb-1">tarzly.ai</h1>
+    </div>
+  );
 
   // ── Verification Screen ──
   if (step === "verify") {
@@ -60,40 +68,115 @@ export default function AuthPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm flex flex-col items-center text-center"
         >
-          {/* Icon */}
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
             <Mail className="w-9 h-9 text-primary" />
           </div>
-
           <h2 className="text-2xl font-bold text-foreground mb-2">Check your inbox</h2>
-          <p className="text-sm text-muted-foreground mb-1">
-            We've sent a verification link to
-          </p>
+          <p className="text-sm text-muted-foreground mb-1">We've sent a verification link to</p>
           <p className="text-sm font-semibold text-foreground mb-1">{email}</p>
-          <p className="text-xs text-muted-foreground mb-8">
-            The link will expire in 1 hour.
-          </p>
-
-          <Button
-            onClick={handleResend}
-            disabled={isResending}
-            variant="outline"
-            className="w-full h-14 rounded-xl text-base font-medium mb-3"
-          >
-            {isResending ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-5 w-5" />
-            )}
+          <p className="text-xs text-muted-foreground mb-8">The link will expire in 1 hour.</p>
+          <Button onClick={handleResend} disabled={isResending} variant="outline" className="w-full h-14 rounded-xl text-base font-medium mb-3">
+            {isResending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />}
             Resend Email
           </Button>
+          <button onClick={() => { setStep("email"); setPassword(""); setIsSignUp(false); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={16} /> Back to login
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
-          <button
-            onClick={() => { setStep("email"); setPassword(""); setIsSignUp(false); }}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Back to login
+  // ── Forgot Password Sent Screen ──
+  if (step === "forgot-sent") {
+    const handleResendReset = async () => {
+      setIsResending(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        if (error) toast.error(error.message);
+        else toast.success("Password reset email resent!");
+      } catch {
+        toast.error("Failed to resend email");
+      } finally {
+        setIsResending(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm flex flex-col items-center text-center"
+        >
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <KeyRound className="w-9 h-9 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Check your inbox</h2>
+          <p className="text-sm text-muted-foreground mb-1">We've sent a password reset link to</p>
+          <p className="text-sm font-semibold text-foreground mb-1">{email}</p>
+          <p className="text-xs text-muted-foreground mb-8">The link will expire in 1 hour.</p>
+          <Button onClick={handleResendReset} disabled={isResending} variant="outline" className="w-full h-14 rounded-xl text-base font-medium mb-3">
+            {isResending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />}
+            Resend Email
+          </Button>
+          <button onClick={() => { setStep("email"); setPassword(""); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={16} /> Back to login
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Forgot Password Form ──
+  if (step === "forgot") {
+    const handleForgotSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        if (error) {
+          toast.error(error.message);
+        } else {
+          setStep("forgot-sent");
+        }
+      } catch {
+        toast.error("Something went wrong");
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm flex flex-col items-center"
+        >
+          <LogoBlock />
+          <p className="text-sm text-muted-foreground mb-6">Enter your email to reset your password</p>
+          <form onSubmit={handleForgotSubmit} className="w-full space-y-4">
+            <Input
+              type="email"
+              placeholder={t("auth.email")}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-14 px-4 bg-muted border-0 rounded-xl text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-foreground"
+              required
+              autoFocus
+            />
+            <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 rounded-xl text-base font-medium">
+              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send Reset Link"}
+            </Button>
+          </form>
+          <button onClick={() => setStep("email")} className="mt-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={16} /> Back to login
           </button>
         </motion.div>
       </div>
@@ -115,7 +198,6 @@ export default function AuthPage() {
         if (error) {
           toast.error(error.message);
         } else {
-          // Show verification screen
           setStep("verify");
         }
       } else {
@@ -143,9 +225,7 @@ export default function AuthPage() {
       const { error } = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
       });
-      if (error) {
-        toast.error(error.message);
-      }
+      if (error) toast.error(error.message);
     } catch {
       toast.error("Failed to sign in with Google");
     } finally {
@@ -165,15 +245,7 @@ export default function AuthPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm flex flex-col items-center"
       >
-        {/* Logo */}
-        <div className="mb-8">
-          <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-warm">
-            <span className="text-primary-foreground font-display text-2xl font-bold">T</span>
-          </div>
-        </div>
-
-        {/* Title */}
-        <h1 className="text-2xl font-semibold text-foreground mb-1">tarzly.ai</h1>
+        <LogoBlock />
         <p className="text-sm text-muted-foreground mb-8">{t("auth.signIn")}</p>
 
         {step === "email" ? (
@@ -215,9 +287,16 @@ export default function AuthPage() {
             <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 rounded-xl text-base font-medium">
               {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : isSignUp ? t("auth.signUp") : t("auth.signIn")}
             </Button>
-            <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="w-full text-sm text-muted-foreground hover:text-foreground">
-              {isSignUp ? t("auth.hasAccount") : t("auth.noAccount")}
-            </button>
+            <div className="flex items-center justify-between w-full">
+              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-muted-foreground hover:text-foreground">
+                {isSignUp ? t("auth.hasAccount") : t("auth.noAccount")}
+              </button>
+              {!isSignUp && (
+                <button type="button" onClick={() => setStep("forgot")} className="text-sm text-primary hover:text-primary/80 font-medium">
+                  Forgot password?
+                </button>
+              )}
+            </div>
           </form>
         )}
 

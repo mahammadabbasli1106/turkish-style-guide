@@ -604,7 +604,7 @@ export default function Settings() {
                         if (!session) throw new Error("Not authenticated");
 
                         const resp = await fetch(
-                          "https://bqlynbxecgnrhfvkpvyz.supabase.co/functions/v1/delete-account",
+                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
                           {
                             method: "POST",
                             headers: {

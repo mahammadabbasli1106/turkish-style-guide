@@ -28,6 +28,22 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
+    // Server-side usage limit check
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: usageCount } = await supabase
+      .from("usage_events")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("feature", "virtual_tryon")
+      .gte("created_at", twentyFourHoursAgo);
+    
+    if ((usageCount ?? 0) >= 2) {
+      return new Response(JSON.stringify({ error: "Daily limit reached. Please try again tomorrow." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { clothingItemId, userImageBase64, clothingImageBase64, additionalItems = [] } = await req.json();
     if (!clothingItemId) throw new Error("Clothing item ID is required");
     if (!userImageBase64) throw new Error("User image is required");
@@ -185,6 +201,9 @@ CRITICAL RULES:
     await supabase.from("try_on_sessions")
       .update({ status: "completed", result_image_url: resultImageUrl })
       .eq("id", session.id);
+
+    // Record usage server-side
+    await supabase.from("usage_events").insert({ user_id: user.id, feature: "virtual_tryon" });
 
     return new Response(JSON.stringify({ sessionId: session.id, resultImageUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

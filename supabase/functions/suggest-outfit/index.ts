@@ -28,6 +28,22 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid authentication");
 
+    // Server-side usage limit check
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: usageCount } = await supabase
+      .from("usage_events")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("feature", "outfit_suggest")
+      .gte("created_at", twentyFourHoursAgo);
+    
+    if ((usageCount ?? 0) >= 2) {
+      return new Response(JSON.stringify({ error: "Daily limit reached. Please try again tomorrow." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { style, location, occasion, venue } = await req.json();
     if (!occasion) throw new Error("Occasion is required");
     if (!style) throw new Error("Style is required");
@@ -148,6 +164,9 @@ ${wardrobeDescription}`,
       footwear: clothingItems.find(c => c.id === suggestion.footwear_id),
       accessory: clothingItems.find(c => c.id === suggestion.accessory_id),
     };
+
+    // Record usage server-side
+    await supabase.from("usage_events").insert({ user_id: user.id, feature: "outfit_suggest" });
 
     return new Response(JSON.stringify({
       ...savedSuggestion,

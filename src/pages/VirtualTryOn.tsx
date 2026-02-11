@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check, Download, Share2 } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
@@ -85,12 +86,16 @@ export default function VirtualTryOn() {
       ).join(", ");
 
       setTryOnStatus('analyzing');
+
+      // Compress user image to reduce memory usage in edge function
+      const compressedUserImage = await compressImage(displayImage, 800, 0.7);
+
       const stepTimer = setTimeout(() => setTryOnStatus('generating'), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: { 
           clothingItemId: selectedItems[0].id, // Primary item
-          userImageBase64: displayImage,
+          userImageBase64: compressedUserImage,
           additionalItems: selectedItems.slice(1).map(item => ({
             id: item.id,
             name: item.name,

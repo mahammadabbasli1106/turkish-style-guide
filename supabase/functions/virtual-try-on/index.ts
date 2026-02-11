@@ -58,31 +58,33 @@ serve(async (req) => {
       clothingDesc += `, and also: ${extras}`;
     }
 
-    // Prepare user image as data URI
-    let userDataUri = userImageBase64;
+    // Prepare user image - extract base64 and mime
+    let userB64: string;
+    let userMime: string;
     if (userImageBase64.startsWith("data:")) {
-      userDataUri = userImageBase64; // already a data URI
+      const mimeMatch = userImageBase64.match(/^data:(image\/\w+);base64,/);
+      userMime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      userB64 = userImageBase64.replace(/^data:image\/\w+;base64,/, "");
     } else if (userImageBase64.startsWith("http")) {
       const r = await fetch(userImageBase64);
       const buf = new Uint8Array(await r.arrayBuffer());
-      const mime = r.headers.get("content-type") || "image/jpeg";
-      userDataUri = `data:${mime};base64,${encodeBase64(buf)}`;
+      userMime = r.headers.get("content-type") || "image/jpeg";
+      userB64 = encodeBase64(buf);
     } else {
-      // Raw base64 string
-      userDataUri = `data:image/jpeg;base64,${userImageBase64}`;
+      userMime = "image/jpeg";
+      userB64 = userImageBase64;
     }
 
-    // Prepare clothing image as data URI
-    let clothDataUri = "";
+    // Prepare clothing image - fetch from storage URL
+    let clothB64 = "";
+    let clothMime = "image/jpeg";
     if (clothingItem.image_url) {
       const r = await fetch(clothingItem.image_url);
       const buf = new Uint8Array(await r.arrayBuffer());
-      const mime = r.headers.get("content-type") || "image/jpeg";
-      clothDataUri = `data:${mime};base64,${encodeBase64(buf)}`;
+      clothMime = r.headers.get("content-type") || "image/jpeg";
+      clothB64 = encodeBase64(buf);
     }
 
-    // ── SINGLE STEP: Image editing via Lovable AI ──
-    // Send user photo + clothing photo and ask model to edit the photo
     console.log("Editing user photo with clothing:", clothingDesc);
 
     const parts: any[] = [
@@ -97,23 +99,16 @@ CRITICAL RULES:
 - Make the new clothing fit naturally on the person's body
 - The second image shows the clothing item to put on the person
 - Output a photorealistic result`
-      }
+      },
+      { inline_data: { mime_type: userMime, data: userB64 } },
     ];
 
-    // Add user image
-    const userB64 = userDataUri.startsWith("data:") 
-      ? userDataUri.replace(/^data:image\/\w+;base64,/, "") 
-      : userDataUri;
-    const userMimeMatch = userDataUri.match(/^data:(image\/\w+);base64,/);
-    const userMime = userMimeMatch ? userMimeMatch[1] : "image/jpeg";
-    parts.push({ inline_data: { mime_type: userMime, data: userB64 } });
+    // Free user image memory
+    userB64 = "";
 
-    // Add clothing reference image if available
-    if (clothDataUri) {
-      const clothB64 = clothDataUri.replace(/^data:image\/\w+;base64,/, "");
-      const clothMimeMatch = clothDataUri.match(/^data:(image\/\w+);base64,/);
-      const clothMime = clothMimeMatch ? clothMimeMatch[1] : "image/jpeg";
+    if (clothB64) {
       parts.push({ inline_data: { mime_type: clothMime, data: clothB64 } });
+      clothB64 = "";
     }
 
     const editResp = await fetch(

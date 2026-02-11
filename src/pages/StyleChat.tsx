@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import ChatEmptyState from "@/components/chat/ChatEmptyState";
 import ChatMessageList, { type Msg } from "@/components/chat/ChatMessageList";

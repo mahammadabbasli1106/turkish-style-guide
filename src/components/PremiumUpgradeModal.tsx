@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/sonner";
 import { Crown, Shirt, Sparkles, Camera, MessageCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 

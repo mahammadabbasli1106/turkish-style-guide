@@ -183,7 +183,10 @@ CRITICAL RULES:
     });
   } catch (error) {
     console.error("virtual-try-on error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    const SAFE_ERRORS = ["Clothing item ID is required", "User image is required", "Clothing item not found", "Rate limit exceeded, please try again later", "No image generated"];
+    const rawMsg = error instanceof Error ? error.message : "";
+    const safeMsg = SAFE_ERRORS.includes(rawMsg) ? rawMsg : "An error occurred. Please try again.";
+    return new Response(JSON.stringify({ error: safeMsg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

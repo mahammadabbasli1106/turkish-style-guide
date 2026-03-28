@@ -36,7 +36,7 @@ serve(async (req) => {
       .eq("feature", "style_chat")
       .gte("created_at", twentyFourHoursAgo);
     
-    if ((usageCount ?? 0) >= 5) {
+    if ((usageCount ?? 0) >= 12) {
       return new Response(JSON.stringify({ error: "Daily limit reached. Please try again tomorrow." }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

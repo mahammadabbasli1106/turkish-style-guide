@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export type UsageFeature = "outfit_suggest" | "virtual_tryon" | "style_chat";
 
 const LIMITS: Record<UsageFeature, number> = {
-  outfit_suggest: 2,
+  outfit_suggest: 5,
   virtual_tryon: 2,
   style_chat: 5,
 };

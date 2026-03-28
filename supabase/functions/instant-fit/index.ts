@@ -37,7 +37,7 @@ serve(async (req) => {
       .eq("feature", "instant_fit")
       .gte("created_at", twentyFourHoursAgo);
     
-    if ((usageCount ?? 0) >= 2) {
+    if ((usageCount ?? 0) >= 5) {
       return new Response(JSON.stringify({ error: "Daily limit reached. Please try again tomorrow." }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

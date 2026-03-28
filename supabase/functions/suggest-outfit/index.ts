@@ -157,13 +157,45 @@ ${wardrobeDescription}`,
       console.error("Failed to save suggestion:", saveError);
     }
 
-    const selectedItems = {
-      upper_body: clothingItems.find(c => c.id === suggestion.upper_body_id),
-      lower_body: clothingItems.find(c => c.id === suggestion.lower_body_id),
-      outerwear: clothingItems.find(c => c.id === suggestion.outerwear_id),
-      footwear: clothingItems.find(c => c.id === suggestion.footwear_id),
-      accessory: clothingItems.find(c => c.id === suggestion.accessory_id),
+    const selectedItems: Record<string, any> = {};
+    const categories = ["upper_body", "lower_body", "outerwear", "footwear", "accessory"] as const;
+    const idKeys = {
+      upper_body: suggestion.upper_body_id,
+      lower_body: suggestion.lower_body_id,
+      outerwear: suggestion.outerwear_id,
+      footwear: suggestion.footwear_id,
+      accessory: suggestion.accessory_id,
     };
+
+    for (const cat of categories) {
+      const item = clothingItems.find(c => c.id === idKeys[cat]);
+      if (item) {
+        // Generate signed URL for the private bucket
+        let signedUrl = item.image_url;
+        try {
+          // Extract storage path from URL or use as-is
+          let storagePath = item.image_url;
+          if (storagePath.startsWith("http")) {
+            const publicMarker = "/object/public/clothing-images/";
+            const signMarker = "/object/sign/clothing-images/";
+            const pubIdx = storagePath.indexOf(publicMarker);
+            const signIdx = storagePath.indexOf(signMarker);
+            if (pubIdx !== -1) {
+              storagePath = storagePath.substring(pubIdx + publicMarker.length);
+            } else if (signIdx !== -1) {
+              storagePath = storagePath.substring(signIdx + signMarker.length).split("?")[0];
+            }
+          }
+          const { data: signedData } = await supabase.storage
+            .from("clothing-images")
+            .createSignedUrl(storagePath, 3600);
+          if (signedData?.signedUrl) signedUrl = signedData.signedUrl;
+        } catch (e) {
+          console.error("Failed to sign URL for", cat, e);
+        }
+        selectedItems[cat] = { ...item, image_url: signedUrl };
+      }
+    }
 
     // Record usage server-side
     await supabase.from("usage_events").insert({ user_id: user.id, feature: "outfit_suggest" });

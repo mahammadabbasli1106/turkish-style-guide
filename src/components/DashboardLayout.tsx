@@ -13,8 +13,6 @@ import {
   Sparkles, 
   History, 
   Camera,
-  MessageCircle,
-  Plane,
   LogOut,
   Settings
 } from "lucide-react";
@@ -34,9 +32,7 @@ export default function DashboardLayout({ children }: Props) {
     { path: "/dashboard", icon: Home, label: t("nav.dashboard") },
     { path: "/dashboard/wardrobe", icon: Shirt, label: t("nav.wardrobe") },
     { path: "/dashboard/suggest", icon: Sparkles, label: t("nav.suggest") },
-    { path: "/dashboard/chat", icon: MessageCircle, label: t("nav.chat") },
     { path: "/dashboard/try-on", icon: Camera, label: t("nav.tryOn") },
-    { path: "/dashboard/travel", icon: Plane, label: t("nav.travel") },
     { path: "/dashboard/history", icon: History, label: t("nav.history") },
     { path: "/dashboard/settings", icon: Settings, label: t("nav.settings") },
   ];

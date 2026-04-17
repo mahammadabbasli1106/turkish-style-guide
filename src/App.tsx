@@ -16,8 +16,6 @@ import OutfitSuggest from "./pages/OutfitSuggest";
 import OutfitHistory from "./pages/OutfitHistory";
 import VirtualTryOn from "./pages/VirtualTryOn";
 import Settings from "./pages/Settings";
-import StyleChat from "./pages/StyleChat";
-import TravelMode from "./pages/TravelMode";
 import InstantFit from "./pages/InstantFit";
 import InstallApp from "./pages/InstallApp";
 import Onboarding from "./pages/Onboarding";
@@ -74,8 +72,6 @@ const router = createBrowserRouter([
   { path: "/dashboard/history", element: <OutfitHistory /> },
   { path: "/dashboard/try-on", element: <VirtualTryOn /> },
   { path: "/dashboard/instant-fit", element: <InstantFit /> },
-  { path: "/dashboard/chat", element: <StyleChat /> },
-  { path: "/dashboard/travel", element: <TravelMode /> },
   { path: "/dashboard/settings", element: <Settings /> },
   { path: "/install", element: <InstallApp /> },
   { path: "*", element: <NotFound /> },

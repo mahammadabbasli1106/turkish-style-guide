@@ -13,7 +13,6 @@ import ActionCards from "@/components/dashboard/ActionCards";
 import GettingStartedBanner from "@/components/dashboard/GettingStartedBanner";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import FloatingActionButton from "@/components/FloatingActionButton";
-import DailyTipCard from "@/components/dashboard/DailyTipCard";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
@@ -228,9 +227,6 @@ export default function Dashboard() {
 
         {/* Action Cards */}
         <ActionCards />
-
-        {/* Daily Tip */}
-        <DailyTipCard />
 
         {/* Getting Started */}
         {clothingCount < 5 && <GettingStartedBanner />}

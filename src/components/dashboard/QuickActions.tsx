@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shirt, Sparkles, Plane, MessageCircle, ScanLine } from "lucide-react";
+import { Shirt, Sparkles, ScanLine, Camera } from "lucide-react";
 
 const container = {
   hidden: {},
@@ -30,15 +30,9 @@ export default function QuickActions() {
       gradient: false,
     },
     {
-      to: "/dashboard/travel",
-      icon: Plane,
-      label: t("nav.travel"),
-      gradient: false,
-    },
-    {
-      to: "/dashboard/chat",
-      icon: MessageCircle,
-      label: t("nav.chat"),
+      to: "/dashboard/try-on",
+      icon: Camera,
+      label: t("tryOn.title"),
       gradient: false,
     },
     {
@@ -54,7 +48,7 @@ export default function QuickActions() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-5 gap-3"
+      className="grid grid-cols-4 gap-3"
     >
       {actions.map((action) => (
         <motion.div key={action.to} variants={item} whileTap={{ scale: 0.93 }} whileHover={{ scale: 1.08 }}>

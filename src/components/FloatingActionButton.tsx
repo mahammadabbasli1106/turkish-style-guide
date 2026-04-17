@@ -2,13 +2,13 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Shirt, Sparkles, MessageCircle } from "lucide-react";
+import { Plus, X, Shirt, Sparkles, Camera } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const fabActions = [
   { to: "/dashboard/wardrobe", icon: Shirt, labelKey: "fab.addClothing" },
   { to: "/dashboard/suggest", icon: Sparkles, labelKey: "fab.getOutfit" },
-  { to: "/dashboard/chat", icon: MessageCircle, labelKey: "fab.chat" },
+  { to: "/dashboard/try-on", icon: Camera, labelKey: "tryOn.title" },
 ];
 
 export default function FloatingActionButton() {

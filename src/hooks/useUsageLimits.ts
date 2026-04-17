@@ -2,12 +2,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type UsageFeature = "outfit_suggest" | "virtual_tryon" | "style_chat";
+export type UsageFeature = "outfit_suggest" | "virtual_tryon";
 
 const LIMITS: Record<UsageFeature, number> = {
   outfit_suggest: 12,
   virtual_tryon: 12,
-  style_chat: 12,
 };
 
 const WARDROBE_LIMIT = 20;
@@ -20,10 +19,10 @@ export function useUsageLimits() {
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: usageCounts = { outfit_suggest: 0, virtual_tryon: 0, style_chat: 0 } } = useQuery({
+  const { data: usageCounts = { outfit_suggest: 0, virtual_tryon: 0 } } = useQuery({
     queryKey: ["usage-counts", user?.id],
     queryFn: async () => {
-      if (!user) return { outfit_suggest: 0, virtual_tryon: 0, style_chat: 0 };
+      if (!user) return { outfit_suggest: 0, virtual_tryon: 0 };
       const { data, error } = await supabase
         .from("usage_events")
         .select("feature")
@@ -32,7 +31,7 @@ export function useUsageLimits() {
 
       if (error) throw error;
 
-      const counts = { outfit_suggest: 0, virtual_tryon: 0, style_chat: 0 };
+      const counts = { outfit_suggest: 0, virtual_tryon: 0 };
       (data || []).forEach((row: { feature: string }) => {
         if (row.feature in counts) {
           counts[row.feature as UsageFeature]++;
@@ -80,11 +79,6 @@ export function useUsageLimits() {
     tryOnLimit: LIMITS.virtual_tryon,
     canTryOn: usageCounts.virtual_tryon < LIMITS.virtual_tryon,
     tryOnsLeft: Math.max(0, LIMITS.virtual_tryon - usageCounts.virtual_tryon),
-
-    chatCount: usageCounts.style_chat,
-    chatLimit: LIMITS.style_chat,
-    canChat: usageCounts.style_chat < LIMITS.style_chat,
-    chatMessagesLeft: Math.max(0, LIMITS.style_chat - usageCounts.style_chat),
 
     recordUsage,
   };

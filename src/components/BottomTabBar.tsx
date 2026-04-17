@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Home, Shirt, Sparkles, MessageCircle } from "lucide-react";
+import { Home, Shirt, Sparkles, ScanLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +26,7 @@ const baseTabs = [
   { path: "/dashboard", icon: Home, labelKey: "nav.dashboard" },
   { path: "/dashboard/wardrobe", icon: Shirt, labelKey: "nav.wardrobe" },
   { path: "/dashboard/suggest", icon: Sparkles, labelKey: "nav.suggest" },
-  { path: "/dashboard/chat", icon: MessageCircle, labelKey: "nav.chat" },
+  { path: "/dashboard/instant-fit", icon: ScanLine, labelKey: "nav.instantFit" },
 ];
 
 export default function BottomTabBar() {

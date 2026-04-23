@@ -172,7 +172,13 @@ export default function Onboarding() {
     if (step === 2) return displayName.trim().length > 0;
     if (step === 3) return gender.length > 0;
     if (step === 7) return selectedStyles.length >= 2;
+    if (step === 8) return wardrobeCount >= 3;
     return true;
+  };
+
+  const skipWardrobeStep = () => {
+    setDirection(1);
+    setStep(REVEAL_STEP);
   };
 
   const searchCity = async (query: string) => {
@@ -223,13 +229,13 @@ export default function Onboarding() {
           />
         </div>
         <div className="flex items-center justify-between px-4 py-3">
-          {step > 1 && step < 8 ? (
+          {step > 1 && step < REVEAL_STEP ? (
             <button onClick={goBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
           ) : <div className="w-9" />}
           <span className="text-xs font-medium text-gray-400">
-            {step < 8 && `${step} / ${TOTAL_STEPS}`}
+            {step < REVEAL_STEP && `${step} / ${TOTAL_STEPS}`}
           </span>
           <LanguageSwitch />
         </div>
@@ -261,20 +267,23 @@ export default function Onboarding() {
             )}
             {step === 6 && <StepFullBodyPhoto photo={fullBodyPhoto} setPhoto={setFullBodyPhoto} t={t} />}
             {step === 7 && <StepStyles selected={selectedStyles} toggle={toggleStyle} t={t} />}
-            {step === 8 && <StepReveal t={t} />}
+            {step === 8 && <StepWardrobeBuild t={t} onSkip={skipWardrobeStep} />}
+            {step === REVEAL_STEP && <StepReveal t={t} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Bottom CTA */}
-      {step < 8 && (
+      {step < REVEAL_STEP && (
         <div className="fixed bottom-0 inset-x-0 p-6 bg-gradient-to-t from-[#F9FAFB] via-[#F9FAFB] to-transparent">
           <Button
             onClick={goNext}
             disabled={!canContinue()}
             className="w-full max-w-md mx-auto h-14 rounded-2xl text-base font-semibold bg-[#8A70D6] hover:bg-[#7B61C7] text-white shadow-lg disabled:opacity-40 block"
           >
-            {t("common.continue")}
+            {step === 8
+              ? `Continue${wardrobeCount >= 3 ? " (you can add more later)" : ""}`
+              : t("common.continue")}
           </Button>
         </div>
       )}

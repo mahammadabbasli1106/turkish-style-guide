@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
-import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera, Wand2, ChevronDown, AlertTriangle } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
@@ -55,6 +56,7 @@ export default function OutfitSuggest() {
   const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
   const [venue, setVenue] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);

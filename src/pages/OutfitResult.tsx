@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Share2, Camera, Bookmark, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Share2, Camera, Bookmark, Loader2, Check, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
@@ -37,11 +37,19 @@ type OutfitSuggestion = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  upper_body: "Top",
-  lower_body: "Bottom",
+  upper_body: "Upper body",
+  lower_body: "Lower body",
   outerwear: "Outerwear",
   footwear: "Footwear",
   accessory: "Accessory",
+};
+
+const SHORT_LABELS: Record<string, string> = {
+  upper_body: "Top",
+  lower_body: "Bottom",
+  outerwear: "Outer",
+  footwear: "Shoes",
+  accessory: "Accent",
 };
 
 export default function OutfitResult() {
@@ -154,27 +162,27 @@ export default function OutfitResult() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border">
+      {/* Header — round buttons in mockup */}
+      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border shadow-card hover:bg-secondary transition-colors"
             aria-label="Back"
           >
-            <ArrowLeft className="h-5 w-5 text-foreground" />
+            <ArrowLeft className="h-5 w-5 text-primary" />
           </button>
-          <div className="text-sm font-semibold text-foreground">Your outfit</div>
+          <div className="text-base font-semibold text-foreground">Today's outfit</div>
           <button
             onClick={handleShare}
             disabled={sharing}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors disabled:opacity-50"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border shadow-card hover:bg-secondary transition-colors disabled:opacity-50"
             aria-label="Share"
           >
             {sharing ? (
-              <Loader2 className="h-5 w-5 text-foreground animate-spin" />
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
             ) : (
-              <Share2 className="h-5 w-5 text-foreground" />
+              <Share2 className="h-5 w-5 text-primary" />
             )}
           </button>
         </div>
@@ -184,41 +192,56 @@ export default function OutfitResult() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="max-w-lg mx-auto px-4 pt-4 space-y-5"
+        className="max-w-lg mx-auto px-4 pt-2 space-y-5"
       >
         {/* Context line */}
-        <p className="text-xs text-muted-foreground text-center">{contextLine}</p>
+        <p className="text-sm text-muted-foreground text-center">{contextLine}</p>
 
-        {/* Reasoning card */}
+        {/* AI Stylist reasoning card with purple left border */}
         {suggestion.reasoning && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="rounded-2xl p-5 bg-secondary/60 border border-border"
+            className="rounded-2xl p-5 bg-primary/5 border border-primary/15 border-l-[5px] border-l-primary"
           >
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-bold tracking-[0.15em] text-primary uppercase">
+                AI Stylist
+              </span>
+            </div>
             <p className="text-sm leading-relaxed text-foreground">
               {suggestion.reasoning}
             </p>
             {suggestion.venueAnalysis && (
-              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-primary/15">
                 {suggestion.venueAnalysis}
               </p>
             )}
           </motion.div>
         )}
 
-        {/* Item list */}
-        <div className="space-y-3">
+        {/* Section header */}
+        <div className="pt-1">
+          <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+            Your outfit — {itemList.length} {itemList.length === 1 ? "piece" : "pieces"}
+          </p>
+        </div>
+
+        {/* Item list — single white card with dividers */}
+        <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
           {itemList.map((item, i) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }}
-              className="flex items-center gap-4 p-3 rounded-2xl bg-card border border-border"
+              className={`flex items-center gap-4 p-4 ${
+                i < itemList.length - 1 ? "border-b border-border" : ""
+              }`}
             >
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-secondary flex-shrink-0">
+              <div className="w-14 h-14 rounded-xl overflow-hidden bg-secondary flex-shrink-0">
                 <img
                   src={item.image_url}
                   alt={item.name}
@@ -232,11 +255,13 @@ export default function OutfitResult() {
                 <p className="text-base font-semibold text-foreground truncate">
                   {item.name}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {CATEGORY_LABELS[item.cat] || item.cat}
-                  {item.color ? ` · ${item.color}` : ""}
+                <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                  {item.cat.replace("_", " ")}
                 </p>
               </div>
+              <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary shrink-0">
+                {SHORT_LABELS[item.cat] || CATEGORY_LABELS[item.cat] || item.cat}
+              </span>
             </motion.div>
           ))}
         </div>
@@ -245,10 +270,11 @@ export default function OutfitResult() {
         <div className="space-y-3 pt-2">
           <Button
             onClick={() => navigate("/dashboard/try-on", { state: { suggestion } })}
-            className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-warm font-semibold"
+            className="w-full h-12 bg-card border border-border text-foreground hover:bg-secondary font-semibold"
+            variant="outline"
             size="lg"
           >
-            <Camera className="mr-2 h-5 w-5" />
+            <Camera className="mr-2 h-5 w-5 text-primary" />
             Virtual Try-On
           </Button>
           <Button
@@ -268,7 +294,7 @@ export default function OutfitResult() {
               </>
             ) : (
               <>
-                <Bookmark className="mr-2 h-5 w-5" /> Save Outfit
+                <Bookmark className="mr-2 h-5 w-5 text-primary" /> Save outfit
               </>
             )}
           </Button>

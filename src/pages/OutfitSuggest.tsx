@@ -584,7 +584,7 @@ export default function OutfitSuggest() {
                 <div className="flex flex-wrap gap-3 mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => suggestMutation.mutate()}
+                    onClick={() => suggestMutation.mutate({})}
                     disabled={suggestMutation.isPending}
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />

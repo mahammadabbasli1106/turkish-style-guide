@@ -12,12 +12,14 @@ import { toast } from "@/components/ui/sonner";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import StepFullBodyPhoto from "@/components/onboarding/StepFullBodyPhoto";
 import StepConsent from "@/components/onboarding/StepConsent";
+import StepWardrobeBuild from "@/components/onboarding/StepWardrobeBuild";
 import { compressImage } from "@/lib/imageUtils";
 import type { Database } from "@/integrations/supabase/types";
 
 type StylePreference = Database["public"]["Enums"]["style_preference"];
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
+const REVEAL_STEP = 9;
 
 const GENDER_OPTIONS = [
   { value: "masculine", labelKey: "onboarding.masculine" },

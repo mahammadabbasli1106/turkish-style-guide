@@ -228,8 +228,8 @@ export default function Dashboard() {
         {/* Action Cards */}
         <ActionCards />
 
-        {/* Getting Started */}
-        {clothingCount < 5 && <GettingStartedBanner />}
+          {/* Low-wardrobe banner — disappears permanently at 5 items */}
+          {clothingCount < 5 && <GettingStartedBanner itemCount={clothingCount} />}
         </motion.div>
       </div>
 

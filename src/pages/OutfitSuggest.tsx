@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
 import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
 import LimitReachedCard from "@/components/suggest/LimitReachedCard";
+import LevelUpModal from "@/components/streak/LevelUpModal";
+import { getLevel, getCurrentReward } from "@/lib/streakRewards";
 
 type OutfitItem = {
   id: string;
@@ -61,6 +63,7 @@ export default function OutfitSuggest() {
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
+  const [levelUpData, setLevelUpData] = useState<{ level: number; reward: ReturnType<typeof getCurrentReward> } | null>(null);
   const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, recordUsage } = useUsageLimits();
 
   // Fetch user's profile for full body photo

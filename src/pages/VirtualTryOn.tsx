@@ -1,12 +1,24 @@
 import { useState, useRef, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { Camera, Upload, Loader2, RefreshCw, Sparkles, Check, Download, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Upload,
+  Loader2,
+  Sparkles,
+  Check,
+  Download,
+  Share2,
+  Bookmark,
+  User as UserIcon,
+  Shirt,
+} from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,19 +31,64 @@ type ClothingItem = {
   category: string;
   color: string | null;
   image_url: string;
+  ai_tags?: string[] | null;
+  season?: string[] | null;
 };
+
+const CATEGORY_LABELS: Record<string, string> = {
+  upper_body: "Upper body",
+  lower_body: "Lower body",
+  outerwear: "Outerwear",
+  footwear: "Footwear",
+  accessory: "Accessory",
+};
+
+// Best-effort: parse a color string to a usable CSS color or fall back
+function colorToCss(c: string | null | undefined): string {
+  if (!c) return "hsl(var(--muted))";
+  const s = c.toLowerCase().trim();
+  // Hex
+  if (s.startsWith("#")) return s;
+  // Common color names → simple hex map
+  const map: Record<string, string> = {
+    black: "#111827",
+    white: "#f8fafc",
+    gray: "#6b7280",
+    grey: "#6b7280",
+    navy: "#1e3a5f",
+    blue: "#3b82f6",
+    "light blue": "#bfdbfe",
+    "dark blue": "#1e3a8a",
+    red: "#ef4444",
+    pink: "#ec4899",
+    purple: "#8b5cf6",
+    green: "#10b981",
+    olive: "#6b7e3a",
+    yellow: "#facc15",
+    orange: "#f97316",
+    brown: "#92400e",
+    beige: "#e7d4b5",
+    cream: "#f5e6c5",
+    tan: "#d2b48c",
+    khaki: "#bdb76b",
+  };
+  if (map[s]) return map[s];
+  return s;
+}
 
 export default function VirtualTryOn() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, session, loading } = useAuth();
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
-  const [tryOnStatus, setTryOnStatus] = useState<'idle' | 'analyzing' | 'generating' | 'completed'>('idle');
+  const [tryOnStatus, setTryOnStatus] =
+    useState<"idle" | "analyzing" | "generating" | "completed">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { canTryOn, tryOnsLeft, tryOnLimit, recordUsage } = useUsageLimits();
 
-  // Fetch user's full body photo from profile
+  // User profile for full body photo
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
@@ -47,11 +104,10 @@ export default function VirtualTryOn() {
     enabled: !!user,
   });
 
-  // Set user image from profile if available
   useEffect(() => {
     const photoUrl = (profile as any)?.full_body_photo_url;
     if (photoUrl && !userImage) {
-      getSignedImageUrl(photoUrl).then(url => setUserImage(url));
+      getSignedImageUrl(photoUrl).then((url) => setUserImage(url));
     }
   }, [profile]);
 
@@ -72,7 +128,7 @@ export default function VirtualTryOn() {
 
   const tryOnMutation = useMutation({
     mutationFn: async () => {
-      if (!session || selectedItems.length === 0 || !displayImage) {
+      if (!session || !selectedItem || !displayImage) {
         throw new Error("Missing required data");
       }
       if (!canTryOn) {
@@ -80,34 +136,22 @@ export default function VirtualTryOn() {
         throw new Error("__limit__");
       }
 
-      const itemDescriptions = selectedItems.map(item => 
-        `${item.name} (${item.category.replace("_", " ")}, ${item.color || "neutral"})`
-      ).join(", ");
-
-      setTryOnStatus('analyzing');
+      setTryOnStatus("analyzing");
 
       const compressedUserImage = await compressImage(displayImage, 512, 0.6);
-      const compressedClothingImages = await Promise.all(
-        selectedItems.map(async (item) => ({
-          ...item,
-          compressedImage: await compressImage(item.image_url, 512, 0.6),
-        }))
+      const compressedItemImage = await compressImage(
+        selectedItem.image_url,
+        512,
+        0.6
       );
 
-      const stepTimer = setTimeout(() => setTryOnStatus('generating'), 4000);
+      const stepTimer = setTimeout(() => setTryOnStatus("generating"), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
-        body: { 
-          clothingItemId: selectedItems[0].id,
+        body: {
+          clothingItemId: selectedItem.id,
           userImageBase64: compressedUserImage,
-          clothingImageBase64: compressedClothingImages[0].compressedImage,
-          additionalItems: selectedItems.slice(1).map(item => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            color: item.color,
-            image_url: item.image_url,
-          })),
+          clothingImageBase64: compressedItemImage,
         },
       });
 
@@ -115,17 +159,17 @@ export default function VirtualTryOn() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (!data?.resultImageUrl) throw new Error("No result image received");
-      
+
       return data;
     },
     onSuccess: async (data) => {
       setResultImage(data.resultImageUrl);
-      setTryOnStatus('completed');
+      setTryOnStatus("completed");
       toast.success(t("tryOn.result"));
       await recordUsage("virtual_tryon");
     },
     onError: (error: Error) => {
-      setTryOnStatus('idle');
+      setTryOnStatus("idle");
       if (error.message === "__limit__") return;
       console.error("Try-on error:", error);
       toast.error(error.message);
@@ -147,20 +191,10 @@ export default function VirtualTryOn() {
     reader.readAsDataURL(file);
   };
 
-  const toggleItemSelection = (item: ClothingItem) => {
-    setSelectedItems(prev => {
-      const isSelected = prev.some(i => i.id === item.id);
-      if (isSelected) return prev.filter(i => i.id !== item.id);
-      return [...prev, item];
-    });
-    setResultImage(null);
-  };
-
   const handleReset = () => {
-    setUserImage((profile as any)?.full_body_photo_url || null);
-    setSelectedItems([]);
+    setSelectedItem(null);
     setResultImage(null);
-    setTryOnStatus('idle');
+    setTryOnStatus("idle");
   };
 
   const handleDownload = async () => {
@@ -185,7 +219,7 @@ export default function VirtualTryOn() {
       const response = await fetch(resultImage);
       const blob = await response.blob();
       const file = new File([blob], "try-on.png", { type: "image/png" });
-      if (navigator.share) {
+      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "My Virtual Try-On" });
       } else {
         handleDownload();
@@ -209,153 +243,253 @@ export default function VirtualTryOn() {
 
   return (
     <DashboardLayout>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-8 max-w-6xl mx-auto"
-      >
-        <div className="text-center">
-          <h1 className="font-display text-3xl font-bold text-foreground">{t("tryOn.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("tryOn.subtitle")}</p>
-        </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border shadow-card hover:bg-secondary transition-colors"
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-5 w-5 text-primary" />
+        </button>
+        <h1 className="text-base font-semibold text-foreground">Virtual Try-On</h1>
+        <button
+          onClick={handleShare}
+          disabled={!resultImage}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border shadow-card hover:bg-secondary transition-colors disabled:opacity-40"
+          aria-label="Share"
+        >
+          <Share2 className="h-5 w-5 text-primary" />
+        </button>
+      </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Left: User photo upload */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <Camera size={20} className="text-primary" />
-              {t("tryOn.uploadPhoto")}
-            </h3>
-            
-            <div 
-              className="aspect-[3/4] bg-card rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {displayImage ? (
-                <img src={displayImage} alt="Your photo" className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-center p-6">
-                  <Upload size={48} className="mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Click to upload your photo</p>
-                  <p className="text-xs text-muted-foreground mt-2">Full body photo works best</p>
-                </div>
-              )}
-            </div>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            
-            {(profile as any)?.full_body_photo_url && (
-              <p className="text-xs text-muted-foreground text-center">{t("tryOn.usingProfilePhoto")}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-5 max-w-lg mx-auto"
+      >
+        <h2 className="font-display text-2xl font-bold text-foreground text-center">
+          {resultImage ? "Here's how it looks on you" : "Pick a piece to try on"}
+        </h2>
+
+        {/* Two-up preview: Item → On You */}
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+          {/* Item slot */}
+          <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-primary/10 border border-primary/15 flex flex-col items-center justify-center relative">
+            {selectedItem ? (
+              <img
+                src={selectedItem.image_url}
+                alt={selectedItem.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <>
+                <Shirt className="h-10 w-10 text-primary/70 mb-2" strokeWidth={1.5} />
+                <span className="text-sm font-semibold text-primary/80">Item</span>
+              </>
             )}
           </div>
 
-          {/* Right: Result or clothing selection */}
-          <div className="space-y-4">
-            <AnimatePresence mode="wait">
-              {resultImage ? (
-                <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-4">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <Sparkles size={20} className="text-primary" />
-                    {t("tryOn.result")}
-                  </h3>
-                  <div className="aspect-[3/4] bg-card rounded-2xl overflow-hidden shadow-card">
-                    <img src={resultImage} alt="Try-on result" className="w-full h-full object-cover" />
-                  </div>
-                  <Button variant="outline" onClick={handleReset} className="w-full">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    {t("tryOn.tryAnother")}
-                  </Button>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleDownload} className="flex-1">
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button variant="outline" onClick={handleShare} className="flex-1">
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Share
-                    </Button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div key="selection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">{t("tryOn.selectClothing")}</h3>
-                    <span className="text-sm text-muted-foreground">{selectedItems.length} {t("tryOn.selected")}</span>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground">{t("tryOn.multiSelectHint")}</p>
-                  
-                  {loadingClothes ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : clothingItems.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">Add clothes to your wardrobe first</div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
-                      {clothingItems.map((item) => {
-                        const isSelected = selectedItems.some(i => i.id === item.id);
-                        return (
-                          <motion.div
-                            key={item.id}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => toggleItemSelection(item)}
-                            className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-colors ${
-                              isSelected ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-primary/50"
-                            }`}
-                          >
-                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                            {isSelected && (
-                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
-                                <Check size={12} />
-                              </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  )}
+          {/* Arrow */}
+          <span className="text-2xl text-muted-foreground/60 font-light">›</span>
 
-                  {selectedItems.length > 0 && (
-                    <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
-                      <p className="text-sm font-medium text-foreground">{t("tryOn.selectedItems")}:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedItems.map(item => (
-                          <span key={item.id} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{item.name}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* On you slot */}
+          <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-accent/15 border border-accent/20 flex flex-col items-center justify-center relative">
+            {tryOnMutation.isPending ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="text-xs font-medium text-primary text-center px-2">
+                  {tryOnStatus === "analyzing" ? "Analyzing…" : "Designing…"}
+                </span>
+              </div>
+            ) : resultImage ? (
+              <img
+                src={resultImage}
+                alt="Try-on result"
+                className="w-full h-full object-cover"
+              />
+            ) : displayImage ? (
+              <img
+                src={displayImage}
+                alt="You"
+                className="w-full h-full object-cover opacity-50"
+                onClick={() => fileInputRef.current?.click()}
+              />
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center gap-2"
+              >
+                <UserIcon className="h-10 w-10 text-accent/80" strokeWidth={1.5} />
+                <span className="text-sm font-semibold text-accent">On you</span>
+                <span className="text-[10px] text-muted-foreground">Tap to upload</span>
+              </button>
+            )}
           </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
 
-        {/* Generate button */}
-        {!resultImage && (
-          <div className="space-y-2">
+        {/* Item details card */}
+        {selectedItem && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card rounded-2xl p-5 border border-border shadow-card space-y-3"
+          >
+            <div>
+              <p className="font-display text-lg font-bold text-foreground leading-tight">
+                {selectedItem.name}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {CATEGORY_LABELS[selectedItem.category] || selectedItem.category}
+                {selectedItem.ai_tags?.length ? " · AI detected" : ""}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedItem.color && (
+                <>
+                  <span
+                    className="w-6 h-6 rounded-full border border-border shrink-0"
+                    style={{ background: colorToCss(selectedItem.color) }}
+                    title={selectedItem.color}
+                  />
+                  {/* Show second swatch if compound color (e.g. "navy/black") */}
+                  {selectedItem.color.includes("/") && (
+                    <span
+                      className="w-6 h-6 rounded-full border border-border shrink-0 -ml-3"
+                      style={{ background: colorToCss(selectedItem.color.split("/")[1]) }}
+                    />
+                  )}
+                </>
+              )}
+              {selectedItem.season?.map((s) => (
+                <span
+                  key={s}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary capitalize"
+                >
+                  {s}
+                </span>
+              ))}
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-accent/15 text-accent capitalize">
+                {CATEGORY_LABELS[selectedItem.category] || selectedItem.category}
+              </span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* CTAs (post-result) */}
+        {resultImage ? (
+          <div className="space-y-3">
+            <Button
+              onClick={handleDownload}
+              className="w-full h-12 bg-card border border-border text-foreground hover:bg-secondary font-semibold"
+              variant="outline"
+              size="lg"
+            >
+              <Bookmark className="mr-2 h-5 w-5 text-primary" />
+              Save to wardrobe
+            </Button>
+            <Button
+              onClick={handleShare}
+              variant="outline"
+              className="w-full h-12 font-semibold"
+              size="lg"
+            >
+              <Share2 className="mr-2 h-5 w-5 text-primary" />
+              Share this look
+            </Button>
+            <button
+              onClick={handleReset}
+              className="w-full text-center text-sm font-medium text-muted-foreground py-2 hover:text-foreground transition-colors"
+            >
+              Try another item
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
             <Button
               onClick={() => tryOnMutation.mutate()}
-              disabled={!displayImage || selectedItems.length === 0 || tryOnMutation.isPending}
-              className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
+              disabled={
+                !displayImage || !selectedItem || tryOnMutation.isPending || !canTryOn
+              }
+              className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-warm font-semibold disabled:opacity-50"
               size="lg"
             >
               {tryOnMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {tryOnStatus === 'analyzing' ? '🔍 Analyzing your style...' : '🎨 Designing your outfit...'}
+                  {tryOnStatus === "analyzing"
+                    ? "Analyzing your style…"
+                    : "Designing your outfit…"}
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-5 w-5" />
-                  {t("tryOn.generate")} {selectedItems.length > 0 && `(${selectedItems.length} ${t("tryOn.items")})`}
+                  Try this on
                 </>
               )}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
               {tryOnsLeft}/{tryOnLimit} try-ons left today
             </p>
+          </div>
+        )}
+
+        {/* Wardrobe selector — only shown before result */}
+        {!resultImage && (
+          <div className="space-y-3 pt-2">
+            <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+              From your wardrobe
+            </p>
+            {loadingClothes ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : clothingItems.length === 0 ? (
+              <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-card/50">
+                <p className="text-sm text-muted-foreground">
+                  Add clothes to your wardrobe first
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {clothingItems.map((item) => {
+                  const isSelected = selectedItem?.id === item.id;
+                  return (
+                    <motion.button
+                      key={item.id}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setResultImage(null);
+                      }}
+                      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-colors ${
+                        isSelected
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-transparent hover:border-primary/50"
+                      }`}
+                    >
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
+                          <Check size={12} />
+                        </div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </motion.div>

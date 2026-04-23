@@ -78,9 +78,25 @@ export default function Onboarding() {
       });
   }, [user]);
 
-  // Auto-save on final step (step 8)
+  // Track wardrobe count for the wardrobe-build step (step 8)
+  const [wardrobeCount, setWardrobeCount] = useState(0);
   useEffect(() => {
-    if (step !== 8 || saving) return;
+    if (!user || step !== 8) return;
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from("clothing_items")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setWardrobeCount(count || 0);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 1500);
+    return () => clearInterval(interval);
+  }, [user, step]);
+
+  // Auto-save on final step (REVEAL_STEP)
+  useEffect(() => {
+    if (step !== REVEAL_STEP || saving) return;
     const save = async () => {
       setSaving(true);
       try {

@@ -148,24 +148,33 @@ export default function OutfitSuggest() {
   });
 
   const suggestMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrides?: { style?: string; occasion?: string; venue?: string; location?: string }) => {
       if (!session) throw new Error("Not authenticated");
       if (!canSuggestOutfit) {
         toast(LIMIT_REACHED_MESSAGE);
         throw new Error("__limit__");
       }
-      if (!occasion) throw new Error(t("suggest.occasionRequired") || "Occasion is required");
-      if (!venue.trim()) throw new Error(t("suggest.venueRequired") || "Venue is required");
-      if (!style) throw new Error(t("suggest.styleRequired") || "Style is required");
+      const finalStyle = overrides?.style ?? style;
+      const finalOccasion = overrides?.occasion ?? occasion;
+      const finalVenue = overrides?.venue ?? venue;
+      const finalLocation = overrides?.location ?? location;
+      if (!finalStyle) throw new Error(t("suggest.styleRequired") || "Style is required");
+      if (!finalOccasion) throw new Error(t("suggest.occasionRequired") || "Occasion is required");
 
       const { data, error } = await supabase.functions.invoke("suggest-outfit", {
-        body: { style, location: location || "Istanbul", occasion, venue },
+        body: {
+          style: finalStyle,
+          location: finalLocation || "Istanbul",
+          occasion: finalOccasion,
+          venue: finalVenue || "",
+        },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      
-      return data as OutfitSuggestion;
+
+      // Carry venue through for the result screen context line
+      return { ...data, venue: finalVenue || undefined } as OutfitSuggestion;
     },
     onSuccess: async (data) => {
       const enriched = { ...data, venue: venue || undefined };

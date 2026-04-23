@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
-import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sparkles, CloudSun, MapPin, Loader2, RefreshCw, Heart, Building, Camera, Wand2, ChevronDown, AlertTriangle } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
@@ -55,6 +56,7 @@ export default function OutfitSuggest() {
   const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
   const [venue, setVenue] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
@@ -76,14 +78,14 @@ export default function OutfitSuggest() {
     enabled: !!user,
   });
 
-  // Fetch user preferences for default location
+  // Fetch user preferences for default location and preferred styles
   const { data: userPreferences } = useQuery({
     queryKey: ["user-preferences", user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_preferences")
-        .select("default_location")
+        .select("default_location, preferred_styles")
         .eq("user_id", user.id)
         .single();
       if (error && error.code !== "PGRST116") throw error;
@@ -92,10 +94,13 @@ export default function OutfitSuggest() {
     enabled: !!user,
   });
 
-  // Pre-fill location from user preferences
+  // Pre-fill location + style from user preferences
   useEffect(() => {
     if (userPreferences?.default_location && !location) {
       setLocation(userPreferences.default_location);
+    }
+    if (userPreferences?.preferred_styles?.[0]) {
+      setStyle(userPreferences.preferred_styles[0]);
     }
   }, [userPreferences]);
 
@@ -143,24 +148,33 @@ export default function OutfitSuggest() {
   });
 
   const suggestMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrides?: { style?: string; occasion?: string; venue?: string; location?: string }) => {
       if (!session) throw new Error("Not authenticated");
       if (!canSuggestOutfit) {
         toast(LIMIT_REACHED_MESSAGE);
         throw new Error("__limit__");
       }
-      if (!occasion) throw new Error(t("suggest.occasionRequired") || "Occasion is required");
-      if (!venue.trim()) throw new Error(t("suggest.venueRequired") || "Venue is required");
-      if (!style) throw new Error(t("suggest.styleRequired") || "Style is required");
+      const finalStyle = overrides?.style ?? style;
+      const finalOccasion = overrides?.occasion ?? occasion;
+      const finalVenue = overrides?.venue ?? venue;
+      const finalLocation = overrides?.location ?? location;
+      if (!finalStyle) throw new Error(t("suggest.styleRequired") || "Style is required");
+      if (!finalOccasion) throw new Error(t("suggest.occasionRequired") || "Occasion is required");
 
       const { data, error } = await supabase.functions.invoke("suggest-outfit", {
-        body: { style, location: location || "Istanbul", occasion, venue },
+        body: {
+          style: finalStyle,
+          location: finalLocation || "Istanbul",
+          occasion: finalOccasion,
+          venue: finalVenue || "",
+        },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      
-      return data as OutfitSuggestion;
+
+      // Carry venue through for the result screen context line
+      return { ...data, venue: finalVenue || undefined } as OutfitSuggestion;
     },
     onSuccess: async (data) => {
       const enriched = { ...data, venue: venue || undefined };
@@ -309,120 +323,169 @@ export default function OutfitSuggest() {
           <p className="text-muted-foreground mt-1">{t("suggest.subtitle")}</p>
         </div>
 
-        {/* Input form */}
-        <div className="bg-card rounded-2xl p-6 shadow-card border border-border">
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin size={16} className="text-primary" />
-                {t("suggest.location")}
-              </Label>
-              <Input
-                id="location"
-                placeholder={t("suggest.locationPlaceholder")}
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="venue" className="flex items-center gap-2 text-primary">
-                <Building size={16} />
-                {t("suggest.venue")} *
-              </Label>
-              <Input
-                id="venue"
-                placeholder={t("suggest.venuePlaceholder")}
-                value={venue}
-                onChange={(e) => setVenue(e.target.value)}
-                className={!venue.trim() ? "border-destructive" : ""}
-              />
-              <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-primary">
-                <Sparkles size={16} />
-                {t("suggest.style")} *
-              </Label>
-              <Select value={style} onValueChange={setStyle}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {styles.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-primary">
-                {t("suggest.occasion")} *
-              </Label>
-              <Select value={occasion} onValueChange={setOccasion}>
-                <SelectTrigger className={!occasion ? "border-destructive" : ""}>
-                  <SelectValue placeholder={t("suggest.occasionPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {occasions.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
+        {/* One-tap hero button */}
+        <div className="space-y-3">
           <Button
-            onClick={() => suggestMutation.mutate()}
-            disabled={suggestMutation.isPending || !hasEnoughClothes || !occasion || !venue.trim() || !style}
-            className="w-full bg-gradient-primary text-primary-foreground shadow-warm"
+            onClick={() =>
+              suggestMutation.mutate({
+                style: style || "casual",
+                occasion: "casual",
+                venue: "",
+                location: location || "Istanbul",
+              })
+            }
+            disabled={suggestMutation.isPending || !hasEnoughClothes || !canSuggestOutfit}
+            className="w-full h-16 text-lg font-semibold bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl"
             size="lg"
           >
             {suggestMutation.isPending ? (
-              <motion.div
-                className="flex items-center gap-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+              <motion.div className="flex items-center gap-2">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 >
-                  <Sparkles className="h-5 w-5" />
+                  <Sparkles className="h-6 w-6" />
                 </motion.div>
-                <motion.span
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                >
-                  {t("suggest.generating")}
-                </motion.span>
+                <span>{t("suggest.generating")}</span>
               </motion.div>
             ) : (
               <>
-                <Sparkles className="mr-2 h-5 w-5" />
-                {t("suggest.getOutfit")}
+                <Wand2 className="mr-2 h-6 w-6" />
+                Dress me for today
               </>
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            {outfitSuggestLeft}/{outfitSuggestLimit} suggestions left today
-          </p>
+          {/* Suggestion counter */}
+          {outfitSuggestLeft > 3 ? (
+            <p className="text-xs text-muted-foreground text-center">
+              {outfitSuggestLeft} free suggestions remaining today · resets at midnight
+            </p>
+          ) : outfitSuggestLeft > 0 ? (
+            <p className="text-xs text-warning text-center flex items-center justify-center gap-1.5 font-medium">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Only {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left today · resets at midnight
+            </p>
+          ) : (
+            <p className="text-xs text-destructive text-center font-medium">
+              You've used all your free suggestions for today · resets at midnight
+            </p>
+          )}
 
           {!hasEnoughClothes && (
-            <p className="text-sm text-muted-foreground text-center mt-3">
+            <p className="text-sm text-muted-foreground text-center">
               {t("suggest.needMoreItems")}
             </p>
           )}
         </div>
+
+        {/* Collapsible: add more context (optional) */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/60 hover:bg-secondary transition-colors text-sm font-medium text-foreground">
+              <span>Add more context (optional)</span>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="bg-card rounded-2xl p-6 shadow-card border border-border mt-3 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="location" className="flex items-center gap-2">
+                    <MapPin size={16} className="text-primary" />
+                    {t("suggest.location")}
+                  </Label>
+                  <Input
+                    id="location"
+                    placeholder={t("suggest.locationPlaceholder")}
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="venue" className="flex items-center gap-2 text-foreground">
+                    <Building size={16} />
+                    {t("suggest.venue")}
+                  </Label>
+                  <Input
+                    id="venue"
+                    placeholder={t("suggest.venuePlaceholder")}
+                    value={venue}
+                    onChange={(e) => setVenue(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-foreground">
+                    <Sparkles size={16} />
+                    {t("suggest.style")}
+                  </Label>
+                  <Select value={style} onValueChange={setStyle}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {styles.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-foreground">
+                    {t("suggest.occasion")}
+                  </Label>
+                  <Select value={occasion} onValueChange={setOccasion}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("suggest.occasionPlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {occasions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => suggestMutation.mutate({})}
+                disabled={
+                  suggestMutation.isPending ||
+                  !hasEnoughClothes ||
+                  !style ||
+                  !canSuggestOutfit
+                }
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                {suggestMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {t("suggest.generating")}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    {t("suggest.getOutfit")}
+                  </>
+                )}
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Outfit result */}
         <AnimatePresence mode="wait">
@@ -521,7 +584,7 @@ export default function OutfitSuggest() {
                 <div className="flex flex-wrap gap-3 mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => suggestMutation.mutate()}
+                    onClick={() => suggestMutation.mutate({})}
                     disabled={suggestMutation.isPending}
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />

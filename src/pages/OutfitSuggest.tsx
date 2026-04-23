@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
 import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
+import LimitReachedCard from "@/components/suggest/LimitReachedCard";
 
 type OutfitItem = {
   id: string;
@@ -323,169 +324,171 @@ export default function OutfitSuggest() {
           <p className="text-muted-foreground mt-1">{t("suggest.subtitle")}</p>
         </div>
 
-        {/* One-tap hero button */}
-        <div className="space-y-3">
-          <Button
-            onClick={() =>
-              suggestMutation.mutate({
-                style: style || "casual",
-                occasion: "casual",
-                venue: "",
-                location: location || "Istanbul",
-              })
-            }
-            disabled={suggestMutation.isPending || !hasEnoughClothes || !canSuggestOutfit}
-            className="w-full h-16 text-lg font-semibold bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl"
-            size="lg"
-          >
-            {suggestMutation.isPending ? (
-              <motion.div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                >
-                  <Sparkles className="h-6 w-6" />
-                </motion.div>
-                <span>{t("suggest.generating")}</span>
-              </motion.div>
-            ) : (
-              <>
-                <Wand2 className="mr-2 h-6 w-6" />
-                Dress me for today
-              </>
-            )}
-          </Button>
-
-          {/* Suggestion counter */}
-          {outfitSuggestLeft > 3 ? (
-            <p className="text-xs text-muted-foreground text-center">
-              {outfitSuggestLeft} free suggestions remaining today · resets at midnight
-            </p>
-          ) : outfitSuggestLeft > 0 ? (
-            <p className="text-xs text-warning text-center flex items-center justify-center gap-1.5 font-medium">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Only {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left today · resets at midnight
-            </p>
-          ) : (
-            <p className="text-xs text-destructive text-center font-medium">
-              You've used all your free suggestions for today · resets at midnight
-            </p>
-          )}
-
-          {!hasEnoughClothes && (
-            <p className="text-sm text-muted-foreground text-center">
-              {t("suggest.needMoreItems")}
-            </p>
-          )}
-        </div>
-
-        {/* Collapsible: add more context (optional) */}
-        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger asChild>
-            <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/60 hover:bg-secondary transition-colors text-sm font-medium text-foreground">
-              <span>Add more context (optional)</span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="bg-card rounded-2xl p-6 shadow-card border border-border mt-3 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="flex items-center gap-2">
-                    <MapPin size={16} className="text-primary" />
-                    {t("suggest.location")}
-                  </Label>
-                  <Input
-                    id="location"
-                    placeholder={t("suggest.locationPlaceholder")}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="venue" className="flex items-center gap-2 text-foreground">
-                    <Building size={16} />
-                    {t("suggest.venue")}
-                  </Label>
-                  <Input
-                    id="venue"
-                    placeholder={t("suggest.venuePlaceholder")}
-                    value={venue}
-                    onChange={(e) => setVenue(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-foreground">
-                    <Sparkles size={16} />
-                    {t("suggest.style")}
-                  </Label>
-                  <Select value={style} onValueChange={setStyle}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {styles.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-foreground">
-                    {t("suggest.occasion")}
-                  </Label>
-                  <Select value={occasion} onValueChange={setOccasion}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("suggest.occasionPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {occasions.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+        {/* Limit reached → show upgrade card instead of suggestion buttons */}
+        {outfitSuggestLeft === 0 ? (
+          <LimitReachedCard />
+        ) : (
+          <>
+            {/* One-tap hero button */}
+            <div className="space-y-3">
               <Button
-                onClick={() => suggestMutation.mutate({})}
-                disabled={
-                  suggestMutation.isPending ||
-                  !hasEnoughClothes ||
-                  !style ||
-                  !canSuggestOutfit
+                onClick={() =>
+                  suggestMutation.mutate({
+                    style: style || "casual",
+                    occasion: "casual",
+                    venue: "",
+                    location: location || "Istanbul",
+                  })
                 }
-                variant="outline"
-                className="w-full"
+                disabled={suggestMutation.isPending || !hasEnoughClothes}
+                className="w-full h-16 text-lg font-semibold bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl"
                 size="lg"
               >
                 {suggestMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    {t("suggest.generating")}
-                  </>
+                  <motion.div className="flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    >
+                      <Sparkles className="h-6 w-6" />
+                    </motion.div>
+                    <span>{t("suggest.generating")}</span>
+                  </motion.div>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-5 w-5" />
-                    {t("suggest.getOutfit")}
+                    <Wand2 className="mr-2 h-6 w-6" />
+                    Dress me for today
                   </>
                 )}
               </Button>
+
+              {/* Suggestion counter */}
+              {outfitSuggestLeft > 3 ? (
+                <p className="text-xs text-muted-foreground text-center">
+                  {outfitSuggestLeft} free suggestions remaining today · resets at midnight
+                </p>
+              ) : (
+                <p className="text-xs text-warning text-center flex items-center justify-center gap-1.5 font-medium">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Only {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left today · resets at midnight
+                </p>
+              )}
+
+              {!hasEnoughClothes && (
+                <p className="text-sm text-muted-foreground text-center">
+                  {t("suggest.needMoreItems")}
+                </p>
+              )}
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+
+            {/* Collapsible: add more context (optional) */}
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/60 hover:bg-secondary transition-colors text-sm font-medium text-foreground">
+                  <span>Add more context (optional)</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="bg-card rounded-2xl p-6 shadow-card border border-border mt-3 space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="location" className="flex items-center gap-2">
+                        <MapPin size={16} className="text-primary" />
+                        {t("suggest.location")}
+                      </Label>
+                      <Input
+                        id="location"
+                        placeholder={t("suggest.locationPlaceholder")}
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="venue" className="flex items-center gap-2 text-foreground">
+                        <Building size={16} />
+                        {t("suggest.venue")}
+                      </Label>
+                      <Input
+                        id="venue"
+                        placeholder={t("suggest.venuePlaceholder")}
+                        value={venue}
+                        onChange={(e) => setVenue(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-foreground">
+                        <Sparkles size={16} />
+                        {t("suggest.style")}
+                      </Label>
+                      <Select value={style} onValueChange={setStyle}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {styles.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-foreground">
+                        {t("suggest.occasion")}
+                      </Label>
+                      <Select value={occasion} onValueChange={setOccasion}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("suggest.occasionPlaceholder")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {occasions.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => suggestMutation.mutate({})}
+                    disabled={
+                      suggestMutation.isPending ||
+                      !hasEnoughClothes ||
+                      !style
+                    }
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    {suggestMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        {t("suggest.generating")}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-5 w-5" />
+                        {t("suggest.getOutfit")}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
 
         {/* Outfit result */}
         <AnimatePresence mode="wait">

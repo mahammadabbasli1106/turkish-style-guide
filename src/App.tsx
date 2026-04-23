@@ -15,6 +15,7 @@ import Wardrobe from "./pages/Wardrobe";
 import OutfitSuggest from "./pages/OutfitSuggest";
 import OutfitResult from "./pages/OutfitResult";
 import OutfitHistory from "./pages/OutfitHistory";
+import StreakDetail from "./pages/StreakDetail";
 import VirtualTryOn from "./pages/VirtualTryOn";
 import Settings from "./pages/Settings";
 import InstantFit from "./pages/InstantFit";
@@ -72,6 +73,7 @@ const router = createBrowserRouter([
   { path: "/dashboard/suggest", element: <OutfitSuggest /> },
   { path: "/dashboard/suggest/result", element: <OutfitResult /> },
   { path: "/dashboard/history", element: <OutfitHistory /> },
+  { path: "/dashboard/streak", element: <StreakDetail /> },
   { path: "/dashboard/try-on", element: <VirtualTryOn /> },
   { path: "/dashboard/instant-fit", element: <InstantFit /> },
   { path: "/dashboard/settings", element: <Settings /> },

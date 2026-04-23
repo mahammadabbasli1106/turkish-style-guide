@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
 import { useUsageLimits, LIMIT_REACHED_MESSAGE } from "@/hooks/useUsageLimits";
 import LimitReachedCard from "@/components/suggest/LimitReachedCard";
+import LevelUpModal from "@/components/streak/LevelUpModal";
+import { getLevel, getCurrentReward } from "@/lib/streakRewards";
 
 type OutfitItem = {
   id: string;
@@ -61,6 +63,7 @@ export default function OutfitSuggest() {
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
+  const [levelUpData, setLevelUpData] = useState<{ level: number; reward: ReturnType<typeof getCurrentReward> } | null>(null);
   const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, recordUsage } = useUsageLimits();
 
   // Fetch user's profile for full body photo
@@ -190,6 +193,13 @@ export default function OutfitSuggest() {
       // Always create a new check-in (no unique constraint anymore)
       if (user) {
         try {
+          // Get count BEFORE inserting to detect level-up
+          const { count: countBefore } = await supabase
+            .from("style_checkins")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id);
+          const previousLevel = getLevel(countBefore || 0);
+
           const { error } = await supabase
             .from("style_checkins")
             .insert({
@@ -198,22 +208,16 @@ export default function OutfitSuggest() {
             });
           if (error) throw error;
           queryClient.invalidateQueries({ queryKey: ["style-streak"] });
+          queryClient.invalidateQueries({ queryKey: ["streak-checkins"] });
+          queryClient.invalidateQueries({ queryKey: ["streak-checkins-detail"] });
 
-          // Check total generation count for confetti milestone
-          const { count } = await supabase
-            .from("style_checkins")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id);
+          const newCount = (countBefore || 0) + 1;
+          const newLevel = getLevel(newCount);
 
-          const totalCount = count || 0;
-          if (totalCount > 0 && totalCount % 10 === 0) {
-            confetti({
-              particleCount: 150,
-              spread: 80,
-              origin: { y: 0.6 },
-              colors: ["#d4ff00", "#10B981", "#3B82F6", "#F59E0B", "#EF4444"],
-            });
-            toast.success(`🎉 ${totalCount} outfits generated! You're on fire!`);
+          // Trigger level-up modal if user just leveled up
+          if (newLevel > previousLevel) {
+            const reward = getCurrentReward(newCount);
+            setLevelUpData({ level: newLevel, reward });
           }
         } catch (err) {
           console.error("Streak check-in error:", err);
@@ -653,6 +657,16 @@ export default function OutfitSuggest() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Level-up celebration */}
+      {levelUpData && (
+        <LevelUpModal
+          open={!!levelUpData}
+          level={levelUpData.level}
+          reward={levelUpData.reward}
+          onClose={() => setLevelUpData(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }

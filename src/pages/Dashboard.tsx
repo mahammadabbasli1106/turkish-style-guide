@@ -177,58 +177,31 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="space-y-6 max-w-lg mx-auto pb-6"
+          className="space-y-4 max-w-lg mx-auto pb-6"
         >
-          {/* Greeting */}
-          <div className="pt-2">
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-muted-foreground text-sm"
-            >
-              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-            </motion.p>
-            <motion.h1
-              className="font-display text-2xl font-bold text-foreground mt-1 flex flex-wrap gap-x-[0.3em]"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: {},
-                visible: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
-              }}
-            >
-              {`${getTimeGreeting(t)}, ${firstName} 👋`.split(" ").map((word, i) => (
-                <motion.span
-                  key={i}
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: { opacity: 1, y: 0, transition: { type: "spring", damping: 12, stiffness: 100 } },
-                  }}
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </motion.h1>
-          </div>
-
-          {/* Weather + Streak row */}
-          <div className="grid grid-cols-2 gap-3 h-40">
-            <StreakWidget />
-            <WeatherWidget data={weatherData} isLoading={weatherLoading} />
-          </div>
-
-        {/* Quick Actions */}
-        <QuickActions />
-
-        {/* Stats */}
-        <StatsRow clothingCount={clothingCount} outfitCount={outfitCount} />
-
-        {/* Action Cards */}
-        <ActionCards />
+          {/* Hero card: greeting + weather + forecast + CTA */}
+          <HeroCard
+            greeting={getTimeGreeting(t)}
+            firstName={firstName}
+            weather={weatherData}
+            weatherLoading={weatherLoading}
+            location={userPreferences?.default_location || "Istanbul"}
+          />
 
           {/* Low-wardrobe banner — disappears permanently at 5 items */}
           {clothingCount < 5 && <GettingStartedBanner itemCount={clothingCount} />}
+
+          {/* Streak (left) + stacked stats (right) */}
+          <div className="grid grid-cols-2 gap-3 h-44">
+            <StreakWidget />
+            <StatsStack clothingCount={clothingCount} outfitCount={outfitCount} />
+          </div>
+
+          {/* Quick actions (kept) */}
+          <div className="bg-card rounded-2xl p-4 border border-border shadow-card">
+            <p className="text-sm font-semibold text-foreground mb-3">Quick actions</p>
+            <QuickActions />
+          </div>
         </motion.div>
       </div>
 

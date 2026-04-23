@@ -163,7 +163,8 @@ export default function OutfitSuggest() {
       return data as OutfitSuggestion;
     },
     onSuccess: async (data) => {
-      setCurrentSuggestion(data);
+      const enriched = { ...data, venue: venue || undefined };
+      setCurrentSuggestion(enriched);
       setTryOnImage(null);
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
@@ -198,14 +199,14 @@ export default function OutfitSuggest() {
               colors: ["#d4ff00", "#10B981", "#3B82F6", "#F59E0B", "#EF4444"],
             });
             toast.success(`🎉 ${totalCount} outfits generated! You're on fire!`);
-          } else {
-            toast.success("Here's your perfect outfit!");
           }
         } catch (err) {
           console.error("Streak check-in error:", err);
-          toast.success("Here's your perfect outfit!");
         }
       }
+
+      // Navigate to the dedicated result screen
+      navigate("/dashboard/suggest/result", { state: { suggestion: enriched } });
     },
     onError: (error: Error) => {
       if (error.message === "__limit__") return;

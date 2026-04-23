@@ -315,346 +315,228 @@ export default function OutfitSuggest() {
   const hasEnoughClothes = clothingCount >= 3;
   const hasFullBodyPhoto = !!(profile as any)?.full_body_photo_url;
 
+  // Hours until midnight for limit reset
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const hoursLeft = Math.max(1, Math.round((midnight.getTime() - now.getTime()) / 3.6e6));
+
   return (
     <DashboardLayout>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-8 max-w-4xl mx-auto"
+        className="space-y-6 max-w-lg mx-auto"
       >
-        <div className="text-center">
-          <h1 className="font-display text-3xl font-bold text-foreground">{t("suggest.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("suggest.subtitle")}</p>
+        {/* Brand header row */}
+        <div className="flex items-center justify-between">
+          <span className="font-display text-2xl font-extrabold text-primary tracking-tight">
+            tarzly<span className="text-foreground/80">.ai</span>
+          </span>
+          <Link
+            to="/dashboard/history"
+            aria-label="Outfit history"
+            className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-card hover:bg-secondary transition-colors"
+          >
+            <History size={18} className="text-foreground" />
+          </Link>
         </div>
 
-        {/* Limit reached → show upgrade card instead of suggestion buttons */}
+        {/* Title + weather context line */}
+        <div className="text-center space-y-1">
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            Get your outfit
+          </h1>
+          {currentSuggestion?.weather ? (
+            <p className="text-sm text-muted-foreground">
+              {currentSuggestion.weather.temperature}° · {currentSuggestion.weather.description} · {currentSuggestion.weather.location}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {location || "Istanbul"}
+            </p>
+          )}
+        </div>
+
+        {/* Limit reached → upgrade card */}
         {outfitSuggestLeft === 0 ? (
           <LimitReachedCard />
         ) : (
           <>
-            {/* One-tap hero button */}
-            <div className="space-y-3">
+            {/* Hero CTA */}
+            <Button
+              onClick={() =>
+                suggestMutation.mutate({
+                  style: style || "casual",
+                  occasion: occasion || "casual",
+                  venue,
+                  location: location || "Istanbul",
+                })
+              }
+              disabled={suggestMutation.isPending || !hasEnoughClothes || !occasion}
+              className="w-full h-16 text-lg font-semibold bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl disabled:opacity-50"
+              size="lg"
+            >
+              {suggestMutation.isPending ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="mr-2"
+                  >
+                    <Sparkles className="h-6 w-6" />
+                  </motion.div>
+                  <span>{t("suggest.generating")}</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-6 w-6" />
+                  Dress me for today
+                </>
+              )}
+            </Button>
+
+            {/* Suggestion progress card */}
+            <div className="bg-card rounded-2xl p-4 border border-border shadow-card">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <p className={`text-sm font-medium ${outfitSuggestLeft <= 3 ? "text-warning" : "text-foreground"}`}>
+                  {outfitSuggestLeft <= 3 && (
+                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                  )}
+                  {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left · resets in {hoursLeft}h
+                </p>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
+                  outfitSuggestLeft >= outfitSuggestLimit - 1
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : outfitSuggestLeft <= 3
+                      ? "bg-warning/15 text-warning"
+                      : "bg-secondary text-secondary-foreground"
+                }`}>
+                  {outfitSuggestLeft >= outfitSuggestLimit - 1 ? "Full" : `${outfitSuggestLeft}/${outfitSuggestLimit}`}
+                </span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(outfitSuggestLeft / outfitSuggestLimit) * 100}%` }}
+                  transition={{ duration: 0.6 }}
+                  className="h-full bg-primary rounded-full"
+                />
+              </div>
+            </div>
+
+            {!hasEnoughClothes && (
+              <p className="text-sm text-muted-foreground text-center">
+                {t("suggest.needMoreItems")}
+              </p>
+            )}
+
+            {/* OR ADD CONTEXT divider */}
+            <div className="flex items-center gap-3 pt-2">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+                Or add context
+              </span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Context form */}
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-card space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="venue" className="text-xs text-muted-foreground font-medium">
+                  Venue name
+                </Label>
+                <Input
+                  id="venue"
+                  placeholder="e.g. Starbucks, The Ritz…"
+                  value={venue}
+                  onChange={(e) => setVenue(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground font-medium">
+                  Style
+                </Label>
+                <Select value={style} onValueChange={setStyle}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {styles.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                  Occasion
+                  {!occasion && (
+                    <span className="text-destructive font-semibold">required</span>
+                  )}
+                </Label>
+                <Select value={occasion} onValueChange={setOccasion}>
+                  <SelectTrigger
+                    className={`bg-background ${!occasion ? "border-destructive ring-1 ring-destructive/40" : ""}`}
+                  >
+                    <SelectValue placeholder="Select an occasion" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {occasions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Optional location override */}
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                  <MapPin size={12} />
+                  Location (optional)
+                </Label>
+                <Input
+                  id="location"
+                  placeholder={t("suggest.locationPlaceholder")}
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+
               <Button
-                onClick={() =>
-                  suggestMutation.mutate({
-                    style: style || "casual",
-                    occasion: "casual",
-                    venue: "",
-                    location: location || "Istanbul",
-                  })
+                onClick={() => suggestMutation.mutate({})}
+                disabled={
+                  suggestMutation.isPending ||
+                  !hasEnoughClothes ||
+                  !style ||
+                  !occasion
                 }
-                disabled={suggestMutation.isPending || !hasEnoughClothes}
-                className="w-full h-16 text-lg font-semibold bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl"
+                className="w-full h-12 bg-gradient-primary text-primary-foreground font-semibold disabled:opacity-50"
                 size="lg"
               >
                 {suggestMutation.isPending ? (
-                  <motion.div className="flex items-center gap-2">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    >
-                      <Sparkles className="h-6 w-6" />
-                    </motion.div>
-                    <span>{t("suggest.generating")}</span>
-                  </motion.div>
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {t("suggest.generating")}
+                  </>
                 ) : (
                   <>
-                    <Wand2 className="mr-2 h-6 w-6" />
-                    Dress me for today
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Get outfit suggestion
                   </>
                 )}
               </Button>
-
-              {/* Suggestion counter */}
-              {outfitSuggestLeft > 3 ? (
-                <p className="text-xs text-muted-foreground text-center">
-                  {outfitSuggestLeft} free suggestions remaining today · resets at midnight
-                </p>
-              ) : (
-                <p className="text-xs text-warning text-center flex items-center justify-center gap-1.5 font-medium">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Only {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left today · resets at midnight
-                </p>
-              )}
-
-              {!hasEnoughClothes && (
-                <p className="text-sm text-muted-foreground text-center">
-                  {t("suggest.needMoreItems")}
-                </p>
-              )}
             </div>
-
-            {/* Collapsible: add more context (optional) */}
-            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-              <CollapsibleTrigger asChild>
-                <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/60 hover:bg-secondary transition-colors text-sm font-medium text-foreground">
-                  <span>Add more context (optional)</span>
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="bg-card rounded-2xl p-6 shadow-card border border-border mt-3 space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="location" className="flex items-center gap-2">
-                        <MapPin size={16} className="text-primary" />
-                        {t("suggest.location")}
-                      </Label>
-                      <Input
-                        id="location"
-                        placeholder={t("suggest.locationPlaceholder")}
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="venue" className="flex items-center gap-2 text-foreground">
-                        <Building size={16} />
-                        {t("suggest.venue")}
-                      </Label>
-                      <Input
-                        id="venue"
-                        placeholder={t("suggest.venuePlaceholder")}
-                        value={venue}
-                        onChange={(e) => setVenue(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">{t("suggest.venueHint")}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2 text-foreground">
-                        <Sparkles size={16} />
-                        {t("suggest.style")}
-                      </Label>
-                      <Select value={style} onValueChange={setStyle}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {styles.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2 text-foreground">
-                        {t("suggest.occasion")}
-                      </Label>
-                      <Select value={occasion} onValueChange={setOccasion}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("suggest.occasionPlaceholder")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {occasions.map((o) => (
-                            <SelectItem key={o.value} value={o.value}>
-                              {o.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={() => suggestMutation.mutate({})}
-                    disabled={
-                      suggestMutation.isPending ||
-                      !hasEnoughClothes ||
-                      !style
-                    }
-                    variant="outline"
-                    className="w-full"
-                    size="lg"
-                  >
-                    {suggestMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {t("suggest.generating")}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        {t("suggest.getOutfit")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
           </>
         )}
-
-        {/* Outfit result */}
-        <AnimatePresence mode="wait">
-          {currentSuggestion && (
-            <motion.div
-              key={currentSuggestion.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="bg-card rounded-2xl overflow-hidden shadow-card border border-border"
-            >
-              {/* Weather header */}
-              <div className="bg-gradient-primary p-6 text-primary-foreground">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <CloudSun size={32} />
-                    <div>
-                      <p className="font-semibold text-lg">{currentSuggestion.weather.location}</p>
-                      <p className="text-primary-foreground/80">
-                        {currentSuggestion.weather.temperature}°C 
-                        {currentSuggestion.weather.feelsLike && ` (${t("weather.feelsLike")} ${currentSuggestion.weather.feelsLike}°C)`}
-                        • {currentSuggestion.weather.description}
-                        {currentSuggestion.weather.isRaining && " 🌧️"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="bg-primary-foreground/20 px-3 py-1 rounded-full text-sm capitalize">
-                      {currentSuggestion.style}
-                    </span>
-                    <span className="bg-primary-foreground/20 px-3 py-1 rounded-full text-sm capitalize">
-                      {currentSuggestion.occasion}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Venue analysis if available */}
-              {currentSuggestion.venueAnalysis && (
-                <div className="px-6 py-3 bg-accent/20 border-b border-border">
-                  <p className="text-sm text-foreground">
-                    <Building size={14} className="inline mr-2" />
-                    <span className="font-medium">Venue insight:</span> {currentSuggestion.venueAnalysis}
-                  </p>
-                </div>
-              )}
-
-              {/* Outfit items */}
-              <div className="p-6">
-                <h3 className="font-display text-xl font-semibold text-foreground mb-4">
-                  {t("suggest.yourOutfit")}
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  {(["upper_body", "lower_body", "outerwear", "footwear", "accessory"] as const).map((category) => {
-                    const item = currentSuggestion.items[category];
-                    if (!item) return null;
-                    return (
-                      <motion.div
-                        key={category}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-secondary rounded-xl overflow-hidden"
-                      >
-                        <div className="aspect-square">
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="p-3">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {category.replace("_", " ")}
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {/* AI reasoning */}
-                {currentSuggestion.reasoning && (
-                  <div className="bg-secondary/50 rounded-xl p-4">
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">{t("suggest.whyThisWorks")} </span>
-                      {currentSuggestion.reasoning}
-                    </p>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-wrap gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    onClick={() => suggestMutation.mutate({})}
-                    disabled={suggestMutation.isPending}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    {t("suggest.tryAnother")}
-                  </Button>
-                  <Button 
-                    variant="ghost"
-                    onClick={() => saveFavoriteMutation.mutate(currentSuggestion.id)}
-                    disabled={saveFavoriteMutation.isPending}
-                  >
-                    <Heart className="mr-2 h-4 w-4" />
-                    {t("suggest.saveFavorite")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleTryOnOutfit}
-                    disabled={isGeneratingTryOn || !hasFullBodyPhoto}
-                  >
-                    {isGeneratingTryOn ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t("tryOn.generating")}
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="mr-2 h-4 w-4" />
-                        {t("suggest.tryOnThisOutfit")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-                
-                {!hasFullBodyPhoto && (
-                  <p className="text-sm text-muted-foreground mt-3">
-                    {t("suggest.needFullBodyPhoto")}
-                  </p>
-                )}
-              </div>
-
-              {/* Try-on result displayed directly below */}
-              {tryOnImage && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="border-t border-border p-6"
-                >
-                  <h3 className="font-display text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Sparkles size={20} className="text-primary" />
-                    {t("tryOn.result")}
-                  </h3>
-                  <div className="max-w-md mx-auto">
-                    <div className="aspect-[3/4] rounded-2xl overflow-hidden shadow-card">
-                      <img 
-                        src={tryOnImage} 
-                        alt="Try-on result" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
 
       {/* Level-up celebration */}

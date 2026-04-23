@@ -179,7 +179,6 @@ export default function OutfitSuggest() {
     onSuccess: async (data) => {
       const enriched = { ...data, venue: venue || undefined };
       setCurrentSuggestion(enriched);
-      setTryOnImage(null);
       queryClient.invalidateQueries({ queryKey: ["outfit-count"] });
       queryClient.invalidateQueries({ queryKey: ["outfit-history"] });
 
@@ -247,55 +246,7 @@ export default function OutfitSuggest() {
     },
   });
 
-  // Generate try-on image directly in-page
-  const handleTryOnOutfit = async () => {
-    if (!currentSuggestion || !profile) return;
-    
-    const fullBodyPhotoUrl = (profile as any).full_body_photo_url;
-    if (!fullBodyPhotoUrl) {
-      toast.error(t("suggest.needFullBodyPhoto"));
-      return;
-    }
-
-    setIsGeneratingTryOn(true);
-    try {
-      // Get the first available clothing item from the suggestion
-      const items = currentSuggestion.items;
-      const primaryItem = items.upper_body || items.lower_body || items.outerwear;
-      
-      if (!primaryItem) {
-        toast.error(t("common.error"));
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke("virtual-try-on", {
-        body: { 
-          clothingItemId: primaryItem.id,
-          userImageBase64: fullBodyPhotoUrl,
-          additionalItems: Object.values(items)
-            .filter(item => item && item.id !== primaryItem.id)
-            .map(item => ({
-              id: item!.id,
-              name: item!.name,
-              category: item!.category,
-              color: item!.color,
-              image_url: item!.image_url,
-            })),
-        },
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-      
-      setTryOnImage(data.resultImageUrl);
-      toast.success(t("tryOn.result"));
-    } catch (error: any) {
-      console.error("Try-on error:", error);
-      toast.error(error.message || t("common.error"));
-    } finally {
-      setIsGeneratingTryOn(false);
-    }
-  };
+  // Try-on flow now happens in OutfitResult.tsx (navigated to after suggestion)
 
   if (loading) {
     return (

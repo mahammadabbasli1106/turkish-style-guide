@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Wardrobe from "./pages/Wardrobe";
 import OutfitSuggest from "./pages/OutfitSuggest";
+import OutfitResult from "./pages/OutfitResult";
 import OutfitHistory from "./pages/OutfitHistory";
 import VirtualTryOn from "./pages/VirtualTryOn";
 import Settings from "./pages/Settings";
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
   { path: "/dashboard", element: <Dashboard /> },
   { path: "/dashboard/wardrobe", element: <Wardrobe /> },
   { path: "/dashboard/suggest", element: <OutfitSuggest /> },
+  { path: "/dashboard/suggest/result", element: <OutfitResult /> },
   { path: "/dashboard/history", element: <OutfitHistory /> },
   { path: "/dashboard/try-on", element: <VirtualTryOn /> },
   { path: "/dashboard/instant-fit", element: <InstantFit /> },

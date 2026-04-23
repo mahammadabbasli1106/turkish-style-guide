@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +48,7 @@ type OutfitSuggestion = {
 
 export default function OutfitSuggest() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, session, loading } = useAuth();
   const queryClient = useQueryClient();
   const [style, setStyle] = useState("casual");

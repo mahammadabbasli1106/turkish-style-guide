@@ -78,14 +78,14 @@ export default function OutfitSuggest() {
     enabled: !!user,
   });
 
-  // Fetch user preferences for default location
+  // Fetch user preferences for default location and preferred styles
   const { data: userPreferences } = useQuery({
     queryKey: ["user-preferences", user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_preferences")
-        .select("default_location")
+        .select("default_location, preferred_styles")
         .eq("user_id", user.id)
         .single();
       if (error && error.code !== "PGRST116") throw error;
@@ -94,10 +94,13 @@ export default function OutfitSuggest() {
     enabled: !!user,
   });
 
-  // Pre-fill location from user preferences
+  // Pre-fill location + style from user preferences
   useEffect(() => {
     if (userPreferences?.default_location && !location) {
       setLocation(userPreferences.default_location);
+    }
+    if (userPreferences?.preferred_styles?.[0]) {
+      setStyle(userPreferences.preferred_styles[0]);
     }
   }, [userPreferences]);
 

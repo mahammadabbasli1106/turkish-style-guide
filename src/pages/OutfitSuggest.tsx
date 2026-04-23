@@ -657,6 +657,16 @@ export default function OutfitSuggest() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Level-up celebration */}
+      {levelUpData && (
+        <LevelUpModal
+          open={!!levelUpData}
+          level={levelUpData.level}
+          reward={levelUpData.reward}
+          onClose={() => setLevelUpData(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }

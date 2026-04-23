@@ -362,7 +362,7 @@ export default function OutfitSuggest() {
               {outfitSuggestLeft} free suggestions remaining today · resets at midnight
             </p>
           ) : outfitSuggestLeft > 0 ? (
-            <p className="text-xs text-amber-600 dark:text-amber-400 text-center flex items-center justify-center gap-1.5 font-medium">
+            <p className="text-xs text-warning text-center flex items-center justify-center gap-1.5 font-medium">
               <AlertTriangle className="h-3.5 w-3.5" />
               Only {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left today · resets at midnight
             </p>

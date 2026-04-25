@@ -274,7 +274,7 @@ export default function OutfitSuggest() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6 max-w-lg mx-auto"
+        className="space-y-3 max-w-lg mx-auto"
       >
         {/* Brand row — hidden on mobile (layout header shows it) */}
         <div className="hidden lg:flex items-center justify-between">

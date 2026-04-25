@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
 import { Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -15,7 +14,6 @@ import {
 } from "@/lib/streakRewards";
 
 export default function StreakWidget() {
-  const { t } = useTranslation();
   const { user } = useAuth();
 
   const { data: checkins = [], isLoading } = useQuery({
@@ -45,7 +43,7 @@ export default function StreakWidget() {
   const toNext = getCheckinsToNextLevel(totalCheckins);
   const nextReward = getNextReward(totalCheckins);
 
-  const radius = 32;
+  const radius = 13;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - progress * circumference;
 
@@ -55,59 +53,69 @@ export default function StreakWidget() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="h-full rounded-2xl p-3 flex flex-col items-center justify-between text-center"
-        style={{
-          background: "linear-gradient(135deg, #6C3FA0 0%, #8B5FBF 50%, #A078D1 100%)",
-        }}
+        className="h-full rounded-2xl p-3 flex flex-col justify-between bg-primary text-primary-foreground"
       >
-        {/* Circular progress */}
-        <div className="relative flex items-center justify-center">
-          <svg width="76" height="76" viewBox="0 0 76 76">
-            <circle
-              cx="38"
-              cy="38"
-              r={radius}
-              fill="none"
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth="5"
-            />
-            <motion.circle
-              cx="38"
-              cy="38"
-              r={radius}
-              fill="none"
-              stroke="#d4ff00"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset }}
-              transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-              transform="rotate(-90 38 38)"
-            />
-          </svg>
-          <div className="absolute flex flex-col items-center leading-none">
-            <span className="font-display text-xl font-bold text-white">
-              {consecutiveStreak}
-            </span>
-            <span className="text-[8px] text-white/80 font-semibold">DAY</span>
+        {/* Top row: ring + label */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-9 h-9 shrink-0">
+            <svg width="36" height="36" viewBox="0 0 36 36">
+              <circle
+                cx="18"
+                cy="18"
+                r={radius}
+                fill="none"
+                stroke="rgba(255,255,255,0.18)"
+                strokeWidth="4"
+              />
+              <motion.circle
+                cx="18"
+                cy="18"
+                r={radius}
+                fill="none"
+                stroke="#c8b8ff"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                transform="rotate(-90 18 18)"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-display text-[12px] font-extrabold leading-none">
+                {consecutiveStreak}
+              </span>
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <Flame size={11} className="text-primary-foreground/85" />
+              <p className="text-[11px] font-extrabold leading-none truncate">Style Streak</p>
+            </div>
+            <p className="text-[10px] text-primary-foreground/55 mt-1 leading-none truncate">
+              Lv.{level} · {consecutiveStreak} day{consecutiveStreak === 1 ? "" : "s"}
+            </p>
           </div>
         </div>
 
-        {/* Label + level */}
-        <div className="flex items-center gap-1">
-          <Flame size={12} style={{ color: "#d4ff00" }} />
-          <span className="text-[11px] font-semibold text-white">Lv.{level}</span>
+        {/* Bottom: next reward pill */}
+        <div className="rounded-[9px] bg-primary-foreground/[0.12] px-2 py-1.5">
+          {nextReward ? (
+            <>
+              <p className="text-[8px] text-primary-foreground/55 font-semibold leading-none">
+                {toNext} more → unlock
+              </p>
+              <p className="text-[10px] font-extrabold mt-1 leading-tight line-clamp-2">
+                {nextReward.name}
+              </p>
+            </>
+          ) : (
+            <p className="text-[10px] font-extrabold leading-tight">
+              All rewards unlocked! 🎉
+            </p>
+          )}
         </div>
-
-        {/* Next reward hint */}
-        {nextReward ? (
-          <p className="text-[9px] text-white/85 leading-tight px-1 line-clamp-2">
-            {toNext} more → {nextReward.name}
-          </p>
-        ) : (
-          <p className="text-[9px] text-white/85 leading-tight">All rewards unlocked! 🎉</p>
-        )}
       </motion.div>
     </Link>
   );

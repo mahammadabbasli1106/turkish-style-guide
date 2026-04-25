@@ -302,16 +302,16 @@ export default function OutfitSuggest() {
         </div>
 
         {/* Title + weather context line */}
-        <div className="text-center space-y-1">
-          <h1 className="font-display text-3xl font-bold text-foreground">
+        <div className="text-center space-y-1 pt-1 pb-1">
+          <h1 className="font-display text-[22px] font-extrabold text-foreground tracking-tight">
             Get your outfit
           </h1>
           {currentSuggestion?.weather ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground">
               {currentSuggestion.weather.temperature}° · {currentSuggestion.weather.description} · {currentSuggestion.weather.location}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground">
               {location || "Istanbul"}
             </p>
           )}

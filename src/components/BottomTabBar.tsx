@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Home, Shirt, Sparkles, ScanLine } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LayoutGrid, Shirt, Sparkles, ScanLine } from "lucide-react";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,11 +22,21 @@ const AVATARS: Record<string, string> = {
   rebel: "https://api.dicebear.com/7.x/avataaars/svg?seed=rebel",
 };
 
-const baseTabs = [
-  { path: "/dashboard", icon: Home, labelKey: "nav.dashboard" },
+type SideTab = {
+  path: string;
+  icon: typeof LayoutGrid;
+  labelKey: string;
+};
+
+// Order on screen: Home · Wardrobe · [Outfit FAB] · Try-On · Profile
+const leftTabs: SideTab[] = [
+  { path: "/dashboard", icon: LayoutGrid, labelKey: "nav.dashboard" },
   { path: "/dashboard/wardrobe", icon: Shirt, labelKey: "nav.wardrobe" },
-  { path: "/dashboard/suggest", icon: Sparkles, labelKey: "nav.suggest" },
+];
+
+const rightTabs: SideTab[] = [
   { path: "/dashboard/instant-fit", icon: ScanLine, labelKey: "nav.instantFit" },
+  // Profile is appended dynamically (uses avatar image)
 ];
 
 export default function BottomTabBar() {
@@ -35,7 +45,6 @@ export default function BottomTabBar() {
   const { user } = useAuth();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
-  // Listen for keyboard state events from ChatInput
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -63,98 +72,117 @@ export default function BottomTabBar() {
   const avatarType = profile?.avatar_type || "default";
   const avatarUrl = AVATARS[avatarType] || AVATARS.default;
 
-  // Hide when keyboard is open on mobile
   if (keyboardOpen) return null;
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden pointer-events-none">
-      <div className="mx-4 mb-4 w-full max-w-md rounded-3xl p-[1px] bg-gradient-to-r from-primary/40 via-accent/30 to-primary/40 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.25)] pointer-events-auto">
-        <div className="flex items-center justify-around h-16 w-full bg-card/75 dark:bg-card/65 backdrop-blur-xl rounded-[calc(1.5rem-1px)] px-2">
-        {baseTabs.map((tab) => {
-          const isActive = location.pathname === tab.path;
-          return (
-            <Link
-              key={tab.path}
-              to={tab.path}
-              className="flex flex-col items-center gap-0.5 min-w-[56px] relative"
-            >
-              <motion.div
-                className="relative flex items-center justify-center w-10 h-8 rounded-2xl"
-                whileTap={{ scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      layoutId="tab-pill"
-                      className="absolute inset-0 bg-primary/10 rounded-2xl"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    />
-                  )}
-                </AnimatePresence>
-                <tab.icon
-                  size={22}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                  className={`relative z-10 transition-colors duration-200 ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}
-                  fill={isActive ? "currentColor" : "none"}
-                />
-              </motion.div>
-              <span
-                className={`text-[10px] leading-tight transition-colors duration-200 ${
-                  isActive
-                    ? "font-semibold text-primary"
-                    : "font-medium text-muted-foreground"
-                }`}
-              >
-                {t(tab.labelKey)}
-              </span>
-            </Link>
-          );
-        })}
+  const isActive = (path: string) => location.pathname === path;
+  const centerActive = location.pathname === "/dashboard/suggest";
 
-        {/* Profile tab with avatar */}
+  const renderTab = (tab: SideTab) => {
+    const active = isActive(tab.path);
+    return (
+      <Link
+        key={tab.path}
+        to={tab.path}
+        className="relative flex-1 flex flex-col items-center gap-0.5 pt-1.5 pb-0.5"
+      >
+        {/* Top indicator pill */}
+        {active && (
+          <motion.span
+            layoutId="bottom-nav-indicator"
+            className="absolute -top-px left-1/2 -translate-x-1/2 h-[2.5px] w-5 rounded-full bg-primary"
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+        <motion.span
+          whileTap={{ scale: 0.92 }}
+          transition={{ type: "spring", stiffness: 400, damping: 18 }}
+          className="inline-flex"
+        >
+          <tab.icon
+            size={22}
+            strokeWidth={active ? 2 : 1.7}
+            className={`transition-colors duration-150 ${
+              active ? "text-primary" : "text-muted-foreground"
+            }`}
+          />
+        </motion.span>
+        <span
+          className={`text-[10px] font-bold tracking-tight leading-tight transition-colors duration-150 ${
+            active ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          {t(tab.labelKey)}
+        </span>
+      </Link>
+    );
+  };
+
+  return (
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pb-[env(safe-area-inset-bottom)] bg-card border-t border-border"
+      aria-label="Primary"
+    >
+      <div className="relative mx-auto max-w-md flex items-start h-[62px] pt-1.5 px-1">
+        {leftTabs.map(renderTab)}
+
+        {/* Center FAB-style "Outfit" tab */}
+        <Link
+          to="/dashboard/suggest"
+          className="relative flex-1 flex flex-col items-center gap-0.5 pt-1.5 pb-0.5"
+          aria-label={t("nav.suggest")}
+        >
+          {centerActive && (
+            <motion.span
+              layoutId="bottom-nav-indicator"
+              className="absolute -top-px left-1/2 -translate-x-1/2 h-[2.5px] w-5 rounded-full bg-primary"
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
+          )}
+          <motion.div
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 400, damping: 18 }}
+            className="-mt-3.5 w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-[0_6px_14px_-4px_hsl(var(--primary)/0.55)] ring-4 ring-card"
+          >
+            <Sparkles size={20} className="fill-primary-foreground" />
+          </motion.div>
+          <span
+            className={`mt-0.5 text-[10px] font-bold tracking-tight leading-tight ${
+              centerActive ? "text-primary" : "text-primary"
+            }`}
+          >
+            {t("nav.suggest")}
+          </span>
+        </Link>
+
+        {rightTabs.map(renderTab)}
+
+        {/* Profile tab (uses avatar image) */}
         {(() => {
-          const isActive = location.pathname === "/dashboard/settings";
+          const active = isActive("/dashboard/settings");
           return (
             <Link
               to="/dashboard/settings"
-              className="flex flex-col items-center gap-0.5 min-w-[56px] relative"
+              className="relative flex-1 flex flex-col items-center gap-0.5 pt-1.5 pb-0.5"
+              aria-label={t("nav.profile")}
             >
-              <motion.div
-                className="relative flex items-center justify-center w-10 h-8 rounded-2xl"
-                whileTap={{ scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      layoutId="tab-pill"
-                      className="absolute inset-0 bg-primary/10 rounded-2xl"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    />
-                  )}
-                </AnimatePresence>
-                <img
-                  src={avatarUrl}
-                  alt="Profile"
-                  className={`relative z-10 w-6 h-6 rounded-full transition-all duration-200 ${
-                    isActive ? "ring-2 ring-primary" : "opacity-70"
-                  }`}
+              {active && (
+                <motion.span
+                  layoutId="bottom-nav-indicator"
+                  className="absolute -top-px left-1/2 -translate-x-1/2 h-[2.5px] w-5 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
-              </motion.div>
+              )}
+              <motion.img
+                whileTap={{ scale: 0.92 }}
+                src={avatarUrl}
+                alt=""
+                className={`w-[22px] h-[22px] rounded-full object-cover transition-all duration-150 ${
+                  active ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "opacity-80"
+                }`}
+              />
               <span
-                className={`text-[10px] leading-tight transition-colors duration-200 ${
-                  isActive
-                    ? "font-semibold text-primary"
-                    : "font-medium text-muted-foreground"
+                className={`text-[10px] font-bold tracking-tight leading-tight transition-colors duration-150 ${
+                  active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 {t("nav.profile")}
@@ -162,7 +190,6 @@ export default function BottomTabBar() {
             </Link>
           );
         })()}
-        </div>
       </div>
     </nav>
   );

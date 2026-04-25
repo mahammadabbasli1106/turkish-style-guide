@@ -169,75 +169,93 @@ export default function Wardrobe() {
   return (
     <DashboardLayout>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-8"
+        className="max-w-lg mx-auto space-y-5"
       >
-        {/* Wardrobe progress bar */}
-        <div className="bg-card rounded-xl p-4 border border-border shadow-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">
-              {wardrobeCount}/{wardrobeLimit} slots used
+        {/* Page heading */}
+        <div className="text-center pt-1">
+          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">
+            My Wardrobe
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            {clothingItems.length} item{clothingItems.length === 1 ? "" : "s"} · {wardrobeCount}/{wardrobeLimit} slots used
+          </p>
+        </div>
+
+        {/* Slot usage card */}
+        <div className="bg-card rounded-2xl px-4 py-3 border border-border shadow-card">
+          <div className="flex items-center justify-between mb-1.5 text-xs">
+            <span className="font-semibold text-foreground">Wardrobe space</span>
+            <span className="text-muted-foreground">
+              {wardrobeCount}/{wardrobeLimit}
             </span>
           </div>
-          <Progress value={progressPercent} className="h-2" />
+          <Progress value={progressPercent} className="h-1.5" />
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">My Wardrobe</h1>
-            <p className="text-muted-foreground mt-1">
-              {clothingItems.length} items • Upload to add more
-            </p>
-          </div>
+        {/* Add clothing CTA */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <label className="block">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={uploading || !canUploadClothing}
+                  className="sr-only"
+                />
+                <Button
+                  disabled={uploading || !canUploadClothing}
+                  className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl text-sm font-bold cursor-pointer"
+                  asChild
+                  onClick={!canUploadClothing ? () => toast(LIMIT_REACHED_MESSAGE) : undefined}
+                >
+                  <span>
+                    {uploading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="mr-2 h-4 w-4" />
+                    )}
+                    {uploading ? "Uploading…" : "Add clothing"}
+                  </span>
+                </Button>
+              </label>
+            </TooltipTrigger>
+            {!canUploadClothing && (
+              <TooltipContent>
+                Wardrobe full — {wardrobeLimit} items max.
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <label className="relative">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileUpload}
-                    disabled={uploading || !canUploadClothing}
-                    className="sr-only"
-                  />
-                  <Button
-                    disabled={uploading || !canUploadClothing}
-                    className="bg-gradient-primary text-primary-foreground shadow-warm cursor-pointer"
-                    asChild
-                    onClick={!canUploadClothing ? () => toast(LIMIT_REACHED_MESSAGE) : undefined}
-                  >
-                    <span>
-                      {uploading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      {uploading ? "Uploading..." : "Add Clothing"}
-                    </span>
-                  </Button>
-                </label>
-              </TooltipTrigger>
-              {!canUploadClothing && (
-                <TooltipContent>
-                  Wardrobe full — {wardrobeLimit} items max.
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        {/* Category filter */}
-        <div className="flex flex-wrap gap-2">
-          <Button variant={selectedCategory === null ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory(null)}>
+        {/* Category filter chips */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+              selectedCategory === null
+                ? "bg-primary text-primary-foreground"
+                : "bg-card border border-border text-foreground hover:bg-secondary"
+            }`}
+          >
             All ({clothingItems.length})
-          </Button>
+          </button>
           {categories.map((category) => (
-            <Button key={category} variant={selectedCategory === category ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory(category)}>
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                selectedCategory === category
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card border border-border text-foreground hover:bg-secondary"
+              }`}
+            >
               {categoryLabels[category]} ({groupedItems[category]?.length || 0})
-            </Button>
+            </button>
           ))}
         </div>
 

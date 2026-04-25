@@ -147,3 +147,12 @@
   pointer-events: none;
   z-index: 50;
 }
+
+/* Hide scrollbars on horizontally scrolling chip rows */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

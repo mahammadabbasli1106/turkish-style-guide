@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Flame, Lock, CheckCircle2, HelpCircle, Calendar } from "lucide-react";
+import { ArrowLeft, Flame, CheckCircle2, HelpCircle, Calendar } from "lucide-react";
 import {
   REWARDS,
   getLevel,

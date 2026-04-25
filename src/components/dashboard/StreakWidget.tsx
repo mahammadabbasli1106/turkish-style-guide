@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
 import { Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -15,7 +14,6 @@ import {
 } from "@/lib/streakRewards";
 
 export default function StreakWidget() {
-  const { t } = useTranslation();
   const { user } = useAuth();
 
   const { data: checkins = [], isLoading } = useQuery({

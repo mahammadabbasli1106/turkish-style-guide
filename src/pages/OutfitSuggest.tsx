@@ -322,8 +322,9 @@ export default function OutfitSuggest() {
           <LimitReachedCard />
         ) : (
           <>
-            {/* Hero CTA */}
-            <Button
+            {/* Hero CTA — true one-tap. Falls back to defaults so the button always works. */}
+            <motion.button
+              whileTap={{ scale: 0.985 }}
               onClick={() =>
                 suggestMutation.mutate({
                   style: style || "casual",
@@ -332,56 +333,54 @@ export default function OutfitSuggest() {
                   location: location || "Istanbul",
                 })
               }
-              disabled={suggestMutation.isPending || !hasEnoughClothes || !occasion}
-              className="w-full h-16 text-lg font-semibold bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl disabled:opacity-50"
-              size="lg"
+              disabled={suggestMutation.isPending || !hasEnoughClothes}
+              className="w-full rounded-[22px] py-[18px] px-5 flex items-center justify-center gap-2.5 font-bold text-[15px] text-primary-foreground bg-gradient-primary shadow-warm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {suggestMutation.isPending ? (
                 <>
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="mr-2"
                   >
-                    <Sparkles className="h-6 w-6" />
+                    <Sparkles className="h-[18px] w-[18px] fill-primary-foreground" />
                   </motion.div>
                   <span>{t("suggest.generating")}</span>
                 </>
               ) : (
                 <>
-                  <Wand2 className="mr-2 h-6 w-6" />
-                  Dress me for today
+                  <Wand2 className="h-[18px] w-[18px]" />
+                  <span>Dress me for today</span>
                 </>
               )}
-            </Button>
+            </motion.button>
 
-            {/* Suggestion progress card */}
-            <div className="bg-card rounded-2xl p-4 border border-border shadow-card">
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <p className={`text-sm font-medium ${outfitSuggestLeft <= 3 ? "text-warning" : "text-foreground"}`}>
+            {/* Slim suggestion progress card — sits snug under CTA, mirrors mockup */}
+            <div className="bg-card rounded-[14px] border border-border px-3.5 py-2.5 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="h-[3px] bg-secondary rounded-full overflow-hidden mb-1.5">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(outfitSuggestLeft / outfitSuggestLimit) * 100}%` }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="h-full bg-primary rounded-full"
+                  />
+                </div>
+                <p className={`text-[11px] font-medium truncate ${outfitSuggestLeft <= 3 ? "text-warning" : "text-muted-foreground"}`}>
                   {outfitSuggestLeft <= 3 && (
-                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                    <AlertTriangle className="inline h-3 w-3 mr-1 -mt-0.5" />
                   )}
-                  {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left · resets in {hoursLeft}h
+                  {outfitSuggestLeft} suggestion{outfitSuggestLeft === 1 ? "" : "s"} left · resets at midnight
                 </p>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                  outfitSuggestLeft >= outfitSuggestLimit - 1
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                    : outfitSuggestLeft <= 3
-                      ? "bg-warning/15 text-warning"
-                      : "bg-secondary text-secondary-foreground"
-                }`}>
-                  {outfitSuggestLeft >= outfitSuggestLimit - 1 ? "Full" : `${outfitSuggestLeft}/${outfitSuggestLimit}`}
-                </span>
               </div>
-              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(outfitSuggestLeft / outfitSuggestLimit) * 100}%` }}
-                  transition={{ duration: 0.6 }}
-                  className="h-full bg-primary rounded-full"
-                />
-              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                outfitSuggestLeft >= outfitSuggestLimit - 1
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                  : outfitSuggestLeft <= 3
+                    ? "bg-warning/15 text-warning"
+                    : "bg-secondary text-secondary-foreground"
+              }`}>
+                {outfitSuggestLeft >= outfitSuggestLimit - 1 ? "Full" : `${outfitSuggestLeft}/${outfitSuggestLimit}`}
+              </span>
             </div>
 
             {!hasEnoughClothes && (
@@ -391,9 +390,9 @@ export default function OutfitSuggest() {
             )}
 
             {/* OR ADD CONTEXT divider */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-3 pt-1">
               <div className="flex-1 h-px bg-border" />
-              <span className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+              <span className="text-[10px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
                 Or add context
               </span>
               <div className="flex-1 h-px bg-border" />

@@ -70,7 +70,6 @@ export default function HeroCard({
   location,
 }: Props) {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   // Fetch 4-day forecast based on resolved location from current weather query
   const { data: forecast = [] } = useQuery({

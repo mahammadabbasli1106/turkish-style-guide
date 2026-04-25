@@ -125,7 +125,7 @@ export default function HeroCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-3xl p-5 text-white relative overflow-hidden shadow-warm"
+      className="rounded-3xl px-5 pt-5 pb-5 text-white relative overflow-hidden shadow-warm"
       style={{
         background:
           "linear-gradient(155deg, hsl(265, 60%, 55%) 0%, hsl(280, 65%, 50%) 60%, hsl(255, 55%, 38%) 100%)",
@@ -142,55 +142,60 @@ export default function HeroCard({
       />
 
       <div className="relative z-10 space-y-4">
-        {/* Greeting */}
-        <div>
-          <p className="text-white/70 text-xs font-medium">{dateLabel}</p>
-          <h1 className="font-display text-2xl font-bold mt-0.5 leading-tight">
-            {greeting},<br />
-            {firstName} <span className="inline-block">👋</span>
-          </h1>
+        {/* Greeting row with profile chip */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-white/55 text-[11px] font-semibold">{dateLabel}</p>
+            <h1 className="font-display text-[19px] font-extrabold mt-0.5 leading-tight tracking-tight truncate">
+              {greeting},
+            </h1>
+            <h1 className="font-display text-[19px] font-extrabold leading-tight tracking-tight truncate">
+              {firstName} <span className="inline-block">👋</span>
+            </h1>
+          </div>
         </div>
 
-        {/* Inner weather card */}
-        <div className="rounded-2xl p-4 bg-white/10 backdrop-blur-md border border-white/10">
+        {/* Inner weather + CTA card */}
+        <div className="rounded-2xl p-3.5 bg-white/[0.13] border border-white/10">
           {weatherLoading ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 py-2">
               <Loader2 className="h-5 w-5 animate-spin text-white" />
               <span className="text-sm text-white/80">Loading weather…</span>
             </div>
           ) : weather ? (
             <>
-              <div className="flex items-center gap-1.5 mb-2">
-                <MapPin size={12} className="text-white/80" />
-                <span className="text-[11px] font-bold tracking-wider uppercase text-white/85">
-                  {weather.location}
-                </span>
-              </div>
-
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-bold leading-none">
-                    {weather.temperature}°
-                  </span>
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-sm font-semibold text-white/95">
-                      {weather.description}
+              <div className="flex items-start justify-between gap-3 mb-2.5">
+                <div>
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <MapPin size={10} className="text-white/55" />
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-white/55">
+                      {weather.location}
                     </span>
-                    <span className="text-[11px] text-white/70">
-                      H:{weather.feelsLike}° · L:
-                      {Math.round(
-                        weather.temperature -
-                          (weather.temperature - weather.feelsLike) * 1.5
-                      )}
-                      °
+                  </div>
+                  <div className="flex items-end gap-1.5">
+                    <span className="font-display text-[40px] font-extrabold leading-[0.85] tracking-tighter">
+                      {weather.temperature}°
                     </span>
+                    <div className="flex flex-col leading-tight pb-0.5">
+                      <span className="text-[11px] font-semibold text-white/80">
+                        {weather.description}
+                      </span>
+                      <span className="text-[10px] text-white/45">
+                        H:{weather.feelsLike}° · L:
+                        {Math.round(
+                          weather.temperature -
+                            (weather.temperature - weather.feelsLike) * 1.5
+                        )}
+                        °
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Condition icon chip */}
-                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/10 flex flex-col items-center justify-center shrink-0">
-                  {getWeatherIcon(getWeatherCondition(weather.description), 24)}
-                  <span className="text-[8px] font-bold tracking-wider mt-0.5 text-white/80 uppercase">
+                <div className="bg-white/[0.14] rounded-[13px] px-2.5 py-2 flex flex-col items-center shrink-0">
+                  {getWeatherIcon(getWeatherCondition(weather.description), 22)}
+                  <span className="text-[8px] font-bold tracking-wider mt-0.5 text-white/50 uppercase">
                     {weather.description.split(" ")[0].slice(0, 8)}
                   </span>
                 </div>
@@ -198,44 +203,44 @@ export default function HeroCard({
 
               {/* 4-day forecast */}
               {forecast.length > 0 && (
-                <div className="grid grid-cols-4 gap-2 mt-4">
+                <div className="grid grid-cols-4 gap-1 mb-2.5">
                   {forecast.map((d, i) => (
                     <div
                       key={i}
-                      className="rounded-xl bg-white/10 border border-white/10 px-1 py-2 flex flex-col items-center"
+                      className="rounded-[9px] bg-white/10 px-1 py-1.5 flex flex-col items-center"
                     >
-                      <span className="text-[10px] font-semibold text-white/80">
+                      <span className="text-[9px] font-bold text-white/55">
                         {d.date.toLocaleDateString(undefined, { weekday: "short" })}
                       </span>
-                      <div className="my-1">
-                        {getWeatherIcon(getWeatherCondition(d.description), 16)}
+                      <div className="my-0.5">
+                        {getWeatherIcon(getWeatherCondition(d.description), 14)}
                       </div>
-                      <span className="text-sm font-bold leading-none">
+                      <span className="text-[10px] font-extrabold leading-none">
                         {d.temperature}°
                       </span>
-                      <span className="text-[9px] text-white/70 mt-0.5">
+                      <span className="text-[8px] text-white/45 mt-0.5">
                         {tempHint(d.temperature)}
                       </span>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* CTA inside weather card */}
+              <button
+                onClick={() => navigate("/dashboard/suggest")}
+                className="w-full rounded-[11px] bg-white/[0.18] hover:bg-white/[0.24] active:bg-white/30 active:scale-[0.98] transition-all border border-white/[0.28] py-2.5 px-3 flex items-center justify-center gap-1.5 font-bold text-[12px]"
+              >
+                <Sparkles size={14} className="fill-white text-white" />
+                <span>Get today's outfit</span>
+              </button>
             </>
           ) : (
-            <p className="text-sm text-white/80">
+            <p className="text-sm text-white/80 py-2">
               Weather unavailable. Add a location in Settings.
             </p>
           )}
         </div>
-
-        {/* CTA */}
-        <button
-          onClick={() => navigate("/dashboard/suggest")}
-          className="w-full rounded-2xl bg-white/15 hover:bg-white/20 active:bg-white/25 active:scale-[0.98] transition-all backdrop-blur-md border border-white/15 py-3.5 px-4 flex items-center justify-center gap-2 font-semibold text-base"
-        >
-          <Sparkles size={18} className="fill-white text-white" />
-          <span>Get today's outfit</span>
-        </button>
       </div>
     </motion.div>
   );

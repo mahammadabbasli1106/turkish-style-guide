@@ -135,60 +135,61 @@ export default function StreakDetail() {
           )}
         </motion.div>
 
-        {/* Reward timeline */}
+        {/* Milestone map */}
         <div className="bg-card rounded-2xl p-5 border border-border">
-          <h3 className="font-display text-base font-semibold text-foreground mb-4">
-            Rewards
+          <h3 className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-4">
+            Milestone map
           </h3>
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-5 top-2 bottom-2 w-0.5 bg-border" />
-
-            <div className="space-y-5">
-              {REWARDS.map((reward) => {
-                const unlocked = level >= reward.level;
-                const isCurrent = level === reward.level;
-                return (
-                  <div key={reward.level} className="relative flex items-start gap-4">
-                    <div
-                      className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                        unlocked
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      } ${isCurrent ? "ring-4 ring-primary/20" : ""}`}
-                    >
-                      {unlocked ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          Lv. {reward.level}
-                        </span>
-                        <span className="text-lg">{reward.icon}</span>
-                        <span
-                          className={`font-semibold ${
-                            unlocked ? "text-foreground" : "text-muted-foreground"
-                          }`}
-                        >
-                          {reward.name}
-                        </span>
-                      </div>
-                      <p
-                        className={`text-xs mt-0.5 ${
-                          unlocked ? "text-muted-foreground" : "text-muted-foreground/70"
-                        }`}
-                      >
-                        {reward.description}
-                      </p>
-                    </div>
+          <div className="space-y-4">
+            {REWARDS.map((reward) => {
+              const unlocked = level >= reward.level;
+              const isCurrent = level + 1 === reward.level;
+              return (
+                <div key={reward.level} className="flex items-start gap-3">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-extrabold ${
+                      unlocked
+                        ? "bg-primary text-primary-foreground"
+                        : isCurrent
+                        ? "bg-primary/15 text-primary border-[1.5px] border-primary"
+                        : "bg-muted text-muted-foreground/60 border border-border"
+                    }`}
+                  >
+                    {unlocked ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      reward.level
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`text-[13px] font-bold leading-tight ${
+                        unlocked
+                          ? "text-foreground"
+                          : isCurrent
+                          ? "text-primary"
+                          : "text-muted-foreground/70"
+                      }`}
+                    >
+                      Level {reward.level} — {reward.name} {unlocked && "✓"}
+                    </p>
+                    <p
+                      className={`text-[11px] mt-0.5 leading-snug ${
+                        unlocked
+                          ? "text-muted-foreground"
+                          : isCurrent
+                          ? "text-muted-foreground"
+                          : "text-muted-foreground/60"
+                      }`}
+                    >
+                      {isCurrent && toNext > 0
+                        ? `${toNext} more check-in${toNext === 1 ? "" : "s"} to unlock`
+                        : reward.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

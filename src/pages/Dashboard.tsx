@@ -11,7 +11,7 @@ import QuickActions from "@/components/dashboard/QuickActions";
 import StatsStack from "@/components/dashboard/StatsStack";
 import GettingStartedBanner from "@/components/dashboard/GettingStartedBanner";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
-import FloatingActionButton from "@/components/FloatingActionButton";
+
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
@@ -205,8 +205,6 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* FAB */}
-      <FloatingActionButton />
     </DashboardLayout>
   );
 }

@@ -276,11 +276,22 @@ export default function OutfitSuggest() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6 max-w-lg mx-auto"
       >
-        {/* Brand header row */}
-        <div className="flex items-center justify-between">
+        {/* Brand row — hidden on mobile (layout header shows it) */}
+        <div className="hidden lg:flex items-center justify-between">
           <span className="font-display text-2xl font-extrabold text-primary tracking-tight">
             tarzly<span className="text-foreground/80">.ai</span>
           </span>
+          <Link
+            to="/dashboard/history"
+            aria-label="Outfit history"
+            className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-card hover:bg-secondary transition-colors"
+          >
+            <History size={18} className="text-foreground" />
+          </Link>
+        </div>
+
+        {/* Mobile-only: history quick-access pinned to right */}
+        <div className="flex lg:hidden justify-end -mb-2">
           <Link
             to="/dashboard/history"
             aria-label="Outfit history"

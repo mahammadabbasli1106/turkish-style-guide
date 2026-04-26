@@ -179,6 +179,41 @@ export default function VirtualTryOn() {
     },
   });
 
+  // Auto-select an item from a passed-in outfit suggestion and auto-trigger try-on.
+  // Priority: outerwear → upper_body → lower_body → footwear → accessory.
+  useEffect(() => {
+    if (autoStarted) return;
+    if (!incomingSuggestion?.items) return;
+    if (!clothingItems.length) return;
+
+    const order = ["outerwear", "upper_body", "lower_body", "footwear", "accessory"] as const;
+    let pickedId: string | null = null;
+    for (const cat of order) {
+      const candidate = incomingSuggestion.items?.[cat];
+      if (candidate?.id) {
+        pickedId = candidate.id;
+        break;
+      }
+    }
+    if (!pickedId) return;
+    const match = clothingItems.find((c) => c.id === pickedId);
+    if (!match) return;
+
+    setSelectedItem(match);
+    setAutoStarted(true);
+  }, [incomingSuggestion, clothingItems, autoStarted]);
+
+  // Once we have selected item + display image + capacity, trigger generation.
+  const displayImageEarly = userImage || (profile as any)?.full_body_photo_url;
+  useEffect(() => {
+    if (!autoStarted) return;
+    if (!selectedItem || !displayImageEarly) return;
+    if (resultImage || tryOnMutation.isPending) return;
+    if (!canTryOn) return;
+    tryOnMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStarted, selectedItem, displayImageEarly, canTryOn]);
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;

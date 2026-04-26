@@ -110,15 +110,30 @@ export default function Wardrobe() {
 
         toast.loading("AI is analyzing your clothing...", { id: toastId });
 
-        const { data: categoryData, error: categoryError } = await supabase.functions.invoke(
-          "categorize-clothing",
-          { body: { imageUrl: base64 } }
-        );
+        // Retry up to 3x for transient edge runtime errors (503/cold start)
+        let categoryData: any = null;
+        let categoryError: any = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const res = await supabase.functions.invoke("categorize-clothing", {
+            body: { imageUrl: base64 },
+          });
+          categoryData = res.data;
+          categoryError = res.error;
+          const msg = String(categoryError?.message || "").toLowerCase();
+          const isTransient =
+            categoryError &&
+            (msg.includes("non-2xx") ||
+              msg.includes("503") ||
+              msg.includes("temporarily") ||
+              msg.includes("failed to send"));
+          if (!isTransient) break;
+          await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+        }
 
         toast.dismiss(toastId);
 
         if (categoryError) {
-          throw new Error(categoryError.message || "AI couldn't analyze this image");
+          throw new Error("The AI service is briefly unavailable. Please try again in a moment.");
         }
         if (categoryData?.error) {
           throw new Error(categoryData.message || categoryData.error);

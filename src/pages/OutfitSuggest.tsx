@@ -58,6 +58,8 @@ export default function OutfitSuggest() {
   const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
   const [venue, setVenue] = useState("");
+  const [predictingVenue, setPredictingVenue] = useState(false);
+  const [venueHint, setVenueHint] = useState<string | null>(null);
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [levelUpData, setLevelUpData] = useState<{ level: number; reward: ReturnType<typeof getCurrentReward> } | null>(null);
   const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, recordUsage } = useUsageLimits();
@@ -103,6 +105,32 @@ export default function OutfitSuggest() {
       setStyle(userPreferences.preferred_styles[0]);
     }
   }, [userPreferences]);
+
+  // Auto-predict style + occasion when user types a venue (debounced)
+  useEffect(() => {
+    const trimmed = venue.trim();
+    if (trimmed.length < 3) {
+      setVenueHint(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setPredictingVenue(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("predict-venue-context", {
+          body: { venue: trimmed, location: location || undefined },
+        });
+        if (error || data?.error) return;
+        if (data?.style) setStyle(data.style);
+        if (data?.occasion) setOccasion(data.occasion);
+        setVenueHint(data?.reason || `AI picked ${data.style} · ${data.occasion}`);
+      } catch (e) {
+        // Silent fail — user can still pick manually
+      } finally {
+        setPredictingVenue(false);
+      }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [venue, location]);
 
   const styles = [
     { value: "casual", label: t("style.casual") },
@@ -401,8 +429,12 @@ export default function OutfitSuggest() {
             {/* Context form */}
             <div className="bg-card rounded-2xl p-5 border border-border shadow-card space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="venue" className="text-xs text-muted-foreground font-medium">
+                <Label htmlFor="venue" className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Building size={12} />
                   Venue name
+                  {predictingVenue && (
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                  )}
                 </Label>
                 <Input
                   id="venue"
@@ -411,6 +443,12 @@ export default function OutfitSuggest() {
                   onChange={(e) => setVenue(e.target.value)}
                   className="bg-background"
                 />
+                {venueHint && !predictingVenue && (
+                  <p className="text-[11px] text-primary flex items-start gap-1 pt-0.5">
+                    <Sparkles className="h-3 w-3 mt-[1px] shrink-0" />
+                    <span>{venueHint} <span className="text-muted-foreground">— change below if needed.</span></span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

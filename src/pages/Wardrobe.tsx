@@ -82,6 +82,7 @@ export default function Wardrobe() {
 
     setUploading(true);
     let successCount = 0;
+    let duplicateCount = 0;
 
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) continue;
@@ -91,28 +92,57 @@ export default function Wardrobe() {
         break;
       }
 
+      let uploadedPath: string | null = null;
+      const toastId = `categorize-${Date.now()}-${Math.random()}`;
+
       try {
-        const fileExt = file.name.split(".").pop();
+        const fileExt = (file.name.split(".").pop() || "jpg").toLowerCase();
         const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("clothing-images")
           .upload(fileName, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+        uploadedPath = fileName;
 
         const base64 = await fileToBase64(file);
 
-        toast.loading("AI is analyzing your clothing...", { id: `categorize-${fileName}` });
-        
+        toast.loading("AI is analyzing your clothing...", { id: toastId });
+
         const { data: categoryData, error: categoryError } = await supabase.functions.invoke(
           "categorize-clothing",
           { body: { imageUrl: base64 } }
         );
 
-        toast.dismiss(`categorize-${fileName}`);
+        toast.dismiss(toastId);
 
-        if (categoryError) throw categoryError;
+        if (categoryError) {
+          throw new Error(categoryError.message || "AI couldn't analyze this image");
+        }
+        if (categoryData?.error) {
+          throw new Error(categoryData.message || categoryData.error);
+        }
+        if (!categoryData?.category || !categoryData?.name) {
+          throw new Error("AI couldn't recognize this clothing item");
+        }
+
+        // Duplicate detection: same name + category + color already in wardrobe
+        const normalizedName = String(categoryData.name).trim().toLowerCase();
+        const normalizedColor = (categoryData.color || "").trim().toLowerCase();
+        const isDuplicate = clothingItems.some(
+          (existing) =>
+            existing.category === categoryData.category &&
+            existing.name.trim().toLowerCase() === normalizedName &&
+            (existing.color || "").trim().toLowerCase() === normalizedColor
+        );
+
+        if (isDuplicate) {
+          // Skip insert, clean up the uploaded image
+          await supabase.storage.from("clothing-images").remove([uploadedPath]);
+          duplicateCount++;
+          continue;
+        }
 
         const { error: dbError } = await supabase
           .from("clothing_items")
@@ -126,11 +156,16 @@ export default function Wardrobe() {
             ai_tags: categoryData.tags || [],
           });
 
-        if (dbError) throw dbError;
+        if (dbError) throw new Error(`Save failed: ${dbError.message}`);
         successCount++;
-      } catch (error) {
+      } catch (error: any) {
+        toast.dismiss(toastId);
         console.error("Upload error:", error);
-        toast.error(`Failed to upload: ${file.name}`);
+        // Clean up orphaned storage upload if categorize/save failed
+        if (uploadedPath) {
+          await supabase.storage.from("clothing-images").remove([uploadedPath]).catch(() => {});
+        }
+        toast.error(error?.message || `Failed to upload ${file.name}`);
       }
     }
 
@@ -138,6 +173,9 @@ export default function Wardrobe() {
       queryClient.invalidateQueries({ queryKey: ["clothing-items"] });
       queryClient.invalidateQueries({ queryKey: ["clothing-count"] });
       toast.success(`Added ${successCount} item${successCount > 1 ? "s" : ""}`);
+    }
+    if (duplicateCount > 0) {
+      toast(`Skipped ${duplicateCount} duplicate${duplicateCount > 1 ? "s" : ""} already in your wardrobe`);
     }
 
     setUploading(false);

@@ -99,7 +99,26 @@ export default function StepWardrobeBuild({ t, onSkip }: Props) {
         { body: { imageUrl: base64 } }
       );
       if (categoryError) throw new Error(categoryError.message || "AI categorization failed");
+      if (categoryData?.error) throw new Error(categoryData.message || categoryData.error);
       if (!categoryData?.category) throw new Error("AI couldn't recognize the item");
+
+      // Duplicate check — silently skip if same name+category+color exists
+      const normName = String(categoryData.name).trim().toLowerCase();
+      const normColor = (categoryData.color || "").trim().toLowerCase();
+      const dup = (items as any[]).some(
+        (existing) =>
+          existing.category === categoryData.category &&
+          (existing.name || "").trim().toLowerCase() === normName &&
+          (existing.color || "").trim().toLowerCase() === normColor
+      );
+      if (dup) {
+        // Clean up uploaded file
+        await supabase.storage.from("clothing-images").remove([storagePath]).catch(() => {});
+        updateJob(job.id, { status: "done", errorMessage: undefined });
+        setTimeout(() => removeJob(job.id), 1200);
+        toast("Already in your wardrobe — skipped");
+        return;
+      }
 
       // Save to DB
       updateJob(job.id, { status: "saving" });

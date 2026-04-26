@@ -895,4 +895,13 @@ i18n
     }
   });
 
+// Sync <html> lang + dir (RTL for Arabic) on init and on every language change
+function applyHtmlLangDir(lng: string) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = lng;
+  document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+}
+applyHtmlLangDir(defaultLanguage);
+i18n.on('languageChanged', applyHtmlLangDir);
+
 export default i18n;

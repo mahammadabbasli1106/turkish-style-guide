@@ -43,6 +43,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   accessory: "Accessory",
 };
 
+const SHORT_LABELS_LOCAL: Record<string, string> = {
+  upper_body: "Top",
+  lower_body: "Bottom",
+  outerwear: "Outer",
+  footwear: "Shoes",
+  accessory: "Accent",
+};
+
 // Best-effort: parse a color string to a usable CSS color or fall back
 function colorToCss(c: string | null | undefined): string {
   if (!c) return "hsl(var(--muted))";
@@ -83,7 +91,7 @@ export default function VirtualTryOn() {
   const incomingSuggestion = (routerLocation.state as any)?.suggestion;
   const { user, session, loading } = useAuth();
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [tryOnStatus, setTryOnStatus] =
     useState<"idle" | "analyzing" | "generating" | "completed">("idle");
@@ -129,10 +137,24 @@ export default function VirtualTryOn() {
     enabled: !!user,
   });
 
+  // Compute display image up here so it's available to the mutation closure
+  const displayImage = userImage || (profile as any)?.full_body_photo_url;
+
+  // Toggle a clothing item; keep one item per category for a coherent outfit
+  const toggleItem = (item: ClothingItem) => {
+    setSelectedItems((prev) => {
+      const exists = prev.find((p) => p.id === item.id);
+      if (exists) return prev.filter((p) => p.id !== item.id);
+      const filtered = prev.filter((p) => p.category !== item.category);
+      return [...filtered, item];
+    });
+    setResultImage(null);
+  };
+
   const tryOnMutation = useMutation({
     mutationFn: async () => {
-      if (!session || !selectedItem || !displayImage) {
-        throw new Error("Missing required data");
+      if (selectedItems.length === 0 || !displayImage) {
+        throw new Error("Pick at least one item and add your photo");
       }
       if (!canTryOn) {
         toast(LIMIT_REACHED_MESSAGE);
@@ -141,20 +163,30 @@ export default function VirtualTryOn() {
 
       setTryOnStatus("analyzing");
 
-      const compressedUserImage = await compressImage(displayImage, 512, 0.6);
-      const compressedItemImage = await compressImage(
-        selectedItem.image_url,
-        512,
-        0.6
+      // Primary item = first in priority order; rest become additionalItems
+      const order = ["outerwear", "upper_body", "lower_body", "footwear", "accessory"] as const;
+      const sorted = [...selectedItems].sort(
+        (a, b) =>
+          order.indexOf(a.category as any) - order.indexOf(b.category as any)
       );
+      const primary = sorted[0];
+      const extras = sorted.slice(1);
+
+      const compressedUserImage = await compressImage(displayImage, 512, 0.6);
+      const compressedItemImage = await compressImage(primary.image_url, 512, 0.6);
 
       const stepTimer = setTimeout(() => setTryOnStatus("generating"), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: {
-          clothingItemId: selectedItem.id,
+          clothingItemId: primary.id,
           userImageBase64: compressedUserImage,
           clothingImageBase64: compressedItemImage,
+          additionalItems: extras.map((e) => ({
+            name: e.name,
+            category: e.category,
+            color: e.color,
+          })),
         },
       });
 
@@ -175,44 +207,35 @@ export default function VirtualTryOn() {
       setTryOnStatus("idle");
       if (error.message === "__limit__") return;
       console.error("Try-on error:", error);
-      toast.error(error.message);
+      toast.error(error.message || "Try-on failed. Please try again.");
     },
   });
 
-  // Auto-select an item from a passed-in outfit suggestion and auto-trigger try-on.
-  // Priority: outerwear → upper_body → lower_body → footwear → accessory.
+  // Auto-select ALL items from an incoming outfit suggestion
   useEffect(() => {
     if (autoStarted) return;
     if (!incomingSuggestion?.items) return;
     if (!clothingItems.length) return;
 
-    const order = ["outerwear", "upper_body", "lower_body", "footwear", "accessory"] as const;
-    let pickedId: string | null = null;
-    for (const cat of order) {
-      const candidate = incomingSuggestion.items?.[cat];
-      if (candidate?.id) {
-        pickedId = candidate.id;
-        break;
-      }
-    }
-    if (!pickedId) return;
-    const match = clothingItems.find((c) => c.id === pickedId);
-    if (!match) return;
+    const ids = Object.values(incomingSuggestion.items)
+      .map((it: any) => it?.id)
+      .filter(Boolean) as string[];
+    const matches = clothingItems.filter((c) => ids.includes(c.id));
+    if (matches.length === 0) return;
 
-    setSelectedItem(match);
+    setSelectedItems(matches);
     setAutoStarted(true);
   }, [incomingSuggestion, clothingItems, autoStarted]);
 
-  // Once we have selected item + display image + capacity, trigger generation.
-  const displayImageEarly = userImage || (profile as any)?.full_body_photo_url;
+  // Once we have selected items + display image + capacity, trigger generation.
   useEffect(() => {
     if (!autoStarted) return;
-    if (!selectedItem || !displayImageEarly) return;
+    if (selectedItems.length === 0 || !displayImage) return;
     if (resultImage || tryOnMutation.isPending) return;
     if (!canTryOn) return;
     tryOnMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStarted, selectedItem, displayImageEarly, canTryOn]);
+  }, [autoStarted, selectedItems, displayImage, canTryOn]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -230,9 +253,10 @@ export default function VirtualTryOn() {
   };
 
   const handleReset = () => {
-    setSelectedItem(null);
+    setSelectedItems([]);
     setResultImage(null);
     setTryOnStatus("idle");
+    setAutoStarted(false);
   };
 
   const handleDownload = async () => {
@@ -277,8 +301,7 @@ export default function VirtualTryOn() {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  const displayImage = userImage || (profile as any)?.full_body_photo_url;
-
+  const primarySelected = selectedItems[0];
   return (
     <DashboardLayout>
       {/* Header */}
@@ -314,12 +337,19 @@ export default function VirtualTryOn() {
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
           {/* Item slot */}
           <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-primary/10 border border-primary/15 flex flex-col items-center justify-center relative">
-            {selectedItem ? (
-              <img
-                src={selectedItem.image_url}
-                alt={selectedItem.name}
-                className="w-full h-full object-cover"
-              />
+            {primarySelected ? (
+              <>
+                <img
+                  src={primarySelected.image_url}
+                  alt={primarySelected.name}
+                  className="w-full h-full object-cover"
+                />
+                {selectedItems.length > 1 && (
+                  <span className="absolute top-1.5 right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center shadow-card">
+                    +{selectedItems.length - 1}
+                  </span>
+                )}
+              </>
             ) : (
               <>
                 <Shirt className="h-10 w-10 text-primary/70 mb-2" strokeWidth={1.5} />
@@ -373,50 +403,36 @@ export default function VirtualTryOn() {
           className="hidden"
         />
 
-        {/* Item details card */}
-        {selectedItem && (
+        {/* Selected items pills */}
+        {selectedItems.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card rounded-2xl p-5 border border-border shadow-card space-y-3"
+            className="bg-card rounded-2xl p-4 border border-border shadow-card space-y-3"
           >
-            <div>
-              <p className="font-display text-lg font-bold text-foreground leading-tight">
-                {selectedItem.name}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {CATEGORY_LABELS[selectedItem.category] || selectedItem.category}
-                {selectedItem.ai_tags?.length ? " · AI detected" : ""}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedItem.color && (
-                <>
-                  <span
-                    className="w-6 h-6 rounded-full border border-border shrink-0"
-                    style={{ background: colorToCss(selectedItem.color) }}
-                    title={selectedItem.color}
-                  />
-                  {/* Show second swatch if compound color (e.g. "navy/black") */}
-                  {selectedItem.color.includes("/") && (
-                    <span
-                      className="w-6 h-6 rounded-full border border-border shrink-0 -ml-3"
-                      style={{ background: colorToCss(selectedItem.color.split("/")[1]) }}
-                    />
-                  )}
-                </>
-              )}
-              {selectedItem.season?.map((s) => (
-                <span
-                  key={s}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary capitalize"
+            <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+              Trying on ({selectedItems.length})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {selectedItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => toggleItem(item)}
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
                 >
-                  {s}
-                </span>
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                  <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                    {item.name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {SHORT_LABELS_LOCAL[item.category] || ""}
+                  </span>
+                </button>
               ))}
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-accent/15 text-accent capitalize">
-                {CATEGORY_LABELS[selectedItem.category] || selectedItem.category}
-              </span>
             </div>
           </motion.div>
         )}
@@ -454,7 +470,7 @@ export default function VirtualTryOn() {
             <Button
               onClick={() => tryOnMutation.mutate()}
               disabled={
-                !displayImage || !selectedItem || tryOnMutation.isPending || !canTryOn
+                !displayImage || selectedItems.length === 0 || tryOnMutation.isPending || !canTryOn
               }
               className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-warm font-semibold disabled:opacity-50"
               size="lg"
@@ -498,15 +514,12 @@ export default function VirtualTryOn() {
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {clothingItems.map((item) => {
-                  const isSelected = selectedItem?.id === item.id;
+                  const isSelected = selectedItems.some((s) => s.id === item.id);
                   return (
                     <motion.button
                       key={item.id}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedItem(item);
-                        setResultImage(null);
-                      }}
+                      onClick={() => toggleItem(item)}
                       className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-colors ${
                         isSelected
                           ? "border-primary ring-2 ring-primary/20"

@@ -514,15 +514,12 @@ export default function VirtualTryOn() {
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {clothingItems.map((item) => {
-                  const isSelected = selectedItem?.id === item.id;
+                  const isSelected = selectedItems.some((s) => s.id === item.id);
                   return (
                     <motion.button
                       key={item.id}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedItem(item);
-                        setResultImage(null);
-                      }}
+                      onClick={() => toggleItem(item)}
                       className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-colors ${
                         isSelected
                           ? "border-primary ring-2 ring-primary/20"

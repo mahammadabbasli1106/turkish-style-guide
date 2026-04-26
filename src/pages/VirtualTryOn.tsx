@@ -395,50 +395,36 @@ export default function VirtualTryOn() {
           className="hidden"
         />
 
-        {/* Item details card */}
-        {selectedItem && (
+        {/* Selected items pills */}
+        {selectedItems.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card rounded-2xl p-5 border border-border shadow-card space-y-3"
+            className="bg-card rounded-2xl p-4 border border-border shadow-card space-y-3"
           >
-            <div>
-              <p className="font-display text-lg font-bold text-foreground leading-tight">
-                {selectedItem.name}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {CATEGORY_LABELS[selectedItem.category] || selectedItem.category}
-                {selectedItem.ai_tags?.length ? " · AI detected" : ""}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedItem.color && (
-                <>
-                  <span
-                    className="w-6 h-6 rounded-full border border-border shrink-0"
-                    style={{ background: colorToCss(selectedItem.color) }}
-                    title={selectedItem.color}
-                  />
-                  {/* Show second swatch if compound color (e.g. "navy/black") */}
-                  {selectedItem.color.includes("/") && (
-                    <span
-                      className="w-6 h-6 rounded-full border border-border shrink-0 -ml-3"
-                      style={{ background: colorToCss(selectedItem.color.split("/")[1]) }}
-                    />
-                  )}
-                </>
-              )}
-              {selectedItem.season?.map((s) => (
-                <span
-                  key={s}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary capitalize"
+            <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+              Trying on ({selectedItems.length})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {selectedItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => toggleItem(item)}
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
                 >
-                  {s}
-                </span>
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                  <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                    {item.name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {SHORT_LABELS_LOCAL[item.category] || ""}
+                  </span>
+                </button>
               ))}
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-accent/15 text-accent capitalize">
-                {CATEGORY_LABELS[selectedItem.category] || selectedItem.category}
-              </span>
             </div>
           </motion.div>
         )}

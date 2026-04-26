@@ -58,6 +58,8 @@ export default function OutfitSuggest() {
   const [location, setLocation] = useState("");
   const [occasion, setOccasion] = useState("");
   const [venue, setVenue] = useState("");
+  const [predictingVenue, setPredictingVenue] = useState(false);
+  const [venueHint, setVenueHint] = useState<string | null>(null);
   const [currentSuggestion, setCurrentSuggestion] = useState<OutfitSuggestion | null>(null);
   const [levelUpData, setLevelUpData] = useState<{ level: number; reward: ReturnType<typeof getCurrentReward> } | null>(null);
   const { canSuggestOutfit, outfitSuggestLeft, outfitSuggestLimit, recordUsage } = useUsageLimits();

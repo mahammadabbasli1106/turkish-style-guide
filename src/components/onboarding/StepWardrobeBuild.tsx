@@ -92,13 +92,27 @@ export default function StepWardrobeBuild({ t, onSkip }: Props) {
 
       if (!storagePath || !base64) throw new Error("Missing file data");
 
-      // AI categorize
+      // AI categorize (retry transient 503/cold-start errors)
       updateJob(job.id, { status: "categorizing", errorMessage: undefined });
-      const { data: categoryData, error: categoryError } = await supabase.functions.invoke(
-        "categorize-clothing",
-        { body: { imageUrl: base64 } }
-      );
-      if (categoryError) throw new Error(categoryError.message || "AI categorization failed");
+      let categoryData: any = null;
+      let categoryError: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await supabase.functions.invoke("categorize-clothing", {
+          body: { imageUrl: base64 },
+        });
+        categoryData = res.data;
+        categoryError = res.error;
+        const msg = String(categoryError?.message || "").toLowerCase();
+        const isTransient =
+          categoryError &&
+          (msg.includes("non-2xx") ||
+            msg.includes("503") ||
+            msg.includes("temporarily") ||
+            msg.includes("failed to send"));
+        if (!isTransient) break;
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+      if (categoryError) throw new Error("AI service is briefly unavailable. Please try again.");
       if (categoryData?.error) throw new Error(categoryData.message || categoryData.error);
       if (!categoryData?.category) throw new Error("AI couldn't recognize the item");
 

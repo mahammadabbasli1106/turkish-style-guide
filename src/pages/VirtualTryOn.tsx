@@ -470,7 +470,7 @@ export default function VirtualTryOn() {
             <Button
               onClick={() => tryOnMutation.mutate()}
               disabled={
-                !displayImage || !selectedItem || tryOnMutation.isPending || !canTryOn
+                !displayImage || selectedItems.length === 0 || tryOnMutation.isPending || !canTryOn
               }
               className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-warm font-semibold disabled:opacity-50"
               size="lg"

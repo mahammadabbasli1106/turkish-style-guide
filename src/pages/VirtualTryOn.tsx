@@ -83,7 +83,7 @@ export default function VirtualTryOn() {
   const incomingSuggestion = (routerLocation.state as any)?.suggestion;
   const { user, session, loading } = useAuth();
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [tryOnStatus, setTryOnStatus] =
     useState<"idle" | "analyzing" | "generating" | "completed">("idle");
@@ -129,10 +129,24 @@ export default function VirtualTryOn() {
     enabled: !!user,
   });
 
+  // Compute display image up here so it's available to the mutation closure
+  const displayImage = userImage || (profile as any)?.full_body_photo_url;
+
+  // Toggle a clothing item; keep one item per category for a coherent outfit
+  const toggleItem = (item: ClothingItem) => {
+    setSelectedItems((prev) => {
+      const exists = prev.find((p) => p.id === item.id);
+      if (exists) return prev.filter((p) => p.id !== item.id);
+      const filtered = prev.filter((p) => p.category !== item.category);
+      return [...filtered, item];
+    });
+    setResultImage(null);
+  };
+
   const tryOnMutation = useMutation({
     mutationFn: async () => {
-      if (!session || !selectedItem || !displayImage) {
-        throw new Error("Missing required data");
+      if (selectedItems.length === 0 || !displayImage) {
+        throw new Error("Pick at least one item and add your photo");
       }
       if (!canTryOn) {
         toast(LIMIT_REACHED_MESSAGE);
@@ -141,20 +155,30 @@ export default function VirtualTryOn() {
 
       setTryOnStatus("analyzing");
 
-      const compressedUserImage = await compressImage(displayImage, 512, 0.6);
-      const compressedItemImage = await compressImage(
-        selectedItem.image_url,
-        512,
-        0.6
+      // Primary item = first in priority order; rest become additionalItems
+      const order = ["outerwear", "upper_body", "lower_body", "footwear", "accessory"] as const;
+      const sorted = [...selectedItems].sort(
+        (a, b) =>
+          order.indexOf(a.category as any) - order.indexOf(b.category as any)
       );
+      const primary = sorted[0];
+      const extras = sorted.slice(1);
+
+      const compressedUserImage = await compressImage(displayImage, 512, 0.6);
+      const compressedItemImage = await compressImage(primary.image_url, 512, 0.6);
 
       const stepTimer = setTimeout(() => setTryOnStatus("generating"), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
         body: {
-          clothingItemId: selectedItem.id,
+          clothingItemId: primary.id,
           userImageBase64: compressedUserImage,
           clothingImageBase64: compressedItemImage,
+          additionalItems: extras.map((e) => ({
+            name: e.name,
+            category: e.category,
+            color: e.color,
+          })),
         },
       });
 
@@ -175,44 +199,35 @@ export default function VirtualTryOn() {
       setTryOnStatus("idle");
       if (error.message === "__limit__") return;
       console.error("Try-on error:", error);
-      toast.error(error.message);
+      toast.error(error.message || "Try-on failed. Please try again.");
     },
   });
 
-  // Auto-select an item from a passed-in outfit suggestion and auto-trigger try-on.
-  // Priority: outerwear → upper_body → lower_body → footwear → accessory.
+  // Auto-select ALL items from an incoming outfit suggestion
   useEffect(() => {
     if (autoStarted) return;
     if (!incomingSuggestion?.items) return;
     if (!clothingItems.length) return;
 
-    const order = ["outerwear", "upper_body", "lower_body", "footwear", "accessory"] as const;
-    let pickedId: string | null = null;
-    for (const cat of order) {
-      const candidate = incomingSuggestion.items?.[cat];
-      if (candidate?.id) {
-        pickedId = candidate.id;
-        break;
-      }
-    }
-    if (!pickedId) return;
-    const match = clothingItems.find((c) => c.id === pickedId);
-    if (!match) return;
+    const ids = Object.values(incomingSuggestion.items)
+      .map((it: any) => it?.id)
+      .filter(Boolean) as string[];
+    const matches = clothingItems.filter((c) => ids.includes(c.id));
+    if (matches.length === 0) return;
 
-    setSelectedItem(match);
+    setSelectedItems(matches);
     setAutoStarted(true);
   }, [incomingSuggestion, clothingItems, autoStarted]);
 
-  // Once we have selected item + display image + capacity, trigger generation.
-  const displayImageEarly = userImage || (profile as any)?.full_body_photo_url;
+  // Once we have selected items + display image + capacity, trigger generation.
   useEffect(() => {
     if (!autoStarted) return;
-    if (!selectedItem || !displayImageEarly) return;
+    if (selectedItems.length === 0 || !displayImage) return;
     if (resultImage || tryOnMutation.isPending) return;
     if (!canTryOn) return;
     tryOnMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStarted, selectedItem, displayImageEarly, canTryOn]);
+  }, [autoStarted, selectedItems, displayImage, canTryOn]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

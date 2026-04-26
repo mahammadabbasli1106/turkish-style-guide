@@ -106,6 +106,32 @@ export default function OutfitSuggest() {
     }
   }, [userPreferences]);
 
+  // Auto-predict style + occasion when user types a venue (debounced)
+  useEffect(() => {
+    const trimmed = venue.trim();
+    if (trimmed.length < 3) {
+      setVenueHint(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setPredictingVenue(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("predict-venue-context", {
+          body: { venue: trimmed, location: location || undefined },
+        });
+        if (error || data?.error) return;
+        if (data?.style) setStyle(data.style);
+        if (data?.occasion) setOccasion(data.occasion);
+        setVenueHint(data?.reason || `AI picked ${data.style} · ${data.occasion}`);
+      } catch (e) {
+        // Silent fail — user can still pick manually
+      } finally {
+        setPredictingVenue(false);
+      }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [venue, location]);
+
   const styles = [
     { value: "casual", label: t("style.casual") },
     { value: "business", label: t("style.business") },

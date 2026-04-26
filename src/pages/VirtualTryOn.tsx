@@ -293,8 +293,7 @@ export default function VirtualTryOn() {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  const displayImage = userImage || (profile as any)?.full_body_photo_url;
-
+  const primarySelected = selectedItems[0];
   return (
     <DashboardLayout>
       {/* Header */}

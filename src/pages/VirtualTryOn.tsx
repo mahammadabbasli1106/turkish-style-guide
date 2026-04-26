@@ -79,12 +79,15 @@ function colorToCss(c: string | null | undefined): string {
 export default function VirtualTryOn() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
+  const incomingSuggestion = (routerLocation.state as any)?.suggestion;
   const { user, session, loading } = useAuth();
   const [userImage, setUserImage] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [tryOnStatus, setTryOnStatus] =
     useState<"idle" | "analyzing" | "generating" | "completed">("idle");
+  const [autoStarted, setAutoStarted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { canTryOn, tryOnsLeft, tryOnLimit, recordUsage } = useUsageLimits();
 

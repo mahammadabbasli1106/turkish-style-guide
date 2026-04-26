@@ -429,8 +429,12 @@ export default function OutfitSuggest() {
             {/* Context form */}
             <div className="bg-card rounded-2xl p-5 border border-border shadow-card space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="venue" className="text-xs text-muted-foreground font-medium">
+                <Label htmlFor="venue" className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Building size={12} />
                   Venue name
+                  {predictingVenue && (
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                  )}
                 </Label>
                 <Input
                   id="venue"
@@ -439,6 +443,12 @@ export default function OutfitSuggest() {
                   onChange={(e) => setVenue(e.target.value)}
                   className="bg-background"
                 />
+                {venueHint && !predictingVenue && (
+                  <p className="text-[11px] text-primary flex items-start gap-1 pt-0.5">
+                    <Sparkles className="h-3 w-3 mt-[1px] shrink-0" />
+                    <span>{venueHint} <span className="text-muted-foreground">— change below if needed.</span></span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

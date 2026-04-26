@@ -245,9 +245,10 @@ export default function VirtualTryOn() {
   };
 
   const handleReset = () => {
-    setSelectedItem(null);
+    setSelectedItems([]);
     setResultImage(null);
     setTryOnStatus("idle");
+    setAutoStarted(false);
   };
 
   const handleDownload = async () => {

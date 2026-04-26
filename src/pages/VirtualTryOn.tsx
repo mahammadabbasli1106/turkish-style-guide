@@ -329,12 +329,19 @@ export default function VirtualTryOn() {
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
           {/* Item slot */}
           <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-primary/10 border border-primary/15 flex flex-col items-center justify-center relative">
-            {selectedItem ? (
-              <img
-                src={selectedItem.image_url}
-                alt={selectedItem.name}
-                className="w-full h-full object-cover"
-              />
+            {primarySelected ? (
+              <>
+                <img
+                  src={primarySelected.image_url}
+                  alt={primarySelected.name}
+                  className="w-full h-full object-cover"
+                />
+                {selectedItems.length > 1 && (
+                  <span className="absolute top-1.5 right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center shadow-card">
+                    +{selectedItems.length - 1}
+                  </span>
+                )}
+              </>
             ) : (
               <>
                 <Shirt className="h-10 w-10 text-primary/70 mb-2" strokeWidth={1.5} />

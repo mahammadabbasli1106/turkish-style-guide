@@ -43,6 +43,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   accessory: "Accessory",
 };
 
+const SHORT_LABELS_LOCAL: Record<string, string> = {
+  upper_body: "Top",
+  lower_body: "Bottom",
+  outerwear: "Outer",
+  footwear: "Shoes",
+  accessory: "Accent",
+};
+
 // Best-effort: parse a color string to a usable CSS color or fall back
 function colorToCss(c: string | null | undefined): string {
   if (!c) return "hsl(var(--muted))";

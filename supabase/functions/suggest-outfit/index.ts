@@ -76,8 +76,22 @@ serve(async (req) => {
       .join("\n");
 
     const venueInstruction = venue
-      ? `\n8. Analyze the venue "${venue}" - consider its type, expected dress code, and atmosphere when choosing the outfit.`
+      ? `\nVENUE CONTEXT: "${venue}". You MUST infer its likely dress code (e.g. fine-dining = elegant; gym = sporty; office = business; club = streetwear/edgy) and ensure the outfit unambiguously fits that dress code. If venue and stated style conflict, lean toward the venue's expected dress code while staying within the user's chosen style family.`
       : "";
+
+    const tempC = typeof weather.temperature === "number" ? weather.temperature : 20;
+    const isCold = tempC < 15;
+    const isMild = tempC >= 15 && tempC < 22;
+    const isWarm = tempC >= 22 && tempC < 28;
+    const isHot = tempC >= 28;
+
+    const weatherRules = [
+      isCold ? "TEMPERATURE IS COLD (<15°C): you MUST include outerwear if any is available." : "",
+      isMild ? "TEMPERATURE IS MILD (15–22°C): light layering recommended; outerwear optional." : "",
+      isWarm ? "TEMPERATURE IS WARM (22–28°C): NO outerwear unless raining. Prefer breathable upper_body." : "",
+      isHot ? "TEMPERATURE IS HOT (≥28°C): absolutely NO outerwear. Lightest possible items only." : "",
+      weather.isRaining ? "IT IS RAINING: prioritise water-resistant outerwear and closed footwear." : "",
+    ].filter(Boolean).join("\n");
 
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
@@ -91,27 +105,36 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert fashion stylist AI. Given a user's wardrobe, weather, style preferences, venue, and occasion, suggest the best outfit. Return ONLY a JSON object with these fields:
-- "upper_body_id": uuid string or null
-- "lower_body_id": uuid string or null
-- "outerwear_id": uuid string or null (include if cold/rainy)
-- "footwear_id": uuid string or null
-- "accessory_id": uuid string or null
-- "reasoning": string explaining why this combination works
-- "venueAnalysis": string about venue dress code (empty string if no venue)
+            content: `You are an expert fashion stylist AI. You MUST strictly honour the user's inputs (style, occasion, venue, weather) and pick items ONLY from the provided wardrobe by their exact UUID.
 
-Rules: Only use item IDs from the provided wardrobe. For cold weather (<15°C) include outerwear. For rain prioritize appropriate items. Match style and occasion. If a category has no items, use null.`,
+Return ONLY a JSON object with these exact fields:
+- "upper_body_id": uuid string from wardrobe or null
+- "lower_body_id": uuid string from wardrobe or null
+- "outerwear_id": uuid string from wardrobe or null
+- "footwear_id": uuid string from wardrobe or null
+- "accessory_id": uuid string from wardrobe or null
+- "reasoning": short string (max 2 sentences) explaining HOW the chosen items match the requested style, occasion, venue, and weather
+- "venueAnalysis": short string about the venue's expected dress code (empty string if no venue)
+
+HARD RULES (must not violate):
+1. NEVER invent IDs. If a category has no items, return null for that category.
+2. The combination of upper_body + lower_body + footwear must visually and semantically match the requested STYLE ("${style}") and OCCASION ("${occasion}").
+3. Respect the WEATHER & VENUE rules below — they override stylistic preference.
+4. Avoid combinations that clash heavily in formality (e.g. tuxedo trousers with sneakers for a wedding).
+5. Reasoning must explicitly reference the style, occasion, and (if relevant) venue and temperature.`,
           },
           {
             role: "user",
-            content: `Style: ${style}
-Occasion: ${occasion}
-Location: ${location || "Not specified"}
-Venue: ${venue || "Not specified"}
-Weather: ${weather.description}, ${weather.temperature}°C, Humidity: ${weather.humidity}%, ${weather.feelsLike ? `Feels like: ${weather.feelsLike}°C` : ""}${weather.isRaining ? ", Currently raining" : ""}${venueInstruction}
+            content: `REQUESTED STYLE: ${style}
+REQUESTED OCCASION: ${occasion}
+LOCATION: ${location || "Not specified"}
+WEATHER: ${weather.description}, ${weather.temperature}°C${weather.feelsLike ? ` (feels like ${weather.feelsLike}°C)` : ""}, humidity ${weather.humidity}%${weather.isRaining ? ", currently raining" : ""}
+${weatherRules}${venueInstruction}
 
-Available wardrobe:
-${wardrobeDescription}`,
+AVAILABLE WARDROBE (only use these IDs):
+${wardrobeDescription}
+
+Pick the best outfit that satisfies STYLE + OCCASION + WEATHER + VENUE simultaneously.`,
           },
         ],
       }),

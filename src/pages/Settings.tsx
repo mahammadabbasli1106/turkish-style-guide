@@ -301,26 +301,32 @@ export default function Settings() {
         className="max-w-lg mx-auto space-y-6 pb-8"
       >
         {/* ── Hero Profile Section ── */}
-        <div className="relative rounded-3xl bg-gradient-to-br from-primary via-accent to-primary overflow-hidden pt-10 pb-6 px-6 text-center">
-          {/* Background pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-4 left-8 text-4xl">✦</div>
-            <div className="absolute top-8 right-12 text-3xl">✦</div>
-            <div className="absolute bottom-8 left-16 text-2xl">✦</div>
-            <div className="absolute bottom-4 right-8 text-4xl">✦</div>
+        <div className="relative rounded-3xl overflow-hidden pt-12 pb-7 px-6 text-center bg-gradient-to-br from-primary via-accent to-primary shadow-warm">
+          {/* Decorative glow blobs */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 -left-10 w-48 h-48 rounded-full bg-primary-foreground/15 blur-3xl" />
+            <div className="absolute -bottom-20 -right-10 w-56 h-56 rounded-full bg-accent/40 blur-3xl" />
+          </div>
+          {/* Sparkle pattern */}
+          <div className="absolute inset-0 opacity-15 pointer-events-none">
+            <div className="absolute top-4 left-8 text-3xl">✦</div>
+            <div className="absolute top-10 right-12 text-2xl">✦</div>
+            <div className="absolute bottom-10 left-16 text-xl">✦</div>
+            <div className="absolute bottom-5 right-10 text-3xl">✦</div>
           </div>
 
           {/* Avatar */}
           <div className="relative inline-block">
+            <div className="absolute inset-0 -m-1 rounded-full bg-primary-foreground/30 blur-md" aria-hidden />
             <img
               src={selectedAvatarUrl}
               alt="Avatar"
-              className="w-24 h-24 rounded-full border-4 border-primary-foreground/30 shadow-lg bg-card"
+              className="relative w-28 h-28 rounded-full border-4 border-primary-foreground/60 shadow-2xl bg-card"
             />
             <Dialog>
               <DialogTrigger asChild>
-                <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-card border-2 border-primary flex items-center justify-center shadow-md">
-                  <Camera className="h-3.5 w-3.5 text-primary" />
+                <button className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-card border-2 border-primary-foreground/80 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                  <Camera className="h-4 w-4 text-primary" />
                 </button>
               </DialogTrigger>
               <DialogContent className="max-w-sm">
@@ -346,11 +352,11 @@ export default function Settings() {
             </Dialog>
           </div>
 
-          {/* Name + premium */}
-          <h2 className="font-display text-xl font-bold text-primary-foreground mt-4">
+          {/* Name + email */}
+          <h2 className="font-display text-2xl font-extrabold text-primary-foreground mt-5 tracking-tight">
             {displayName || user.email?.split("@")[0]}
           </h2>
-          <p className="text-xs text-primary-foreground/70 mt-2">{user.email}</p>
+          <p className="text-xs text-primary-foreground/80 mt-1.5">{user.email}</p>
         </div>
 
         {/* ── Your Activity Card ── */}

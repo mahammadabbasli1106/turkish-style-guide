@@ -59,27 +59,54 @@
   }
 
   .dark {
-    --background: 260 15% 8%;
-    --foreground: 250 15% 92%;
-    --card: 260 12% 12%;
-    --card-foreground: 250 15% 92%;
-    --popover: 260 12% 12%;
-    --popover-foreground: 250 15% 92%;
-    --primary: 265 60% 55%;
-    --primary-foreground: 250 20% 97%;
-    --secondary: 260 10% 18%;
-    --secondary-foreground: 250 15% 85%;
-    --muted: 260 10% 18%;
-    --muted-foreground: 255 8% 55%;
-    --accent: 280 65% 60%;
-    --accent-foreground: 250 20% 97%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --warning: 38 92% 55%;
-    --warning-foreground: 260 15% 8%;
-    --border: 260 10% 20%;
-    --input: 260 10% 20%;
-    --ring: 265 60% 55%;
+    /* Richer, deeper plum-black background with subtle warmth */
+    --background: 260 22% 6%;
+    --foreground: 250 20% 96%;
+
+    /* Cards lifted from background with violet undertone */
+    --card: 260 18% 11%;
+    --card-foreground: 250 20% 96%;
+
+    --popover: 260 20% 9%;
+    --popover-foreground: 250 20% 96%;
+
+    /* Brighter primary so it pops against deep bg */
+    --primary: 270 80% 68%;
+    --primary-foreground: 260 25% 8%;
+
+    --secondary: 260 14% 18%;
+    --secondary-foreground: 250 18% 90%;
+
+    --muted: 260 14% 16%;
+    --muted-foreground: 255 12% 65%;
+
+    --accent: 285 80% 70%;
+    --accent-foreground: 260 25% 8%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 38 95% 60%;
+    --warning-foreground: 260 25% 8%;
+
+    --border: 260 14% 22%;
+    --input: 260 14% 20%;
+    --ring: 270 80% 68%;
+
+    --sidebar-background: 260 18% 10%;
+    --sidebar-foreground: 250 18% 90%;
+    --sidebar-primary: 270 80% 68%;
+    --sidebar-primary-foreground: 260 25% 8%;
+    --sidebar-accent: 260 14% 16%;
+    --sidebar-accent-foreground: 250 18% 90%;
+    --sidebar-border: 260 14% 22%;
+    --sidebar-ring: 270 80% 68%;
+
+    /* Re-derive gradients & shadows for dark mode glow */
+    --hero-gradient: linear-gradient(135deg, hsl(270 80% 60%), hsl(290 80% 65%));
+    --warm-glow: 0 8px 36px -8px hsl(270 80% 60% / 0.55);
+    --card-shadow: 0 4px 24px -4px hsl(0 0% 0% / 0.45);
+    --card-hover-shadow: 0 12px 40px -8px hsl(0 0% 0% / 0.6);
   }
 }
 

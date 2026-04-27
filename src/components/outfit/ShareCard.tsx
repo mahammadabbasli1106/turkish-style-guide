@@ -72,12 +72,14 @@ const ShareCard = forwardRef<HTMLDivElement, Props>(
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 38,
-              fontWeight: 900,
-              color: "hsl(265, 60%, 55%)",
+              overflow: "hidden",
             }}
           >
-            t
+            <img
+              src="/pwa-192x192.png"
+              alt="tarzly"
+              style={{ width: 56, height: 56, objectFit: "contain" }}
+            />
           </div>
           <div style={{ fontSize: 42, fontWeight: 700, letterSpacing: -0.5 }}>
             tarzly.ai

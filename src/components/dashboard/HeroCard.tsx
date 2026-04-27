@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Sparkles, MapPin, Loader2 } from "lucide-react";
 import {
   getWeatherCondition,
@@ -52,14 +53,13 @@ const weatherDescriptions: Record<number, string> = {
   95: "Thunderstorm",
 };
 
-// Friendly clothing hint based on temperature
-function tempHint(temp: number): string {
-  if (temp <= 0) return "Coat";
-  if (temp <= 8) return "Coat";
-  if (temp <= 12) return "Layer";
-  if (temp <= 16) return "Light";
-  if (temp <= 22) return "Jacket";
-  return "Tee";
+// Friendly clothing hint based on temperature — returns a translation key
+function tempHintKey(temp: number): string {
+  if (temp <= 8) return "tempHint.coat";
+  if (temp <= 12) return "tempHint.layer";
+  if (temp <= 16) return "tempHint.light";
+  if (temp <= 22) return "tempHint.jacket";
+  return "tempHint.tee";
 }
 
 export default function HeroCard({
@@ -69,6 +69,7 @@ export default function HeroCard({
   weatherLoading,
   location,
 }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Fetch 4-day forecast based on resolved location from current weather query
@@ -156,7 +157,7 @@ export default function HeroCard({
           {weatherLoading ? (
             <div className="flex items-center gap-3 py-2">
               <Loader2 className="h-5 w-5 animate-spin text-white" />
-              <span className="text-sm text-white/80">Loading weather…</span>
+              <span className="text-sm text-white/80">{t("dashboard.loadingWeather")}</span>
             </div>
           ) : weather ? (
             <>
@@ -215,7 +216,7 @@ export default function HeroCard({
                         {d.temperature}°
                       </span>
                       <span className="text-[8px] text-white/45 mt-0.5">
-                        {tempHint(d.temperature)}
+                        {t(tempHintKey(d.temperature))}
                       </span>
                     </div>
                   ))}
@@ -228,12 +229,12 @@ export default function HeroCard({
                 className="w-full rounded-[11px] bg-white/[0.18] hover:bg-white/[0.24] active:bg-white/30 active:scale-[0.98] transition-all border border-white/[0.28] py-2.5 px-3 flex items-center justify-center gap-1.5 font-bold text-[12px]"
               >
                 <Sparkles size={14} className="fill-white text-white" />
-                <span>Get today's outfit</span>
+                <span>{t("dashboard.getTodaysOutfit")}</span>
               </button>
             </>
           ) : (
             <p className="text-sm text-white/80 py-2">
-              Weather unavailable. Add a location in Settings.
+              {t("dashboard.weatherUnavailable")}
             </p>
           )}
         </div>

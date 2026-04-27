@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import AnimatedCounter from "./AnimatedCounter";
 
 type Props = {
@@ -11,9 +12,10 @@ type Props = {
  * next to the StreakWidget. Matches the mockup with two big number cards.
  */
 export default function StatsStack({ clothingCount, outfitCount }: Props) {
+  const { t } = useTranslation();
   const stats = [
-    { value: clothingCount, label: "items" },
-    { value: outfitCount, label: "outfits" },
+    { value: clothingCount, label: t("dashboard.items") },
+    { value: outfitCount, label: t("dashboard.outfits") },
   ];
 
   return (

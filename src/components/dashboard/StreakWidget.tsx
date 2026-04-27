@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/streakRewards";
 
 export default function StreakWidget() {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const { data: checkins = [], isLoading } = useQuery({
@@ -91,10 +93,10 @@ export default function StreakWidget() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <Flame size={11} className="text-primary-foreground/85" />
-              <p className="text-[11px] font-extrabold leading-none truncate">Style Streak</p>
+              <p className="text-[11px] font-extrabold leading-none truncate">{t("streak.title")}</p>
             </div>
             <p className="text-[10px] text-primary-foreground/55 mt-1 leading-none truncate">
-              Lv.{level} · {consecutiveStreak} day{consecutiveStreak === 1 ? "" : "s"}
+              {t("streak.levelDay", { level, count: consecutiveStreak })}
             </p>
           </div>
         </div>
@@ -104,7 +106,7 @@ export default function StreakWidget() {
           {nextReward ? (
             <>
               <p className="text-[8px] text-primary-foreground/55 font-semibold leading-none">
-                {toNext} more → unlock
+                {t("streak.moreToUnlock", { count: toNext })}
               </p>
               <p className="text-[10px] font-extrabold mt-1 leading-tight line-clamp-2">
                 {nextReward.name}
@@ -112,7 +114,7 @@ export default function StreakWidget() {
             </>
           ) : (
             <p className="text-[10px] font-extrabold leading-tight">
-              All rewards unlocked! 🎉
+              {t("streak.allUnlocked")}
             </p>
           )}
         </div>

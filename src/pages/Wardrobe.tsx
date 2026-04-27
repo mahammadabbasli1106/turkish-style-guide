@@ -229,17 +229,17 @@ export default function Wardrobe() {
         {/* Page heading */}
         <div className="text-center pt-1">
           <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">
-            My Wardrobe
+            {t("wardrobe.title")}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            {clothingItems.length} item{clothingItems.length === 1 ? "" : "s"} · {wardrobeCount}/{wardrobeLimit} slots used
+            {t("wardrobe.itemCount", { count: clothingItems.length })} · {t("wardrobe.slotsUsed", { used: wardrobeCount, total: wardrobeLimit })}
           </p>
         </div>
 
         {/* Slot usage card */}
         <div className="bg-card rounded-2xl px-4 py-3 border border-border shadow-card">
           <div className="flex items-center justify-between mb-1.5 text-xs">
-            <span className="font-semibold text-foreground">Wardrobe space</span>
+            <span className="font-semibold text-foreground">{t("wardrobe.space")}</span>
             <span className="text-muted-foreground">
               {wardrobeCount}/{wardrobeLimit}
             </span>
@@ -272,14 +272,14 @@ export default function Wardrobe() {
                     ) : (
                       <Plus className="mr-2 h-4 w-4" />
                     )}
-                    {uploading ? "Uploading…" : "Add clothing"}
+                    {uploading ? t("wardrobe.uploadingDots") : t("wardrobe.addClothing")}
                   </span>
                 </Button>
               </label>
             </TooltipTrigger>
             {!canUploadClothing && (
               <TooltipContent>
-                Wardrobe full — {wardrobeLimit} items max.
+                {t("wardrobe.full", { max: wardrobeLimit })}
               </TooltipContent>
             )}
           </Tooltip>
@@ -295,7 +295,7 @@ export default function Wardrobe() {
                 : "bg-card border border-border text-foreground hover:bg-secondary"
             }`}
           >
-            All ({clothingItems.length})
+            {t("wardrobe.all")} ({clothingItems.length})
           </button>
           {categories.map((category) => (
             <button
@@ -320,12 +320,12 @@ export default function Wardrobe() {
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <Shirt className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-            <h3 className="font-display text-xl font-semibold text-foreground mb-2">No items yet</h3>
-            <p className="text-muted-foreground mb-6">Upload photos of your clothes to build your digital wardrobe</p>
+            <h3 className="font-display text-xl font-semibold text-foreground mb-2">{t("wardrobe.noItems")}</h3>
+            <p className="text-muted-foreground mb-6">{t("wardrobe.noItemsDesc")}</p>
             <label>
               <Input type="file" accept="image/*" multiple onChange={handleFileUpload} className="sr-only" />
               <Button className="bg-gradient-primary text-primary-foreground" asChild>
-                <span><Plus className="mr-2 h-4 w-4" />Add Your First Item</span>
+                <span><Plus className="mr-2 h-4 w-4" />{t("wardrobe.addFirst")}</span>
               </Button>
             </label>
           </div>

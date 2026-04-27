@@ -175,6 +175,16 @@ export default function VirtualTryOn() {
       const compressedUserImage = await compressImage(displayImage, 512, 0.6);
       const compressedItemImage = await compressImage(primary.image_url, 512, 0.6);
 
+      // Compress every extra item's image so Gemini can actually SEE them
+      const extrasWithImages = await Promise.all(
+        extras.map(async (e) => ({
+          name: e.name,
+          category: e.category,
+          color: e.color,
+          imageBase64: await compressImage(e.image_url, 512, 0.6),
+        }))
+      );
+
       const stepTimer = setTimeout(() => setTryOnStatus("generating"), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
@@ -182,11 +192,7 @@ export default function VirtualTryOn() {
           clothingItemId: primary.id,
           userImageBase64: compressedUserImage,
           clothingImageBase64: compressedItemImage,
-          additionalItems: extras.map((e) => ({
-            name: e.name,
-            category: e.category,
-            color: e.color,
-          })),
+          additionalItems: extrasWithImages,
         },
       });
 
@@ -309,16 +315,16 @@ export default function VirtualTryOn() {
         <button
           onClick={() => navigate(-1)}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border shadow-card hover:bg-secondary transition-colors"
-          aria-label="Back"
+          aria-label={t("common.back")}
         >
           <ArrowLeft className="h-5 w-5 text-primary" />
         </button>
-        <h1 className="text-base font-semibold text-foreground">Virtual Try-On</h1>
+        <h1 className="text-base font-semibold text-foreground">{t("tryOn.title")}</h1>
         <button
           onClick={handleShare}
           disabled={!resultImage}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border shadow-card hover:bg-secondary transition-colors disabled:opacity-40"
-          aria-label="Share"
+          aria-label={t("common.share")}
         >
           <Share2 className="h-5 w-5 text-primary" />
         </button>
@@ -330,7 +336,7 @@ export default function VirtualTryOn() {
         className="space-y-5 max-w-lg mx-auto"
       >
         <h2 className="font-display text-2xl font-bold text-foreground text-center">
-          {resultImage ? "Here's how it looks on you" : "Pick a piece to try on"}
+          {resultImage ? t("tryOn.headingDone") : t("tryOn.heading")}
         </h2>
 
         {/* Two-up preview: Item → On You */}
@@ -353,7 +359,7 @@ export default function VirtualTryOn() {
             ) : (
               <>
                 <Shirt className="h-10 w-10 text-primary/70 mb-2" strokeWidth={1.5} />
-                <span className="text-sm font-semibold text-primary/80">Item</span>
+                <span className="text-sm font-semibold text-primary/80">{t("tryOn.itemSlot")}</span>
               </>
             )}
           </div>
@@ -367,7 +373,7 @@ export default function VirtualTryOn() {
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="text-xs font-medium text-primary text-center px-2">
-                  {tryOnStatus === "analyzing" ? "Analyzing…" : "Designing…"}
+                  {tryOnStatus === "analyzing" ? t("tryOn.analyzing") : t("tryOn.designing")}
                 </span>
               </div>
             ) : resultImage ? (
@@ -389,8 +395,8 @@ export default function VirtualTryOn() {
                 className="flex flex-col items-center gap-2"
               >
                 <UserIcon className="h-10 w-10 text-accent/80" strokeWidth={1.5} />
-                <span className="text-sm font-semibold text-accent">On you</span>
-                <span className="text-[10px] text-muted-foreground">Tap to upload</span>
+                <span className="text-sm font-semibold text-accent">{t("tryOn.youSlot")}</span>
+                <span className="text-[10px] text-muted-foreground">{t("tryOn.tapToUpload")}</span>
               </button>
             )}
           </div>
@@ -411,7 +417,7 @@ export default function VirtualTryOn() {
             className="bg-card rounded-2xl p-4 border border-border shadow-card space-y-3"
           >
             <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
-              Trying on ({selectedItems.length})
+              {t("tryOn.tryingOn")} ({selectedItems.length})
             </p>
             <div className="flex flex-wrap gap-2">
               {selectedItems.map((item) => (
@@ -447,7 +453,7 @@ export default function VirtualTryOn() {
               size="lg"
             >
               <Bookmark className="mr-2 h-5 w-5 text-primary" />
-              Save to wardrobe
+              {t("tryOn.saveToWardrobe")}
             </Button>
             <Button
               onClick={handleShare}
@@ -456,13 +462,13 @@ export default function VirtualTryOn() {
               size="lg"
             >
               <Share2 className="mr-2 h-5 w-5 text-primary" />
-              Share this look
+              {t("tryOn.shareLook")}
             </Button>
             <button
               onClick={handleReset}
               className="w-full text-center text-sm font-medium text-muted-foreground py-2 hover:text-foreground transition-colors"
             >
-              Try another item
+              {t("tryOn.tryAnotherItem")}
             </button>
           </div>
         ) : (
@@ -479,18 +485,18 @@ export default function VirtualTryOn() {
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   {tryOnStatus === "analyzing"
-                    ? "Analyzing your style…"
-                    : "Designing your outfit…"}
+                    ? t("tryOn.analyzingStyle")
+                    : t("tryOn.designingOutfit")}
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-5 w-5" />
-                  Try this on
+                  {t("tryOn.cta")}
                 </>
               )}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              {tryOnsLeft}/{tryOnLimit} try-ons left today
+              {t("tryOn.triesLeftToday", { used: tryOnsLeft, total: tryOnLimit })}
             </p>
           </div>
         )}
@@ -499,7 +505,7 @@ export default function VirtualTryOn() {
         {!resultImage && (
           <div className="space-y-3 pt-2">
             <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
-              From your wardrobe
+              {t("tryOn.fromWardrobe")}
             </p>
             {loadingClothes ? (
               <div className="flex items-center justify-center py-12">
@@ -508,7 +514,7 @@ export default function VirtualTryOn() {
             ) : clothingItems.length === 0 ? (
               <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-card/50">
                 <p className="text-sm text-muted-foreground">
-                  Add clothes to your wardrobe first
+                  {t("tryOn.addToWardrobeFirst")}
                 </p>
               </div>
             ) : (

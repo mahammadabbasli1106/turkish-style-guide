@@ -224,30 +224,22 @@ export default function Wardrobe() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-lg mx-auto space-y-5"
+        className="max-w-lg mx-auto space-y-3"
       >
-        {/* Page heading */}
-        <div className="text-center pt-1">
-          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">
-            {t("wardrobe.title")}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t("wardrobe.itemCount", { count: clothingItems.length })} · {t("wardrobe.slotsUsed", { used: wardrobeCount, total: wardrobeLimit })}
-          </p>
-        </div>
-
-        {/* Slot usage card */}
+        {/* Page heading + slot meter combined */}
         <div className="bg-card rounded-2xl px-4 py-3 border border-border shadow-card">
-          <div className="flex items-center justify-between mb-1.5 text-xs">
-            <span className="font-semibold text-foreground">{t("wardrobe.space")}</span>
-            <span className="text-muted-foreground">
+          <div className="flex items-baseline justify-between mb-2">
+            <h1 className="font-display text-lg font-extrabold text-foreground tracking-tight">
+              {t("wardrobe.title")}
+            </h1>
+            <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
               {wardrobeCount}/{wardrobeLimit}
             </span>
           </div>
-          <Progress value={progressPercent} className="h-1.5" />
+          <Progress value={progressPercent} className="h-1" />
         </div>
 
-        {/* Add clothing CTA */}
+        {/* Add clothing CTA + filter chips on the same row band */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -262,7 +254,7 @@ export default function Wardrobe() {
                 />
                 <Button
                   disabled={uploading || !canUploadClothing}
-                  className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-warm rounded-2xl text-sm font-bold cursor-pointer"
+                  className="w-full h-10 bg-gradient-primary text-primary-foreground shadow-warm rounded-xl text-[13px] font-bold cursor-pointer"
                   asChild
                   onClick={!canUploadClothing ? () => toast(LIMIT_REACHED_MESSAGE) : undefined}
                 >
@@ -286,10 +278,10 @@ export default function Wardrobe() {
         </TooltipProvider>
 
         {/* Category filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+            className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${
               selectedCategory === null
                 ? "bg-primary text-primary-foreground"
                 : "bg-card border border-border text-foreground hover:bg-secondary"
@@ -301,7 +293,7 @@ export default function Wardrobe() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+              className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${
                 selectedCategory === category
                   ? "bg-primary text-primary-foreground"
                   : "bg-card border border-border text-foreground hover:bg-secondary"
@@ -330,7 +322,7 @@ export default function Wardrobe() {
             </label>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
             <AnimatePresence>
               {filteredItems.map((item) => (
                 <motion.div
@@ -339,24 +331,23 @@ export default function Wardrobe() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="group relative bg-card rounded-xl overflow-hidden shadow-card border border-border hover:shadow-card-hover transition-shadow"
+                  className="group relative bg-card rounded-lg overflow-hidden shadow-card border border-border hover:shadow-card-hover transition-shadow"
                 >
                   <div className="aspect-square">
                     <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform">
-                    <p className="text-primary-foreground text-sm font-medium truncate">{item.name}</p>
-                    <p className="text-primary-foreground/70 text-xs capitalize">{item.category.replace("_", " ")}</p>
+                  <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-full group-hover:translate-y-0 transition-transform">
+                    <p className="text-primary-foreground text-[11px] font-medium truncate">{item.name}</p>
                   </div>
                   <button
                     onClick={() => deleteMutation.mutate(item.id)}
-                    className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
+                    className="absolute top-1 right-1 p-1.5 bg-destructive text-destructive-foreground rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={12} />
                   </button>
-                  <div className="absolute top-2 left-2">
-                    <span className="text-xs bg-card/90 backdrop-blur-sm px-2 py-1 rounded-full text-foreground">
+                  <div className="absolute top-1 left-1">
+                    <span className="text-[10px] bg-card/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-foreground leading-none">
                       {categoryLabels[item.category]?.split(" ")[0]}
                     </span>
                   </div>

@@ -101,29 +101,62 @@ serve(async (req) => {
 
     console.log("Editing user photo with clothing:", clothingDesc);
 
-    const parts: any[] = [
-      {
-        text: `Edit this photo of a person. Replace ONLY the clothing on the person with: ${clothingDesc}.
+    // Build an enumerated list so the prompt and images line up
+    const itemImages: { mime: string; b64: string; label: string }[] = [];
+    if (clothB64) {
+      itemImages.push({
+        mime: clothMime,
+        b64: clothB64,
+        label: `${clothingItem.name} (${clothingItem.category.replace("_", " ")})`,
+      });
+    }
+    for (const extra of additionalItems) {
+      if (!extra?.imageBase64) continue;
+      let b64 = extra.imageBase64 as string;
+      let mime = "image/jpeg";
+      if (b64.startsWith("data:")) {
+        const m = b64.match(/^data:(image\/\w+);base64,/);
+        mime = m ? m[1] : "image/jpeg";
+        b64 = b64.replace(/^data:image\/\w+;base64,/, "");
+      }
+      itemImages.push({
+        mime,
+        b64,
+        label: `${extra.name} (${String(extra.category).replace("_", " ")})`,
+      });
+    }
+
+    const itemListLines = itemImages
+      .map((it, i) => `  ${i + 2}. ${it.label}`)
+      .join("\n");
+
+    const promptText = `Edit image #1 (a photo of a person) so the person is wearing ALL of the following clothing items together as a complete outfit: ${clothingDesc}.
+
+Reference images for the clothing items (use ALL of them):
+${itemListLines}
 
 CRITICAL RULES:
-- Keep the EXACT same person - same face, same skin, same hair, same body proportions
-- Keep the EXACT same pose, position, and angle
-- Keep the EXACT same background, lighting, and environment
-- ONLY change the clothes the person is wearing
-- Make the new clothing fit naturally on the person's body
-- The second image shows the clothing item to put on the person
-- Output a photorealistic result`
-      },
+- Keep the EXACT same person — same face, skin tone, hair, and body proportions as image #1
+- Keep the EXACT same pose, camera angle, framing, background, and lighting as image #1
+- Replace ONLY the clothing on the person
+- The person MUST end up wearing every single item listed above at the same time (e.g. a jacket goes OVER the shirt, trousers on the legs, etc.)
+- Each new garment must visually match its reference image (color, pattern, cut, length, sleeves)
+- Make every garment fit naturally and layer correctly
+- Output ONE photorealistic image of the person in the full outfit`;
+
+    const parts: any[] = [
+      { text: promptText },
       { inline_data: { mime_type: userMime, data: userB64 } },
     ];
 
     // Free user image memory
     userB64 = "";
 
-    if (clothB64) {
-      parts.push({ inline_data: { mime_type: clothMime, data: clothB64 } });
-      clothB64 = "";
+    for (const it of itemImages) {
+      parts.push({ inline_data: { mime_type: it.mime, data: it.b64 } });
     }
+    itemImages.length = 0;
+    clothB64 = "";
 
     // Serialize and free parts array
     const requestBody = JSON.stringify({

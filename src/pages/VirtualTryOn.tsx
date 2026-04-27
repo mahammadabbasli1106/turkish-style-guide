@@ -175,6 +175,16 @@ export default function VirtualTryOn() {
       const compressedUserImage = await compressImage(displayImage, 512, 0.6);
       const compressedItemImage = await compressImage(primary.image_url, 512, 0.6);
 
+      // Compress every extra item's image so Gemini can actually SEE them
+      const extrasWithImages = await Promise.all(
+        extras.map(async (e) => ({
+          name: e.name,
+          category: e.category,
+          color: e.color,
+          imageBase64: await compressImage(e.image_url, 512, 0.6),
+        }))
+      );
+
       const stepTimer = setTimeout(() => setTryOnStatus("generating"), 4000);
 
       const { data, error } = await supabase.functions.invoke("virtual-try-on", {
@@ -182,11 +192,7 @@ export default function VirtualTryOn() {
           clothingItemId: primary.id,
           userImageBase64: compressedUserImage,
           clothingImageBase64: compressedItemImage,
-          additionalItems: extras.map((e) => ({
-            name: e.name,
-            category: e.category,
-            color: e.color,
-          })),
+          additionalItems: extrasWithImages,
         },
       });
 

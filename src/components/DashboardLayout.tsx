@@ -142,7 +142,7 @@ export default function DashboardLayout({ children }: Props) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
+        <main className="flex-1 min-w-0 w-full p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden">
           {children}
         </main>
       </div>

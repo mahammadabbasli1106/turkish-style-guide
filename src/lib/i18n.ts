@@ -598,6 +598,8 @@ const resources = {
       "common.continue": "Devam Et",
       "common.download": "İndir",
       "common.share": "Paylaş",
+      "common.camera": "Kamera",
+      "common.gallery": "Galeri",
       
       // Weather
       "weather.current": "Mevcut Hava",

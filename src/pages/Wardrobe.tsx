@@ -278,7 +278,7 @@ export default function Wardrobe() {
         </TooltipProvider>
 
         {/* Category filter chips */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setSelectedCategory(null)}
             className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${

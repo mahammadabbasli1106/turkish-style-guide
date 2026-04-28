@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Camera, Upload, Loader2, X } from "lucide-react";
+import { Camera, ImageIcon, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/imageUtils";
 
@@ -11,7 +11,8 @@ interface StepFullBodyPhotoProps {
 
 export default function StepFullBodyPhoto({ photo, setPhoto, t }: StepFullBodyPhotoProps) {
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     setLoading(true);

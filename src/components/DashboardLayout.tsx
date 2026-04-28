@@ -7,6 +7,7 @@ import LanguageSwitch from "@/components/LanguageSwitch";
 import BottomTabBar from "@/components/BottomTabBar";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { motion } from "framer-motion";
+import tarzlyIcon from "@/assets/tarzly-icon.png";
 import { 
   Home, 
   Shirt, 

@@ -224,7 +224,7 @@ export default function Wardrobe() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-lg mx-auto space-y-3"
+        className="max-w-lg mx-auto space-y-3 w-full overflow-x-hidden"
       >
         {/* Page heading + slot meter combined */}
         <div className="bg-card rounded-2xl px-4 py-3 border border-border shadow-card">
@@ -278,7 +278,7 @@ export default function Wardrobe() {
         </TooltipProvider>
 
         {/* Category filter chips */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setSelectedCategory(null)}
             className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${
@@ -322,7 +322,7 @@ export default function Wardrobe() {
             </label>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 w-full">
             <AnimatePresence>
               {filteredItems.map((item) => (
                 <motion.div

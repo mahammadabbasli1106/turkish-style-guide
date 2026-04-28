@@ -57,28 +57,60 @@ export default function StepFullBodyPhoto({ photo, setPhoto, t }: StepFullBodyPh
           </button>
         </div>
       ) : (
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="w-48 h-64 mx-auto rounded-2xl border-2 border-dashed border-gray-300 bg-white flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#8A70D6] transition-colors shadow-sm"
-        >
-          {loading ? (
-            <Loader2 className="h-8 w-8 animate-spin text-[#8A70D6]" />
-          ) : (
-            <>
-              <Camera className="h-10 w-10 text-gray-400" />
-              <span className="text-sm text-gray-500 font-medium">
-                {t("onboarding.tapToUpload")}
-              </span>
-            </>
-          )}
+        <div className="w-48 mx-auto space-y-3">
+          <div className="w-48 h-64 rounded-2xl border-2 border-dashed border-gray-300 bg-white flex flex-col items-center justify-center gap-3 shadow-sm">
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-[#8A70D6]" />
+            ) : (
+              <>
+                <Camera className="h-10 w-10 text-gray-400" />
+                <span className="text-sm text-gray-500 font-medium px-4 text-center">
+                  {t("onboarding.tapToUpload")}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={loading}
+              className="h-11 rounded-xl"
+            >
+              <Camera className="h-4 w-4 mr-1" />
+              {t("onboarding.camera") || "Camera"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={loading}
+              className="h-11 rounded-xl"
+            >
+              <ImageIcon className="h-4 w-4 mr-1" />
+              {t("onboarding.gallery") || "Gallery"}
+            </Button>
+          </div>
         </div>
       )}
 
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

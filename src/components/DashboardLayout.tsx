@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: Props) {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile header */}
-       <header className="lg:hidden sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
+       <header className="lg:hidden sticky top-0 z-50 bg-background pt-3.5 pb-2.5 px-4">
         <div className="flex items-center justify-between">
           <motion.div
             initial={{ opacity: 0, y: -8 }}

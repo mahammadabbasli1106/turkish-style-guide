@@ -212,7 +212,7 @@ export default function InstantFit() {
                   </Button>
                   <Button variant="outline" onClick={() => galleryInputRef.current?.click()} className="h-12">
                     <ImageIcon className="mr-2 h-4 w-4" />
-                    {t("instantFit.fromGallery") || "Gallery"}
+                    {t("common.gallery")}
                   </Button>
                 </div>
               )}

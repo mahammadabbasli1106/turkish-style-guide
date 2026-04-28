@@ -19,6 +19,7 @@ export default function InstantFit() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "analyzing" | "generating" | "completed">("idle");
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const { recordUsage } = useUsageLimits();
 
   // Instant fit has its own 2-usage limit

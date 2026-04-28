@@ -224,7 +224,7 @@ export default function Wardrobe() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-lg mx-auto space-y-3"
+        className="max-w-lg mx-auto space-y-3 w-full overflow-x-hidden"
       >
         {/* Page heading + slot meter combined */}
         <div className="bg-card rounded-2xl px-4 py-3 border border-border shadow-card">

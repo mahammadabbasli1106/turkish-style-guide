@@ -322,7 +322,7 @@ export default function Wardrobe() {
             </label>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 w-full">
             <AnimatePresence>
               {filteredItems.map((item) => (
                 <motion.div
@@ -331,9 +331,9 @@ export default function Wardrobe() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="group relative bg-card rounded-lg overflow-hidden shadow-card border border-border hover:shadow-card-hover transition-shadow"
+                  className="group relative bg-card rounded-lg overflow-hidden shadow-card border border-border hover:shadow-card-hover transition-shadow min-w-0"
                 >
-                  <div className="aspect-square">
+                  <div className="aspect-[3/4]">
                     <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -166,6 +166,8 @@ const resources = {
       "common.continue": "Continue",
       "common.download": "Download",
       "common.share": "Share",
+      "common.camera": "Camera",
+      "common.gallery": "Gallery",
       
       // Weather
       "weather.current": "Current Weather",

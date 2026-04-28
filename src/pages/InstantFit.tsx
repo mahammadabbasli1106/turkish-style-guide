@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2 } from "lucide-react";
+import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2, ImageIcon } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

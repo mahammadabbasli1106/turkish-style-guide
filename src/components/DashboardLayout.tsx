@@ -7,6 +7,7 @@ import LanguageSwitch from "@/components/LanguageSwitch";
 import BottomTabBar from "@/components/BottomTabBar";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { motion } from "framer-motion";
+import tarzlyIcon from "@/assets/tarzly-icon.png";
 import { 
   Home, 
   Shirt, 
@@ -57,8 +58,9 @@ export default function DashboardLayout({ children }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <Link to="/dashboard" className="font-display text-xl font-bold text-gradient">
-              tarzly.ai
+            <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
+              <img src={tarzlyIcon} alt="" className="w-8 h-8 rounded-lg shrink-0" />
+              <span className="font-display text-lg font-bold text-gradient truncate">tarzly.ai</span>
             </Link>
           </motion.div>
           <motion.div
@@ -142,7 +144,7 @@ export default function DashboardLayout({ children }: Props) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
+        <main className="flex-1 min-w-0 w-full p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden">
           {children}
         </main>
       </div>

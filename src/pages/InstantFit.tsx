@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2 } from "lucide-react";
+import { Camera, Loader2, RefreshCw, Sparkles, ShoppingBag, Download, Share2, ImageIcon } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ export default function InstantFit() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "analyzing" | "generating" | "completed">("idle");
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const { recordUsage } = useUsageLimits();
 
   // Instant fit has its own 2-usage limit
@@ -188,7 +189,7 @@ export default function InstantFit() {
             <motion.div key="capture" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div
                 className="aspect-[3/4] bg-card rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={() => clothingPhoto ? cameraInputRef.current?.click() : undefined}
               >
                 {clothingPhoto ? (
                   <img src={clothingPhoto} alt="Clothing" className="w-full h-full object-cover" />
@@ -201,6 +202,20 @@ export default function InstantFit() {
                 )}
               </div>
               <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCapture} className="hidden" />
+              <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleCapture} className="hidden" />
+
+              {!clothingPhoto && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={() => cameraInputRef.current?.click()} className="h-12">
+                    <Camera className="mr-2 h-4 w-4" />
+                    {t("instantFit.takePhoto") || "Camera"}
+                  </Button>
+                  <Button variant="outline" onClick={() => galleryInputRef.current?.click()} className="h-12">
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                    {t("instantFit.fromGallery") || "Gallery"}
+                  </Button>
+                </div>
+              )}
 
               {clothingPhoto && (
                 <div className="space-y-2">

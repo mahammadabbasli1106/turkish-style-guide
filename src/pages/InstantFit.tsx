@@ -208,11 +208,11 @@ export default function InstantFit() {
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" onClick={() => cameraInputRef.current?.click()} className="h-12">
                     <Camera className="mr-2 h-4 w-4" />
-                    {t("instantFit.takePhoto") || "Camera"}
+                    {t("common.camera")}
                   </Button>
                   <Button variant="outline" onClick={() => galleryInputRef.current?.click()} className="h-12">
                     <ImageIcon className="mr-2 h-4 w-4" />
-                    {t("instantFit.fromGallery") || "Gallery"}
+                    {t("common.gallery")}
                   </Button>
                 </div>
               )}

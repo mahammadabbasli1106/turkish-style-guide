@@ -1,0 +1,28 @@
+project_id = "cworgqktortraxwguedr"
+
+[functions.categorize-clothing]
+verify_jwt = false
+
+[functions.suggest-outfit]
+verify_jwt = false
+
+[functions.virtual-try-on]
+verify_jwt = false
+
+[functions.style-chat]
+verify_jwt = false
+
+[functions.travel-weather]
+verify_jwt = false
+
+[functions.travel-packing]
+verify_jwt = false
+
+[functions.instant-fit]
+verify_jwt = false
+
+[functions.daily-tip]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false

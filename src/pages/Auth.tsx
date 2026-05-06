@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
 import { Loader2, X, Mail, ArrowLeft, RefreshCw, KeyRound } from "lucide-react";
 import LanguageSwitch from "@/components/LanguageSwitch";
-import { lovable } from "@/integrations/lovable";
+
 import tarzlyIcon from "@/assets/tarzly-icon.png";
 
 const LogoBlock = () => (
@@ -222,9 +222,7 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
       if (error) toast.error(error.message);
     } catch {
       toast.error("Failed to sign in with Google");

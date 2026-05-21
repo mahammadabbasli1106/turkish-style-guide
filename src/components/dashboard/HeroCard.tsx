@@ -66,7 +66,7 @@ export default function HeroCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="relative w-full text-left overflow-hidden rounded-[26px] p-5 text-white shadow-warm active:scale-[0.99] transition-transform"
-        style={{ background: "#5b21d6" }}
+        style={{ background: "#4f46e5" }}
       >
         {/* Decorative circle */}
         <div
@@ -116,7 +116,7 @@ export default function HeroCard({
             <div
               className="flex-1 rounded-[13px] bg-white py-[13px] px-5 flex items-center justify-center gap-2"
             >
-              <Sparkles size={16} style={{ color: "#5b21d6" }} className="fill-current" />
+              <Sparkles size={16} style={{ color: "#4f46e5" }} className="fill-current" />
               <span className="text-[15px] font-bold" style={{ color: "#1a1a1a" }}>
                 {t("dashboard.getTodaysOutfit")}
               </span>

@@ -58,7 +58,7 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="flex flex-col sm:flex-row gap-4 mb-14"
           >
-            <Link to="/auth" className="bg-gradient-primary text-primary-foreground px-8 py-4 rounded-xl text-base font-semibold shadow-warm hover:opacity-90 transition-opacity text-center">
+            <Link to="/dashboard" className="bg-gradient-primary text-primary-foreground px-8 py-4 rounded-xl text-base font-semibold shadow-warm hover:opacity-90 transition-opacity text-center">
               Start Your Style Journey
             </Link>
             <a href="#how-it-works" className="border border-border text-foreground px-8 py-4 rounded-xl text-base font-semibold hover:bg-secondary transition-colors text-center">

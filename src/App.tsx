@@ -37,7 +37,6 @@ function RootRedirect() {
 
 const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
-  { path: "/auth", element: <Auth /> },
   { path: "/onboarding", element: <Onboarding /> },
   
   { path: "/dashboard", element: <Dashboard /> },

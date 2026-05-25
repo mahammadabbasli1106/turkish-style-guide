@@ -205,7 +205,7 @@ export default function Wardrobe() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  
 
   const categories = Object.keys(categoryLabels);
   const filteredItems = selectedCategory

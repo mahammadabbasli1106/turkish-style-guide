@@ -97,7 +97,7 @@ export default function OutfitResult() {
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  
   if (!suggestion) return <Navigate to="/dashboard/suggest" replace />;
 
   const itemList = (Object.entries(suggestion.items) as [string, OutfitItem][])

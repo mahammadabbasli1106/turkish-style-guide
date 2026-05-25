@@ -256,9 +256,6 @@ export default function OutfitHistory() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   const filteredOutfits =
     filter === "favorites" ? outfits.filter((o) => o.is_favorite) : outfits;

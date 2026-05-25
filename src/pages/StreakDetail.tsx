@@ -41,7 +41,7 @@ export default function StreakDetail() {
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  
 
   const totalCheckins = checkins.length;
   const level = getLevel(totalCheckins);

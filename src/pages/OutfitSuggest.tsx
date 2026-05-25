@@ -284,9 +284,6 @@ export default function OutfitSuggest() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   const hasEnoughClothes = clothingCount >= 3;
   const hasFullBodyPhoto = !!(profile as any)?.full_body_photo_url;

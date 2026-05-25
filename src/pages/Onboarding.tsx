@@ -161,7 +161,7 @@ export default function Onboarding() {
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  
   if (onboardingDone) return <Navigate to="/dashboard" replace />;
 
   const goNext = () => { setDirection(1); setStep((s) => s + 1); };

@@ -305,7 +305,7 @@ export default function VirtualTryOn() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  
 
   const primarySelected = selectedItems[0];
   return (

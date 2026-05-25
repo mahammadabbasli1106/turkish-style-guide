@@ -287,9 +287,6 @@ export default function Settings() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   const selectedAvatarUrl = AVATARS.find(a => a.id === selectedAvatar)?.url || AVATARS[0].url;
 

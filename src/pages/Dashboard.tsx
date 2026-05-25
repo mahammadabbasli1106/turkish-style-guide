@@ -154,7 +154,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  
 
   const firstName = profile?.display_name?.split(" ")[0] || user.email?.split("@")[0] || "";
 

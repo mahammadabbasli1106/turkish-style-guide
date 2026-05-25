@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -154,7 +154,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  
 
   const firstName = profile?.display_name?.split(" ")[0] || user.email?.split("@")[0] || "";
 

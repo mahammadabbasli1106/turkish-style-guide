@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -284,9 +284,6 @@ export default function OutfitSuggest() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   const hasEnoughClothes = clothingCount >= 3;
   const hasFullBodyPhoto = !!(profile as any)?.full_body_photo_url;

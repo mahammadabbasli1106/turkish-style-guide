@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Navigate } from "react-router-dom";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -147,7 +147,7 @@ export default function InstantFit() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  
 
   return (
     <DashboardLayout>

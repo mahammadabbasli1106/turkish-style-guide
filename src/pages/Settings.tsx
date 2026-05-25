@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Navigate, useNavigate, useBlocker } from "react-router-dom";
+import { useNavigate, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -287,9 +287,6 @@ export default function Settings() {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   const selectedAvatarUrl = AVATARS.find(a => a.id === selectedAvatar)?.url || AVATARS[0].url;
 

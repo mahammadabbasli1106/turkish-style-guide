@@ -4,11 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { AuthProvider } from "@/contexts/AuthContext";
 import SplashScreen from "@/components/SplashScreen";
 import "@/lib/i18n";
-import Auth from "./pages/Auth";
 
 import Dashboard from "./pages/Dashboard";
 import Wardrobe from "./pages/Wardrobe";
@@ -26,46 +24,19 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { user, loading } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [onboardingDone, setOnboardingDone] = useState(false);
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    if (!user) { setChecking(false); return; }
-    supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("auth_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        const done = !!data?.onboarding_completed;
-        setOnboardingDone(done);
-        if (done) {
-          // Returning user — show splash
-          setShowSplash(true);
-          setTimeout(() => setShowSplash(false), 2000);
-        }
-        setChecking(false);
-      });
-  }, [user]);
+    const timer = setTimeout(() => setShowSplash(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  if (loading || checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/auth" replace />;
-  if (!onboardingDone) return <Navigate to="/onboarding" replace />;
   if (showSplash) return <SplashScreen />;
   return <Navigate to="/dashboard" replace />;
 }
 
 const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
-  { path: "/auth", element: <Auth /> },
   { path: "/onboarding", element: <Onboarding /> },
   
   { path: "/dashboard", element: <Dashboard /> },

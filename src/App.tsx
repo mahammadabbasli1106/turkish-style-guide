@@ -24,39 +24,13 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { user, loading } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [onboardingDone, setOnboardingDone] = useState(false);
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    if (!user) { setChecking(false); return; }
-    supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("auth_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        const done = !!data?.onboarding_completed;
-        setOnboardingDone(done);
-        if (done) {
-          // Returning user — show splash
-          setShowSplash(true);
-          setTimeout(() => setShowSplash(false), 2000);
-        }
-        setChecking(false);
-      });
-  }, [user]);
+    const timer = setTimeout(() => setShowSplash(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  if (loading || checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/auth" replace />;
-  if (!onboardingDone) return <Navigate to="/onboarding" replace />;
   if (showSplash) return <SplashScreen />;
   return <Navigate to="/dashboard" replace />;
 }
